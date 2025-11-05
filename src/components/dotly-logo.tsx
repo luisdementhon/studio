@@ -4,52 +4,25 @@ import { cn } from '@/lib/utils';
 export function DotlyLogo(props: SVGProps<SVGSVGElement>) {
   return (
     <svg
-      viewBox="0 0 200 50"
+      viewBox="0 0 160 90"
       xmlns="http://www.w3.org/2000/svg"
       aria-label="Dotly Logo"
       {...props}
-      className={cn('text-foreground', props.className)}
+      className={cn(props.className)}
     >
-      <path
-        d="M23.6,48.6C10.5,48.6,0,37.8,0,24.3S10.5,0,23.6,0s23.6,10.8,23.6,24.3S36.7,48.6,23.6,48.6z M23.6,4.5
-        C13.2,4.5,4.7,13.2,4.7,24.3s8.5,19.8,18.9,19.8s18.9-8.9,18.9-19.8S34,4.5,23.6,4.5z"
-        fill="currentColor"
-      />
-      <path
-        d="M68.9,48.6c-13.1,0-23.6-10.8-23.6-24.3S55.8,0,68.9,0s23.6,10.8,23.6,24.3S82,48.6,68.9,48.6z M68.9,4.5
-        c-10.4,0-18.9,8.9-18.9,19.8s8.5,19.8,18.9,19.8s18.9-8.9,18.9-19.8S79.3,4.5,68.9,4.5z"
-        fill="currentColor"
-      />
-      <path
-        d="M102.8,4.5v39.6h-4.8V26.8h-0.1c-1,3.4-4.8,5.7-9,5.7c-6,0-10.2-4.5-10.2-10.8c0-6,4-10.7,10.1-10.7
-        c4.1,0,7.9,2.2,9.1,5.5h0.1V4.5H102.8z M97.9,16.5c-1.3-3-4.2-4.9-7.8-4.9c-5,0-7.8,4-7.8,8.4c0,4.3,2.8,8.4,7.8,8.4
-        c3.6,0,6.5-2,7.8-4.9V16.5z"
-        fill="currentColor"
-      />
-      <path d="M99,22.2h14.8v4.5H99V22.2z" fill="currentColor" />
-      <path
-        d="M130.4,44.1h-4.8V4.5h4.8V44.1z"
-        fill="currentColor"
-      />
-      <path
-        d="M165,44.1h-5.2l-3.9-6.3c-2.3,1.3-5,2.1-7.8,2.1c-6.6,0-12.4-5.3-12.4-14.3c0-9.2,6.2-14.9,13.9-14.9
-        c4.4,0,7.1,1.1,8.3,2.2l-2,3.7c-0.9-0.8-2.8-1.8-5.3-1.8c-5.3,0-8.9,3.7-8.9,10.8s3.4,10.2,8.4,10.2c3,0,5.7-1.1,7.5-2.7
-        l4.2,6.5V44.1z"
-        fill="currentColor"
-      />
-      <path
-        d="M198.8,44.1h-5.1l-9.6-13.4v13.4h-4.8V4.5h5.1l9.6,13.4V4.5h4.8V44.1z"
-        fill="currentColor"
-      />
-      <path
-        d="M189.6,33.5c-4.8,0-8.5-3.8-8.5-8.8s3.7-8.8,8.5-8.8s8.5,3.8,8.5,8.8S194.4,33.5,189.6,33.5z M189.6,18.2
-        c-2.3,0-3.8,2.1-3.8,4.5s1.5,4.5,3.8,4.5s3.8-2.1,3.8-4.5S191.9,18.2,189.6,18.2z"
-        fill="currentColor"
-      />
-      <path
-        d="M189.6,1c-1.3,0-2.3,1-2.3,2.3s1,2.3,2.3,2.3s2.3-1,2.3-2.3S190.9,1,189.6,1z"
-        fill="currentColor"
-      />
+      <rect width="160" height="90" fill="white" />
+      <text
+        x="50%"
+        y="50%"
+        dominantBaseline="middle"
+        textAnchor="middle"
+        fill="#000000"
+        fontFamily="'Playfair Display', 'Times New Roman', serif"
+        fontWeight="bold"
+        fontSize="18"
+      >
+        Dotly
+      </text>
     </svg>
   );
 }
