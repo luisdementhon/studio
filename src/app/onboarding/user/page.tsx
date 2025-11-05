@@ -27,6 +27,8 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Slider } from "@/components/ui/slider";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Separator } from "@/components/ui/separator";
+import { ConnectBridgeAccount } from "@/components/connect-bridge-account";
 
 const causes = [
   { id: "environnement", label: "Environnement" },
@@ -220,6 +222,14 @@ export default function UserOnboardingPage() {
                   </FormItem>
                 )}
               />
+              <Separator />
+              <div className="space-y-4">
+                  <FormLabel className="text-base">Connexion bancaire</FormLabel>
+                  <FormDescription>
+                    Connectez votre compte bancaire pour activer l'arrondi automatique à chaque transaction. C'est sécurisé et vous gardez le contrôle.
+                  </FormDescription>
+                  <ConnectBridgeAccount />
+              </div>
             </CardContent>
             <CardFooter className="flex-col gap-2">
               <Button type="submit" disabled={isPending || !user} className="w-full">
