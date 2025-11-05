@@ -5,6 +5,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import type { z } from "zod";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { signInWithEmailAndPassword } from "firebase/auth";
 
 import { LoginSchema } from "@/lib/schemas";
 import { Button } from "@/components/ui/button";
@@ -25,12 +26,13 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { initiateEmailSignIn } from "@/firebase/non-blocking-login";
 import { useAuth } from "@/firebase";
+import { useToast } from "@/hooks/use-toast";
 
 export default function LoginPage() {
   const auth = useAuth();
   const router = useRouter();
+  const { toast } = useToast();
 
   const form = useForm<z.infer<typeof LoginSchema>>({
     resolver: zodResolver(LoginSchema),
@@ -40,9 +42,17 @@ export default function LoginPage() {
     },
   });
 
-  const onSubmit = (values: z.infer<typeof LoginSchema>) => {
-    initiateEmailSignIn(auth, values.email, values.password);
-    router.push('/auth/loading');
+  const onSubmit = async (values: z.infer<typeof LoginSchema>) => {
+    try {
+      await signInWithEmailAndPassword(auth, values.email, values.password);
+      router.push('/auth/loading');
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Erreur de connexion",
+        description: "L'adresse e-mail ou le mot de passe est incorrect.",
+      });
+    }
   };
 
   return (
@@ -92,8 +102,8 @@ export default function LoginPage() {
             />
           </CardContent>
           <CardFooter className="flex flex-col gap-4">
-            <Button type="submit" className="w-full">
-              Se connecter
+            <Button type="submit" className="w-full" disabled={form.formState.isSubmitting}>
+              {form.formState.isSubmitting ? "Connexion..." : "Se connecter"}
             </Button>
             <div className="text-sm text-muted-foreground">
               Pas encore de compte ?{" "}

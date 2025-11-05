@@ -5,6 +5,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import type { z } from "zod";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { createUserWithEmailAndPassword } from "firebase/auth";
 
 import { SignupSchema } from "@/lib/schemas";
 import { Button } from "@/components/ui/button";
@@ -26,12 +27,13 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/firebase";
-import { initiateEmailSignUp } from "@/firebase/non-blocking-login";
+import { useToast } from "@/hooks/use-toast";
 
 
 export default function SignupPage() {
   const auth = useAuth();
   const router = useRouter();
+  const { toast } = useToast();
 
   const form = useForm<z.infer<typeof SignupSchema>>({
     resolver: zodResolver(SignupSchema),
@@ -42,9 +44,25 @@ export default function SignupPage() {
     },
   });
 
-  const onSubmit = (values: z.infer<typeof SignupSchema>) => {
-    initiateEmailSignUp(auth, values.email, values.password);
-    router.push('/auth/loading');
+  const onSubmit = async (values: z.infer<typeof SignupSchema>) => {
+    try {
+      await createUserWithEmailAndPassword(auth, values.email, values.password);
+      router.push('/auth/loading');
+    } catch (error: any) {
+      if (error.code === 'auth/email-already-in-use') {
+        toast({
+          variant: "destructive",
+          title: "Erreur d'inscription",
+          description: "Cette adresse email est déjà utilisée. Veuillez vous connecter.",
+        });
+      } else {
+        toast({
+          variant: "destructive",
+          title: "Erreur d'inscription",
+          description: "Une erreur est survenue. Veuillez réessayer.",
+        });
+      }
+    }
   };
 
   return (
@@ -111,8 +129,8 @@ export default function SignupPage() {
             />
           </CardContent>
           <CardFooter className="flex flex-col gap-4">
-            <Button type="submit" className="w-full">
-              Créer mon compte
+            <Button type="submit" className="w-full" disabled={form.formState.isSubmitting}>
+              {form.formState.isSubmitting ? "Création..." : "Créer mon compte"}
             </Button>
             <div className="text-sm text-muted-foreground">
               Vous avez déjà un compte ?{" "}
