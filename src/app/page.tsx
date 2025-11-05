@@ -11,12 +11,14 @@ export default function Home() {
         </Link>
       </header>
       <div className="flex-grow flex flex-col items-center justify-center text-center px-4 -mt-16">
-        <h1 className="text-4xl md:text-6xl font-normal text-foreground tracking-tight">
-          <em className="font-body italic">Petite monnaie,</em>
-        </h1>
-        <h2 className="text-4xl md:text-6xl font-bold text-foreground tracking-tight mt-2">
-          grands gestes.
-        </h2>
+        <div className="-mt-16">
+          <h1 className="text-4xl md:text-6xl font-normal text-foreground tracking-tight">
+            <em className="font-body italic">Petite monnaie,</em>
+          </h1>
+          <h2 className="text-4xl md:text-6xl font-bold text-foreground tracking-tight mt-2">
+            grands gestes.
+          </h2>
+        </div>
         <p className="mt-6 max-w-2xl text-lg text-muted-foreground">
           À chaque achat par carte, arrondissez à l’euro supérieur et reversez la différence à des associations qui vous tiennent à cœur. Simple, automatique, puissant.
         </p>
