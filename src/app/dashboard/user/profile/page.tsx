@@ -237,7 +237,7 @@ export default function UserProfilePage() {
                   <CardTitle>Connexions Bancaires</CardTitle>
                   <CardDescription>Connectez vos comptes pour activer l'arrondi automatique.</CardDescription>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="space-y-4">
                     <ConnectBridgeAccount />
                 </CardContent>
               </Card>

@@ -1,43 +1,19 @@
 "use client";
 
-import { useState } from "react";
-import { Button } from "./ui/button";
-import { useToast } from "@/hooks/use-toast";
-import { useUser } from "@/firebase";
-
-// We will use the useBridge hook once the package is installed.
-// For now, we'll simulate the behavior.
-// import { useBridge } from "@bridge-api/integration-react";
-import { BRIDGE_CLIENT_ID } from "@/lib/bridge";
-
+import { Alert, AlertDescription, AlertTitle } from "./ui/alert";
+import { Terminal } from "lucide-react";
 
 export function ConnectBridgeAccount() {
+
+  // The Bridge integration is paused because the npm package is not available.
+  // The code is kept here as a reference for when the package is restored.
+  
+  /*
   const { toast } = useToast();
   const { user } = useUser();
   const [isLoading, setIsLoading] = useState(false);
   const [accessToken, setAccessToken] = useState<string | null>(null);
 
-  // This is a placeholder for the real `connect` function from `useBridge`
-  const handleConnect = () => {
-      setIsLoading(true);
-      toast({
-          title: "Simulation",
-          description: "Le package Bridge n'est pas encore installé. C'est une simulation.",
-      });
-
-      // Simulate a successful connection for UI purposes
-      setTimeout(() => {
-          setAccessToken(`simulated_token_for_${user?.uid}`);
-          toast({
-              title: "Connexion simulée réussie !",
-              description: "Ceci est une simulation de connexion de compte.",
-          });
-          setIsLoading(false);
-      }, 1500);
-  };
-  
-  /* 
-  // This is the actual code we'll use once the package is installed.
   const { connect } = useBridge({
     clientId: BRIDGE_CLIENT_ID,
     email: user?.email || undefined, 
@@ -68,8 +44,6 @@ export function ConnectBridgeAccount() {
     setIsLoading(true);
     connect();
   };
-  */
-
 
   if (accessToken) {
     return (
@@ -81,8 +55,19 @@ export function ConnectBridgeAccount() {
   }
 
   return (
-    <Button onClick={handleConnect} disabled={isLoading} className="w-full">
+    <Button onClick={handleConnect} disabled={isLoading || !BRIDGE_CLIENT_ID} className="w-full">
       {isLoading ? "Chargement de Bridge..." : "Connecter mon compte bancaire"}
     </Button>
   );
+  */
+
+  return (
+    <Alert>
+        <Terminal className="h-4 w-4" />
+        <AlertTitle>Intégration en cours</AlertTitle>
+        <AlertDescription>
+            La connexion aux comptes bancaires via Bridge est en cours de développement. Cette fonctionnalité sera bientôt disponible.
+        </AlertDescription>
+    </Alert>
+  )
 }
