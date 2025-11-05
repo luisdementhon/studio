@@ -12,7 +12,7 @@ export default function Home() {
       </header>
       <div className="flex-grow flex flex-col items-center justify-center text-center px-4 -mt-20">
         <h1 className="text-4xl md:text-6xl font-normal text-foreground tracking-tight">
-          Petite monnaie,
+          <em className="font-headline">Petite monnaie,</em>
         </h1>
         <h2 className="text-4xl md:text-6xl font-bold text-foreground tracking-tight mt-2">
           grands gestes.
