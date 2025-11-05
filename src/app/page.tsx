@@ -11,10 +11,10 @@ export default function Home() {
         </Link>
       </header>
       <div className="flex-grow flex flex-col items-center justify-center text-center px-4 -mt-20">
-        <h1 className="text-4xl md:text-6xl font-bold text-foreground tracking-tight font-headline">
+        <h1 className="text-4xl md:text-6xl font-normal text-foreground tracking-tight">
           Petite monnaie,
         </h1>
-        <h2 className="text-4xl md:text-6xl font-bold text-foreground tracking-tight mt-2 font-headline italic">
+        <h2 className="text-4xl md:text-6xl font-bold text-foreground tracking-tight mt-2">
           grands gestes.
         </h2>
         <p className="mt-6 max-w-2xl text-lg text-muted-foreground">
