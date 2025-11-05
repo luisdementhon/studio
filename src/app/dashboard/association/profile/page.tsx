@@ -3,7 +3,7 @@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import type { z } from "zod";
-import { useTransition } from "react";
+import { useEffect, useTransition } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { AssociationOnboardingSchema } from "@/lib/schemas";
 import { Button } from "@/components/ui/button";
@@ -20,10 +20,23 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { useUser, useFirestore, useDoc, useMemoFirebase } from "@/firebase";
+import { doc } from "firebase/firestore";
+import { setDocumentNonBlocking } from "@/firebase/non-blocking-updates";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export default function AssociationProfilePage() {
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
+  const { user, isUserLoading } = useUser();
+  const firestore = useFirestore();
+
+  const associationDocRef = useMemoFirebase(() => {
+    if (!user) return null;
+    return doc(firestore, 'associations', user.uid);
+  }, [firestore, user]);
+
+  const { data: associationData, isLoading: isProfileLoading } = useDoc(associationDocRef);
 
   const form = useForm<z.infer<typeof AssociationOnboardingSchema>>({
     resolver: zodResolver(AssociationOnboardingSchema),
@@ -38,14 +51,35 @@ export default function AssociationProfilePage() {
     },
   });
 
+  useEffect(() => {
+    if (associationData) {
+      form.reset(associationData);
+    }
+  }, [associationData, form]);
+
   function onSubmit(values: z.infer<typeof AssociationOnboardingSchema>) {
+    if (!associationDocRef) return;
     startTransition(() => {
-      console.log(values);
+      setDocumentNonBlocking(associationDocRef, values, { merge: true });
       toast({
         title: "Profil mis à jour",
         description: "Les informations de l'association ont été enregistrées.",
       });
     });
+  }
+
+  const isLoading = isUserLoading || isProfileLoading;
+
+  if (isLoading) {
+    return (
+      <div className="flex flex-col gap-8">
+        <Skeleton className="h-12 w-1/3" />
+        <Skeleton className="h-[500px] w-full" />
+        <div className="flex justify-end">
+          <Skeleton className="h-10 w-48" />
+        </div>
+      </div>
+    );
   }
 
   return (
