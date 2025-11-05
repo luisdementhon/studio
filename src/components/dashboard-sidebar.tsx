@@ -79,11 +79,11 @@ export function DashboardSidebar() {
 
   return (
     <Sidebar>
-      <SidebarHeader className="flex items-center justify-between">
+      <SidebarHeader className="flex flex-col items-start gap-4">
         <Link href="/" className="text-primary transition-colors duration-300 hover:text-primary/80">
           <DotlyLogo className="w-24 text-sidebar-primary" />
         </Link>
-        <SidebarTrigger className="md:hidden"/>
+        <SidebarTrigger className="hidden md:flex" />
       </SidebarHeader>
       <SidebarContent>
         <SidebarMenu>
