@@ -21,6 +21,7 @@ export const UserOnboardingSchema = z.object({
   associations: z.array(z.string()).optional(),
   donationCeiling: z.number().min(0, "Le plafond doit être un nombre positif.").optional().default(50),
   donationMultiplier: z.number().min(1, "Le multiplicateur doit être d'au moins 1.").optional().default(1),
+  otherCause: z.string().optional(),
 });
 
 export const AssociationOnboardingSchema = z.object({

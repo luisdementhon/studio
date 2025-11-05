@@ -42,8 +42,11 @@ export default function UserProfilePage() {
       associations: [],
       donationCeiling: 50,
       donationMultiplier: 1,
+      otherCause: "",
     },
   });
+
+  const watchedCauses = form.watch("causes", []);
 
   function onSubmit(values: z.infer<typeof UserOnboardingSchema>) {
     startTransition(() => {
@@ -85,7 +88,7 @@ export default function UserProfilePage() {
                       <FormItem>
                         <FormLabel className="text-base">Causes favorites</FormLabel>
                         <div className="grid grid-cols-2 gap-4 pt-2">
-                          {causes.map((item) => (
+                          {[...causes, { id: 'autre', label: 'Autre' }].map((item) => (
                             <FormField
                               key={item.id}
                               control={form.control}
@@ -114,6 +117,22 @@ export default function UserProfilePage() {
                       </FormItem>
                     )}
                   />
+
+                  {watchedCauses.includes('autre') && (
+                    <FormField
+                      control={form.control}
+                      name="otherCause"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Préciser l'autre cause</FormLabel>
+                          <FormControl>
+                            <Input placeholder="Votre cause" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  )}
 
                   <FormField
                     control={form.control}
