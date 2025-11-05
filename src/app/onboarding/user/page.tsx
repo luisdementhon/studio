@@ -81,7 +81,7 @@ export default function UserOnboardingPage() {
                   <FormItem>
                     <FormLabel>Nom complet</FormLabel>
                     <FormControl>
-                      <Input placeholder="Jean Dupont" {...field} />
+                      <Input placeholder="Nom complet" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>

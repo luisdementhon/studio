@@ -155,7 +155,7 @@ export default function UserDashboardPage() {
                     ))}
                 </SelectContent>
             </Select>
-            <Input type="number" placeholder="Montant en € (ex: 10)" />
+            <Input type="number" placeholder="Montant en €" />
             <Button className="w-full" variant="secondary">Faire un don</Button>
           </CardContent>
         </Card>

@@ -75,7 +75,7 @@ export default function AssociationOnboardingPage() {
                     <FormItem>
                       <FormLabel>Nom de l'association</FormLabel>
                       <FormControl>
-                        <Input placeholder="Les Restos du Coeur" {...field} />
+                        <Input placeholder="Nom de l'association" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -88,7 +88,7 @@ export default function AssociationOnboardingPage() {
                     <FormItem>
                       <FormLabel>Nom du représentant</FormLabel>
                       <FormControl>
-                        <Input placeholder="Michel Colucci" {...field} />
+                        <Input placeholder="Nom du représentant" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -101,7 +101,7 @@ export default function AssociationOnboardingPage() {
                     <FormItem>
                       <FormLabel>Email de contact</FormLabel>
                       <FormControl>
-                        <Input type="email" placeholder="contact@restosducoeur.org" {...field} />
+                        <Input type="email" placeholder="Email de contact" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -114,7 +114,7 @@ export default function AssociationOnboardingPage() {
                     <FormItem>
                       <FormLabel>Numéro RNA</FormLabel>
                       <FormControl>
-                        <Input placeholder="W123456789" {...field} />
+                        <Input placeholder="Numéro RNA" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -142,7 +142,7 @@ export default function AssociationOnboardingPage() {
                   <FormItem>
                     <FormLabel>Objectif de collecte annuel (€)</FormLabel>
                     <FormControl>
-                      <Input type="number" placeholder="50000" {...field} />
+                      <Input type="number" placeholder="Objectif de collecte" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>

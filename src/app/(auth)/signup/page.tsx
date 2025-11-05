@@ -73,7 +73,7 @@ export default function SignupPage() {
                   <FormControl>
                     <Input
                       type="email"
-                      placeholder="jean.dupont@email.com"
+                      placeholder="Email"
                       {...field}
                       disabled={isPending}
                     />
@@ -91,7 +91,7 @@ export default function SignupPage() {
                   <FormControl>
                     <Input
                       type="password"
-                      placeholder="********"
+                      placeholder="Mot de passe"
                       {...field}
                       disabled={isPending}
                     />
@@ -109,7 +109,7 @@ export default function SignupPage() {
                   <FormControl>
                     <Input
                       type="password"
-                      placeholder="********"
+                      placeholder="Confirmer le mot de passe"
                       {...field}
                       disabled={isPending}
                     />

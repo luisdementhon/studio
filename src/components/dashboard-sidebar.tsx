@@ -31,8 +31,8 @@ export function DashboardSidebar() {
         { href: '/dashboard/user/profile', label: 'Mon Profil', icon: Settings },
       ];
 
-  const profileName = isAssociation ? 'Les Restos du Coeur' : 'Jean Dupont';
-  const profileEmail = isAssociation ? 'contact@restosducoeur.org' : 'jean.dupont@email.com';
+  const profileName = isAssociation ? 'Association' : 'Utilisateur';
+  const profileEmail = isAssociation ? 'email@association.org' : 'email@utilisateur.com';
   const avatarSeed = isAssociation ? 'asso' : 'user';
 
   return (

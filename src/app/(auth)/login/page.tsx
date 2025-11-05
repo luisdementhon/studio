@@ -72,7 +72,7 @@ export default function LoginPage() {
                   <FormControl>
                     <Input
                       type="email"
-                      placeholder="jean.dupont@email.com"
+                      placeholder="Email"
                       {...field}
                       disabled={isPending}
                     />
@@ -90,7 +90,7 @@ export default function LoginPage() {
                   <FormControl>
                     <Input
                       type="password"
-                      placeholder="********"
+                      placeholder="Mot de passe"
                       {...field}
                       disabled={isPending}
                     />

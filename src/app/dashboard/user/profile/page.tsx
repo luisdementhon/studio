@@ -38,7 +38,7 @@ export default function UserProfilePage() {
     resolver: zodResolver(UserOnboardingSchema),
     defaultValues: {
       fullName: "",
-      causes: ["environnement", "precarite"],
+      causes: [],
       associations: [],
       donationCeiling: 50,
       donationMultiplier: 1,
@@ -181,7 +181,7 @@ export default function UserProfilePage() {
                   <FormItem>
                     <FormLabel>Adresse Email</FormLabel>
                     <FormControl>
-                      <Input type="email" defaultValue="jean.dupont@email.com" disabled />
+                      <Input type="email" placeholder="Email" disabled />
                     </FormControl>
                     <FormDescription>L'adresse email ne peut pas être modifiée.</FormDescription>
                   </FormItem>

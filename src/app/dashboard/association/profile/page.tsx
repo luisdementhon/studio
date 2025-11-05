@@ -28,13 +28,13 @@ export default function AssociationProfilePage() {
   const form = useForm<z.infer<typeof AssociationOnboardingSchema>>({
     resolver: zodResolver(AssociationOnboardingSchema),
     defaultValues: {
-      associationName: "Les Restos du Coeur",
-      representativeName: "Michel Colucci",
-      contactEmail: "contact@restosducoeur.org",
-      rnaNumber: "W751046580",
-      description: "Aide et assistance aux plus démunis, notamment dans le domaine alimentaire par l'accès à des repas gratuits.",
-      fundraisingGoal: 50000,
-      currentMissions: "Financer la campagne hivernale 2024.",
+      associationName: "",
+      representativeName: "",
+      contactEmail: "",
+      rnaNumber: "",
+      description: "",
+      fundraisingGoal: 1000,
+      currentMissions: "",
     },
   });
 
