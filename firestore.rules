@@ -26,6 +26,18 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return request.auth.uid == userId;
+    }
+
+    function isExistingOwner(userId) {
+      return isOwner(userId) && resource != null;
+    }
+
     /**
      * @description Enforces document ownership for user profiles.
      * @path /users/{userId}
@@ -36,35 +48,22 @@ service cloud.firestore {
      * @principle Enforces document ownership and authenticates identity.
      */
     match /users/{userId} {
-      function isSignedIn() {
-        return request.auth != null;
-      }
-
-      function isOwner(userId) {
-        return request.auth.uid == userId;
-      }
-
-      function isExistingOwner(userId) {
-        return isOwner(userId) && resource != null;
-      }
-
-      allow get: if isOwner(userId);
+      allow get, update: if isOwner(userId);
       allow list: if false; // User listing is not allowed.
-      allow create: if isSignedIn() && isOwner(userId) && request.resource.data.id == userId;
-      allow update: if isExistingOwner(userId) && request.resource.data.id == resource.data.id; //Enforce immutability for userId
-      allow delete: if isExistingOwner(userId);
+      allow create: if isOwner(userId);
+      allow delete: if isOwner(userId);
     }
 
     /**
-     * @description Allows public read access to association profiles.
+     * @description Allows public read access to association profiles, but write access is restricted to the owner.
      * @path /associations/{associationId}
      * @allow (get, list) Any user can read association profiles.
-     * @deny (create, update, delete) No user can create, update, or delete association profiles.
-     * @principle Allows public read access while restricting write access.
+     * @allow (create, update, delete) Only the authenticated user who owns the document can modify it.
+     * @principle Allows public read access while restricting write access to the owner.
      */
     match /associations/{associationId} {
       allow get, list: if true;
-      allow create, update, delete: if false;
+      allow create, update, delete: if isOwner(associationId);
     }
 
     /**
@@ -77,18 +76,6 @@ service cloud.firestore {
      * @principle Enforces document ownership and authenticates identity.
      */
     match /users/{userId}/transactions/{transactionId} {
-      function isSignedIn() {
-        return request.auth != null;
-      }
-
-      function isOwner(userId) {
-        return request.auth.uid == userId;
-      }
-
-      function isExistingOwner(userId) {
-        return isOwner(userId) && resource != null;
-      }
-
       allow get: if isOwner(userId);
       allow list: if isOwner(userId);
       allow create: if isSignedIn() && isOwner(userId) && request.resource.data.userId == userId;
