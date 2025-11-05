@@ -81,7 +81,7 @@ export function DashboardSidebar() {
     <Sidebar>
       <SidebarHeader className="flex flex-col items-start gap-4">
         <Link href="/" className="text-primary transition-colors duration-300 hover:text-primary/80">
-          <DotlyLogo className="w-24 text-sidebar-primary" />
+          <DotlyLogo className="w-28 text-sidebar-primary" />
         </Link>
         <SidebarTrigger className="hidden md:flex" />
       </SidebarHeader>

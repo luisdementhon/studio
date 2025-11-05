@@ -4,10 +4,8 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import type { z } from "zod";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { signInWithEmailAndPassword } from "firebase/auth";
+import { sendPasswordResetEmail } from "firebase/auth";
 
-import { LoginSchema } from "@/lib/schemas";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -29,28 +27,34 @@ import { Input } from "@/components/ui/input";
 import { useAuth } from "@/firebase";
 import { useToast } from "@/hooks/use-toast";
 
-export default function LoginPage() {
+const ForgotPasswordSchema = z.object({
+  email: z.string().email({ message: "Veuillez entrer une adresse email valide." }),
+});
+
+export default function ForgotPasswordPage() {
   const auth = useAuth();
-  const router = useRouter();
   const { toast } = useToast();
 
-  const form = useForm<z.infer<typeof LoginSchema>>({
-    resolver: zodResolver(LoginSchema),
+  const form = useForm<z.infer<typeof ForgotPasswordSchema>>({
+    resolver: zodResolver(ForgotPasswordSchema),
     defaultValues: {
       email: "",
-      password: "",
     },
   });
 
-  const onSubmit = async (values: z.infer<typeof LoginSchema>) => {
+  const onSubmit = async (values: z.infer<typeof ForgotPasswordSchema>) => {
     try {
-      await signInWithEmailAndPassword(auth, values.email, values.password);
-      router.push('/auth/loading');
+      await sendPasswordResetEmail(auth, values.email);
+      toast({
+        title: "E-mail envoyé !",
+        description: "Un lien pour réinitialiser votre mot de passe a été envoyé à votre adresse e-mail.",
+      });
+      form.reset();
     } catch (error: any) {
       toast({
         variant: "destructive",
-        title: "Erreur de connexion",
-        description: "L'adresse e-mail ou le mot de passe est incorrect.",
+        title: "Erreur",
+        description: "Impossible d'envoyer l'e-mail. Vérifiez l'adresse et réessayez.",
       });
     }
   };
@@ -58,9 +62,9 @@ export default function LoginPage() {
   return (
     <Card className="w-full max-w-sm">
       <CardHeader>
-        <CardTitle className="text-2xl">Connexion</CardTitle>
+        <CardTitle className="text-2xl">Mot de passe oublié</CardTitle>
         <CardDescription>
-          Ravi de vous revoir ! Connectez-vous pour continuer.
+          Entrez votre e-mail et nous vous enverrons un lien pour réinitialiser votre mot de passe.
         </CardDescription>
       </CardHeader>
       <Form {...form}>
@@ -83,40 +87,14 @@ export default function LoginPage() {
                 </FormItem>
               )}
             />
-            <FormField
-              control={form.control}
-              name="password"
-              render={({ field }) => (
-                <FormItem>
-                    <div className="flex items-center">
-                        <FormLabel>Mot de passe</FormLabel>
-                        <Link
-                            href="/forgot-password"
-                            className="ml-auto inline-block text-sm underline"
-                        >
-                            Mot de passe oublié ?
-                        </Link>
-                    </div>
-                  <FormControl>
-                    <Input
-                      type="password"
-                      placeholder="Mot de passe"
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
           </CardContent>
           <CardFooter className="flex flex-col gap-4">
             <Button type="submit" className="w-full" disabled={form.formState.isSubmitting}>
-              {form.formState.isSubmitting ? "Connexion..." : "Se connecter"}
+              {form.formState.isSubmitting ? "Envoi..." : "Envoyer le lien"}
             </Button>
             <div className="text-sm text-muted-foreground">
-              Pas encore de compte ?{" "}
-              <Link href="/signup" className="font-medium text-primary hover:underline">
-                Inscrivez-vous
+              <Link href="/login" className="font-medium text-primary hover:underline">
+                Retour à la connexion
               </Link>
             </div>
           </CardFooter>
