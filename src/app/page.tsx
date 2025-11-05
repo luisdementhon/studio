@@ -12,10 +12,10 @@ export default function Home() {
       </header>
       <div className="flex-grow flex flex-col items-center justify-center text-center px-4">
         <h1 className="text-4xl md:text-6xl font-headline font-bold text-foreground tracking-tight">
-          Le don minimaliste.
+          Petite monnaie,
         </h1>
         <h2 className="text-4xl md:text-6xl font-headline font-bold text-primary tracking-tight mt-2">
-          L'impact maximal.
+          grands gestes.
         </h2>
         <p className="mt-6 max-w-2xl text-lg text-muted-foreground">
           À chaque achat par carte, arrondissez à l’euro supérieur et reversez la différence à des associations qui vous tiennent à cœur. Simple, automatique, puissant.
