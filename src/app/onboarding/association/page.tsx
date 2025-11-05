@@ -6,8 +6,11 @@ import type { z } from "zod";
 import { useTransition } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { AssociationOnboardingSchema } from "@/lib/schemas";
-import { submitAssociationOnboarding } from "@/app/onboarding/actions";
+import { useRouter } from "next/navigation";
+import { doc } from "firebase/firestore";
 
+import { useFirestore, useUser } from "@/firebase";
+import { setDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 import { Button } from "@/components/ui/button";
 import {
   Form,
@@ -25,6 +28,9 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 export default function AssociationOnboardingPage() {
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
+  const router = useRouter();
+  const firestore = useFirestore();
+  const { user } = useUser();
 
   const form = useForm<z.infer<typeof AssociationOnboardingSchema>>({
     resolver: zodResolver(AssociationOnboardingSchema),
@@ -40,18 +46,26 @@ export default function AssociationOnboardingPage() {
   });
 
   function onSubmit(values: z.infer<typeof AssociationOnboardingSchema>) {
+    if (!user) {
+      toast({ title: "Erreur", description: "Vous devez être connecté pour créer une association.", variant: "destructive" });
+      return;
+    }
+
     startTransition(() => {
-      submitAssociationOnboarding(values)
-        .then((res) => {
-          if (res?.error) {
-            toast({ title: "Erreur", description: res.error, variant: "destructive" });
-          } else {
-            toast({ title: "Profil complété !", description: "Vous allez être redirigé vers votre tableau de bord." });
-          }
-        })
-        .catch(() => {
-          toast({ title: "Erreur", description: "Une erreur est survenue.", variant: "destructive" });
-        });
+      // In a real app, you would probably want to create the association in a separate collection
+      // and link it to the user. For this prototype, we'll store the association info
+      // on the user's document as a simplification.
+      const associationProfile = {
+        // We use the user's UID as a stand-in for a real association ID for this prototype
+        id: user.uid, 
+        ...values
+      };
+      
+      const associationDocRef = doc(firestore, "associations", user.uid);
+      setDocumentNonBlocking(associationDocRef, associationProfile, { merge: true });
+
+      toast({ title: "Profil complété !", description: "Les informations de votre association ont été enregistrées." });
+      router.push("/dashboard/association");
     });
   }
 
@@ -163,7 +177,7 @@ export default function AssociationOnboardingPage() {
               />
             </CardContent>
             <CardFooter>
-              <Button type="submit" disabled={isPending} className="w-full">
+              <Button type="submit" disabled={isPending || !user} className="w-full">
                 {isPending ? "Vérification..." : "Finaliser l'inscription"}
               </Button>
             </CardFooter>
