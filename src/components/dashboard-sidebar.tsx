@@ -13,6 +13,7 @@ import {
   SidebarFooter,
   SidebarTrigger,
 } from '@/components/ui/sidebar';
+import { SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import { Home, Settings, LogOut } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useAuth, useDoc, useFirestore, useUser, useMemoFirebase } from '@/firebase';
@@ -58,9 +59,10 @@ export function DashboardSidebar() {
   const getProfileName = () => {
     if (!profileData) return isAssociationView ? 'Association' : 'Utilisateur';
     if (isAssociationView) return (profileData as any).associationName;
-    return `${(profileData as any).firstName} ${(profileData as any).lastName}`;
+    const fullName = `${(profileData as any).firstName || ''} ${(profileData as any).lastName || ''}`.trim();
+    return fullName || user?.email;
   };
-
+  
   const getAvatarFallback = () => {
     if (!profileData) return isAssociationView ? 'A' : 'U';
     const name = isAssociationView ? (profileData as any).associationName : (profileData as any).firstName;
@@ -73,6 +75,8 @@ export function DashboardSidebar() {
 
   return (
     <Sidebar>
+       <SheetTitle className="sr-only">Menu de navigation principal</SheetTitle>
+       <SheetDescription className="sr-only">Naviguez entre les différentes sections de votre tableau de bord.</SheetDescription>
       <SidebarHeader className="flex flex-col items-start gap-4">
         <Link href="/" className="text-primary transition-colors duration-300 hover:text-primary/80">
           <DotlyLogo className="w-36 text-sidebar-primary" />
