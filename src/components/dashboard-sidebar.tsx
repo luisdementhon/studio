@@ -65,7 +65,10 @@ export function DashboardSidebar() {
   
   const getAvatarFallback = () => {
     if (!profileData) return isAssociationView ? 'A' : 'U';
-    const name = isAssociationView ? (profileData as any).associationName : (profileData as any).firstName;
+    let name = isAssociationView ? (profileData as any).associationName : (profileData as any).firstName;
+     if (!name && user?.email) {
+      name = user.email;
+    }
     return name ? name.charAt(0).toUpperCase() : (isAssociationView ? 'A' : 'U');
   };
 
