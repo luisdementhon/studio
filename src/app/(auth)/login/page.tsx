@@ -4,6 +4,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import type { z } from "zod";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 import { LoginSchema } from "@/lib/schemas";
 import { Button } from "@/components/ui/button";
@@ -29,6 +30,7 @@ import { useAuth } from "@/firebase";
 
 export default function LoginPage() {
   const auth = useAuth();
+  const router = useRouter();
 
   const form = useForm<z.infer<typeof LoginSchema>>({
     resolver: zodResolver(LoginSchema),
@@ -40,6 +42,7 @@ export default function LoginPage() {
 
   const onSubmit = (values: z.infer<typeof LoginSchema>) => {
     initiateEmailSignIn(auth, values.email, values.password);
+    router.push('/auth/loading');
   };
 
   return (
