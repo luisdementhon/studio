@@ -13,11 +13,10 @@ import {
   SidebarFooter,
   SidebarTrigger,
 } from '@/components/ui/sidebar';
-import { Home, Settings, LogOut, Building, User as UserIcon } from 'lucide-react';
+import { Home, Settings, LogOut } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Button } from '@/components/ui/button';
 import { useAuth, useDoc, useFirestore, useUser, useMemoFirebase } from '@/firebase';
-import { signOut, User } from 'firebase/auth';
+import { signOut } from 'firebase/auth';
 import { doc } from 'firebase/firestore';
 import { Skeleton } from '@/components/ui/skeleton';
 
@@ -30,9 +29,11 @@ export function DashboardSidebar() {
   const { user, isUserLoading } = useUser();
   
   const handleSignOut = () => {
-    signOut(auth).then(() => {
-      router.push('/login');
-    });
+    if (auth) {
+      signOut(auth).then(() => {
+        router.push('/login');
+      });
+    }
   };
 
   const userDocRef = useMemoFirebase(() => {

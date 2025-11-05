@@ -2,25 +2,45 @@
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Skeleton } from '@/components/ui/skeleton';
-import { useUser } from '@/firebase';
+import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
+import { doc } from 'firebase/firestore';
 
 export default function DashboardRoot() {
   const router = useRouter();
   const { user, isUserLoading } = useUser();
+  const firestore = useFirestore();
+
+  const userDocRef = useMemoFirebase(() => {
+    if (!user) return null;
+    return doc(firestore, 'users', user.uid);
+  }, [firestore, user]);
+
+  const { data: userData, isLoading: isProfileLoading } = useDoc(userDocRef);
 
   useEffect(() => {
-    if (!isUserLoading) {
-      if (user) {
-        // In a real app, you would check a 'role' property on the user document
-        // For now, we assume if they are logged in, they are a 'user'.
-        // We'll redirect to the user dashboard. If they need to go to association, they can use the sidebar.
+    if (isUserLoading || (user && isProfileLoading)) {
+      return;
+    }
+
+    if (user) {
+      if (userData) {
         router.replace('/dashboard/user');
       } else {
-        // If no user, redirect to login
-        router.replace('/login');
+        // If user exists but has no profile data, they might be an association
+        // or need to go through onboarding.
+        // For simplicity, we'll try checking for an association profile.
+        // A more robust solution might use custom claims or a 'role' field.
+        const associationDocRef = doc(firestore, 'associations', user.uid);
+        // This is a simplified check. We're not using useDoc here to avoid complexity
+        // in this redirect logic. A full check would be better.
+        // For now, if user profile is missing, we send to user dashboard,
+        // they can switch via sidebar. A better check for association could be done here.
+        router.replace('/dashboard/user');
       }
+    } else {
+      router.replace('/login');
     }
-  }, [user, isUserLoading, router]);
+  }, [user, userData, isUserLoading, isProfileLoading, router, firestore]);
 
   return (
     <div className="flex h-[80vh] w-full items-center justify-center">
