@@ -20,14 +20,13 @@ import { signOut } from 'firebase/auth';
 import { doc } from 'firebase/firestore';
 import { Skeleton } from '@/components/ui/skeleton';
 
-
 export function DashboardSidebar() {
   const pathname = usePathname();
   const router = useRouter();
   const auth = useAuth();
   const firestore = useFirestore();
   const { user, isUserLoading } = useUser();
-  
+
   const handleSignOut = () => {
     if (auth) {
       signOut(auth).then(() => {
@@ -36,18 +35,17 @@ export function DashboardSidebar() {
     }
   };
 
-  const userDocRef = useMemoFirebase(() => {
+  const isAssociationView = pathname.startsWith('/dashboard/association');
+
+  const profileDocRef = useMemoFirebase(() => {
     if (!user) return null;
-    return doc(firestore, 'users', user.uid);
-  }, [firestore, user]);
+    const collectionName = isAssociationView ? 'associations' : 'users';
+    return doc(firestore, collectionName, user.uid);
+  }, [firestore, user, isAssociationView]);
 
-  const { data: userData, isLoading: isProfileLoading } = useDoc(userDocRef);
+  const { data: profileData, isLoading: isProfileLoading } = useDoc(profileDocRef);
 
-  // For this demo, we'll keep the logic to switch between user/association views simple.
-  // A real app would have a more robust role management system.
-  const isAssociation = pathname.startsWith('/dashboard/association');
-
-  const navItems = isAssociation
+  const navItems = isAssociationView
     ? [
         { href: '/dashboard/association', label: 'Tableau de bord', icon: Home },
         { href: '/dashboard/association/profile', label: 'Profil Association', icon: Settings },
@@ -56,32 +54,28 @@ export function DashboardSidebar() {
         { href: '/dashboard/user', label: 'Mes Dons', icon: Home },
         { href: '/dashboard/user/profile', label: 'Mon Profil', icon: Settings },
       ];
-  
-  const getProfileName = () => {
-    if (isAssociation) return 'Association';
-    if (userData) return `${userData.firstName} ${userData.lastName}`;
-    return 'Utilisateur';
-  }
 
-  const getProfileEmail = () => {
-    if (isUserLoading) return '';
-    return user?.email || '';
-  }
+  const getProfileName = () => {
+    if (!profileData) return isAssociationView ? 'Association' : 'Utilisateur';
+    if (isAssociationView) return (profileData as any).associationName;
+    return `${(profileData as any).firstName} ${(profileData as any).lastName}`;
+  };
 
   const getAvatarFallback = () => {
-    if (isAssociation) return 'A';
-    if (userData?.firstName) return userData.firstName.charAt(0).toUpperCase();
-    return 'U';
-  }
+    if (!profileData) return isAssociationView ? 'A' : 'U';
+    const name = isAssociationView ? (profileData as any).associationName : (profileData as any).firstName;
+    return name ? name.charAt(0).toUpperCase() : (isAssociationView ? 'A' : 'U');
+  };
 
-  const isLoading = isUserLoading || (isProfileLoading && !isAssociation);
-
+  const getProfileEmail = () => user?.email || '';
+  
+  const isLoading = isUserLoading || isProfileLoading;
 
   return (
     <Sidebar>
       <SidebarHeader className="flex flex-col items-start gap-4">
         <Link href="/" className="text-primary transition-colors duration-300 hover:text-primary/80">
-          <DotlyLogo className="w-28 text-sidebar-primary" />
+          <DotlyLogo className="w-36 text-sidebar-primary" />
         </Link>
         <SidebarTrigger className="hidden md:flex" />
       </SidebarHeader>
