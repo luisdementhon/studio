@@ -11,9 +11,9 @@ export default function Home() {
         </Link>
       </header>
       <div className="flex-grow flex flex-col items-center justify-center text-center px-4 -mt-16">
-        <div className="-mt-16">
-          <h1 className="text-4xl md:text-6xl font-normal text-foreground tracking-tight">
-            <em className="font-body italic">Petite monnaie,</em>
+        <div className="-mt-16 font-headline">
+          <h1 className="text-4xl md:text-6xl text-foreground tracking-tight italic">
+            Petite monnaie,
           </h1>
           <h2 className="text-4xl md:text-6xl font-bold text-foreground tracking-tight mt-2">
             grands gestes.
