@@ -1,0 +1,192 @@
+import { BarChart, Coins, PiggyBank, HandHeart } from 'lucide-react';
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import { Badge } from '@/components/ui/badge';
+import {
+  ChartContainer,
+  ChartTooltip,
+  ChartTooltipContent,
+  ChartConfig,
+} from '@/components/ui/chart';
+import { BarChart as RechartsBarChart, XAxis, YAxis, Bar, CartesianGrid } from 'recharts';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+
+const chartData = [
+  { month: 'Janvier', dons: 18.6 },
+  { month: 'Février', dons: 20.5 },
+  { month: 'Mars', dons: 19.3 },
+  { month: 'Avril', dons: 22.1 },
+  { month: 'Mai', dons: 24.9 },
+  { month: 'Juin', dons: 23.7 },
+];
+
+const chartConfig = {
+  dons: {
+    label: 'Dons (€)',
+    color: 'hsl(var(--primary))',
+  },
+} satisfies ChartConfig;
+
+const recentTransactions = [
+    { id: 1, merchant: "Carrefour City", amount: 0.78, date: "2024-07-21" },
+    { id: 2, merchant: "Boulangerie 'Au bon pain'", amount: 0.20, date: "2024-07-21" },
+    { id: 3, merchant: "Fnac", amount: 0.05, date: "2024-07-20" },
+    { id: 4, merchant: "RATP", amount: 0.90, date: "2024-07-19" },
+    { id: 5, merchant: "Starbucks", amount: 0.50, date: "2024-07-19" },
+];
+
+const supportedAssociations = [
+    { id: 'resto_du_coeur', name: 'Les Restos du Coeur' },
+    { id: 'wwf', name: 'WWF' },
+    { id: 'greenpeace', name: 'Greenpeace' }
+]
+
+export default function UserDashboardPage() {
+  return (
+    <div className="flex flex-col gap-8">
+      <div>
+        <h1 className="text-3xl font-bold tracking-tight">Mes Dons</h1>
+        <p className="text-muted-foreground">Suivez l'impact de votre générosité.</p>
+      </div>
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">
+              Total Donné (ce mois-ci)
+            </CardTitle>
+            <PiggyBank className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">23,70 €</div>
+            <p className="text-xs text-muted-foreground">
+              +18.2% par rapport au mois dernier
+            </p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Arrondis de la semaine</CardTitle>
+            <Coins className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">5,45 €</div>
+            <p className="text-xs text-muted-foreground">
+              Sur 12 transactions
+            </p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Causes Soutenues</CardTitle>
+            <HandHeart className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-wrap gap-2 pt-2">
+                <Badge>Environnement</Badge>
+                <Badge>Précarité</Badge>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="grid gap-8 md:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <CardTitle>Historique des dons mensuels</CardTitle>
+            <CardDescription>Évolution de vos dons au cours des 6 derniers mois.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ChartContainer config={chartConfig} className="h-64 w-full">
+              <RechartsBarChart data={chartData} accessibilityLayer>
+                <CartesianGrid vertical={false} />
+                <XAxis
+                  dataKey="month"
+                  tickLine={false}
+                  tickMargin={10}
+                  axisLine={false}
+                />
+                <YAxis
+                    tickLine={false}
+                    axisLine={false}
+                    tickMargin={10}
+                    tickFormatter={(value) => `€${value}`}
+                />
+                <ChartTooltip
+                  cursor={false}
+                  content={<ChartTooltipContent indicator="dot" />}
+                />
+                <Bar dataKey="dons" fill="var(--color-dons)" radius={4} />
+              </RechartsBarChart>
+            </ChartContainer>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle>Faire un don unique</CardTitle>
+            <CardDescription>Soutenez une association instantanément.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <Select>
+                <SelectTrigger>
+                    <SelectValue placeholder="Choisir une association" />
+                </SelectTrigger>
+                <SelectContent>
+                    {supportedAssociations.map(asso => (
+                        <SelectItem key={asso.id} value={asso.id}>{asso.name}</SelectItem>
+                    ))}
+                </SelectContent>
+            </Select>
+            <Input type="number" placeholder="Montant en € (ex: 10)" />
+            <Button className="w-full" variant="secondary">Faire un don</Button>
+          </CardContent>
+        </Card>
+      </div>
+      
+      <Card>
+        <CardHeader>
+          <CardTitle>Arrondis Récents</CardTitle>
+          <CardDescription>Vos dernières transactions ayant généré un don.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Commerçant</TableHead>
+                <TableHead className="text-right">Montant Donné</TableHead>
+                <TableHead className="text-right">Date</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {recentTransactions.map((tx) => (
+                <TableRow key={tx.id}>
+                  <TableCell className="font-medium">{tx.merchant}</TableCell>
+                  <TableCell className="text-right text-primary font-semibold">
+                    {tx.amount.toFixed(2)} €
+                  </TableCell>
+                  <TableCell className="text-right text-muted-foreground">
+                    {new Date(tx.date).toLocaleDateString('fr-FR')}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}

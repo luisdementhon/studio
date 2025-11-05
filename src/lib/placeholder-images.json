@@ -1,3 +1,34 @@
 {
-  "placeholderImages": []
+  "placeholderImages": [
+    {
+      "id": "user-avatar-1",
+      "description": "User avatar",
+      "imageUrl": "https://images.unsplash.com/photo-1600180758890-6b94519a8ba6?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw0fHxwZXJzb24lMjBwb3J0cmFpdHxlbnwwfHx8fDE3NjIyODA1NDl8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "person portrait"
+    },
+    {
+      "id": "asso-logo-1",
+      "description": "Association logo for 'Les Restos du Coeur'",
+      "imageUrl": "https://images.unsplash.com/photo-1640342538716-286e4e27e104?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwzfHxjaGFyaXR5JTIwbG9nb3xlbnwwfHx8fDE3NjIzMTAyOTl8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "charity logo"
+    },
+    {
+      "id": "asso-logo-2",
+      "description": "Association logo for 'WWF'",
+      "imageUrl": "https://images.unsplash.com/photo-1485914142630-72c09a1ae42a?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw2fHxhbmltYWwlMjBsb2dvfGVufDB8fHx8MTc2MjMxMDI5OXww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "animal logo"
+    },
+    {
+      "id": "asso-logo-3",
+      "description": "Association logo for 'Greenpeace'",
+      "imageUrl": "https://images.unsplash.com/photo-1662027067763-770376e710f5?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw5fHxuYXR1cmUlMjBsb2dvfGVufDB8fHx8MTc2MjI4NjE0M3ww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "nature logo"
+    },
+    {
+      "id": "hero-background",
+      "description": "Abstract background image",
+      "imageUrl": "https://images.unsplash.com/photo-1482053450283-3e0b78b09a70?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxMHx8YWJzdHJhY3QlMjBwYXR0ZXJufGVufDB8fHx8MTc2MjIzNDgyNXww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "abstract pattern"
+    }
+  ]
 }
