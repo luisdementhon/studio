@@ -5,12 +5,12 @@ import { DotlyLogo } from '@/components/dotly-logo';
 export default function Home() {
   return (
     <main className="flex min-h-screen flex-col">
-      <header className="p-8">
+      <header className="p-8 flex justify-center">
         <Link href="/">
           <DotlyLogo className="w-40 h-auto text-foreground" />
         </Link>
       </header>
-      <div className="flex-grow flex flex-col items-center justify-center text-center px-4">
+      <div className="flex-grow flex flex-col items-center justify-center text-center px-4 -mt-20">
         <h1 className="text-4xl md:text-6xl font-headline font-bold text-foreground tracking-tight">
           Petite monnaie,
         </h1>
