@@ -6,6 +6,7 @@ import type { z } from "zod";
 import { useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { doc } from "firebase/firestore";
+import Link from "next/link";
 
 import { useToast } from "@/hooks/use-toast";
 import { UserOnboardingSchema } from "@/lib/schemas";
@@ -220,9 +221,12 @@ export default function UserOnboardingPage() {
                 )}
               />
             </CardContent>
-            <CardFooter>
+            <CardFooter className="flex-col gap-2">
               <Button type="submit" disabled={isPending || !user} className="w-full">
                 {isPending ? "Finalisation..." : "Terminer et accéder à mon espace"}
+              </Button>
+              <Button asChild variant="ghost" className="w-full">
+                <Link href="/dashboard/user">Passer pour l'instant</Link>
               </Button>
             </CardFooter>
           </form>

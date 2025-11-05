@@ -8,6 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import { AssociationOnboardingSchema } from "@/lib/schemas";
 import { useRouter } from "next/navigation";
 import { doc } from "firebase/firestore";
+import Link from "next/link";
 
 import { useFirestore, useUser } from "@/firebase";
 import { setDocumentNonBlocking } from "@/firebase/non-blocking-updates";
@@ -176,9 +177,12 @@ export default function AssociationOnboardingPage() {
                 )}
               />
             </CardContent>
-            <CardFooter>
+            <CardFooter className="flex-col gap-2">
               <Button type="submit" disabled={isPending || !user} className="w-full">
                 {isPending ? "Vérification..." : "Finaliser l'inscription"}
+              </Button>
+              <Button asChild variant="ghost" className="w-full">
+                <Link href="/dashboard/association">Passer pour l'instant</Link>
               </Button>
             </CardFooter>
           </form>
