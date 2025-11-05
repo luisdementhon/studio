@@ -10,7 +10,7 @@ export default function Home() {
           <DotlyLogo className="w-56 h-auto text-black" />
         </Link>
       </header>
-      <div className="flex-grow flex flex-col items-center justify-center text-center px-4 -mt-20">
+      <div className="flex-grow flex flex-col items-center justify-center text-center px-4 -mt-16">
         <h1 className="text-4xl md:text-6xl font-normal text-foreground tracking-tight">
           <em className="font-body italic">Petite monnaie,</em>
         </h1>
