@@ -3,10 +3,8 @@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import type { z } from "zod";
-import { useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { createUserWithEmailAndPassword } from "firebase/auth";
 
 import { SignupSchema } from "@/lib/schemas";
 import { Button } from "@/components/ui/button";
@@ -27,14 +25,13 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/firebase";
+import { initiateEmailSignUp } from "@/firebase/non-blocking-login";
+
 
 export default function SignupPage() {
-  const [isPending, startTransition] = useTransition();
-  const { toast } = useToast();
-  const router = useRouter();
   const auth = useAuth();
+  const router = useRouter();
 
   const form = useForm<z.infer<typeof SignupSchema>>({
     resolver: zodResolver(SignupSchema),
@@ -46,19 +43,8 @@ export default function SignupPage() {
   });
 
   const onSubmit = (values: z.infer<typeof SignupSchema>) => {
-    startTransition(() => {
-      createUserWithEmailAndPassword(auth, values.email, values.password)
-        .then(() => {
-          router.push("/onboarding");
-        })
-        .catch((error) => {
-          toast({
-            title: "Erreur d'inscription",
-            description: "Une erreur est survenue. Veuillez réessayer.",
-            variant: "destructive",
-          });
-        });
-    });
+    initiateEmailSignUp(auth, values.email, values.password);
+    router.push('/auth/loading');
   };
 
   return (
@@ -83,7 +69,6 @@ export default function SignupPage() {
                       type="email"
                       placeholder="Email"
                       {...field}
-                      disabled={isPending}
                     />
                   </FormControl>
                   <FormMessage />
@@ -101,7 +86,6 @@ export default function SignupPage() {
                       type="password"
                       placeholder="Mot de passe"
                       {...field}
-                      disabled={isPending}
                     />
                   </FormControl>
                   <FormMessage />
@@ -119,7 +103,6 @@ export default function SignupPage() {
                       type="password"
                       placeholder="Confirmer le mot de passe"
                       {...field}
-                      disabled={isPending}
                     />
                   </FormControl>
                   <FormMessage />
@@ -128,8 +111,8 @@ export default function SignupPage() {
             />
           </CardContent>
           <CardFooter className="flex flex-col gap-4">
-            <Button type="submit" className="w-full" disabled={isPending}>
-              {isPending ? "Création..." : "Créer mon compte"}
+            <Button type="submit" className="w-full">
+              Créer mon compte
             </Button>
             <div className="text-sm text-muted-foreground">
               Vous avez déjà un compte ?{" "}

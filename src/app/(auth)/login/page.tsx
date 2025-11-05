@@ -3,9 +3,7 @@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import type { z } from "zod";
-import { useTransition } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 
 import { LoginSchema } from "@/lib/schemas";
 import { Button } from "@/components/ui/button";
@@ -26,14 +24,10 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { useToast } from "@/hooks/use-toast";
+import { initiateEmailSignIn } from "@/firebase/non-blocking-login";
 import { useAuth } from "@/firebase";
-import { signInWithEmailAndPassword } from "firebase/auth";
 
 export default function LoginPage() {
-  const [isPending, startTransition] = useTransition();
-  const { toast } = useToast();
-  const router = useRouter();
   const auth = useAuth();
 
   const form = useForm<z.infer<typeof LoginSchema>>({
@@ -45,19 +39,7 @@ export default function LoginPage() {
   });
 
   const onSubmit = (values: z.infer<typeof LoginSchema>) => {
-    startTransition(() => {
-      signInWithEmailAndPassword(auth, values.email, values.password)
-        .then(() => {
-          router.push("/dashboard/user");
-        })
-        .catch((error) => {
-          toast({
-            title: "Erreur de connexion",
-            description: "Vos identifiants sont incorrects.",
-            variant: "destructive",
-          });
-        });
-    });
+    initiateEmailSignIn(auth, values.email, values.password);
   };
 
   return (
@@ -82,7 +64,6 @@ export default function LoginPage() {
                       type="email"
                       placeholder="Email"
                       {...field}
-                      disabled={isPending}
                     />
                   </FormControl>
                   <FormMessage />
@@ -100,7 +81,6 @@ export default function LoginPage() {
                       type="password"
                       placeholder="Mot de passe"
                       {...field}
-                      disabled={isPending}
                     />
                   </FormControl>
                   <FormMessage />
@@ -109,8 +89,8 @@ export default function LoginPage() {
             />
           </CardContent>
           <CardFooter className="flex flex-col gap-4">
-            <Button type="submit" className="w-full" disabled={isPending}>
-              {isPending ? "Connexion..." : "Se connecter"}
+            <Button type="submit" className="w-full">
+              Se connecter
             </Button>
             <div className="text-sm text-muted-foreground">
               Pas encore de compte ?{" "}
