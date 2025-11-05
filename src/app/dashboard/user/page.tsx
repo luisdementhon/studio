@@ -1,3 +1,5 @@
+"use client";
+
 import { BarChart, Coins, PiggyBank, HandHeart } from 'lucide-react';
 import {
   Card,
