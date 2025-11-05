@@ -3,7 +3,7 @@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import type { z } from "zod";
-import { useTransition } from "react";
+import { useEffect, useTransition } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { UserOnboardingSchema } from "@/lib/schemas";
 import { Button } from "@/components/ui/button";
@@ -21,6 +21,10 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Slider } from "@/components/ui/slider";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useUser, useFirestore, useDoc, useMemoFirebase } from "@/firebase";
+import { doc } from "firebase/firestore";
+import { setDocumentNonBlocking } from "@/firebase/non-blocking-updates";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const causes = [
   { id: "environnement", label: "Environnement" },
@@ -33,6 +37,15 @@ const causes = [
 export default function UserProfilePage() {
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
+  const { user, isUserLoading } = useUser();
+  const firestore = useFirestore();
+
+  const userDocRef = useMemoFirebase(() => {
+    if (!user) return null;
+    return doc(firestore, 'users', user.uid);
+  }, [firestore, user]);
+
+  const { data: userData, isLoading: isProfileLoading } = useDoc(userDocRef);
 
   const form = useForm<z.infer<typeof UserOnboardingSchema>>({
     resolver: zodResolver(UserOnboardingSchema),
@@ -46,17 +59,56 @@ export default function UserProfilePage() {
     },
   });
 
+  useEffect(() => {
+    if (userData) {
+      const { firstName, lastName, ...rest } = userData;
+      form.reset({
+        fullName: `${firstName || ''} ${lastName || ''}`.trim(),
+        ...rest
+      });
+    }
+  }, [userData, form]);
+
   const watchedCauses = form.watch("causes", []);
 
   function onSubmit(values: z.infer<typeof UserOnboardingSchema>) {
+    if (!user) {
+      toast({ title: "Erreur", description: "Vous n'êtes pas connecté.", variant: "destructive" });
+      return;
+    }
     startTransition(() => {
-      // Here you would call a server action to update the user profile
-      console.log(values);
+      const { fullName, ...preferences } = values;
+      const [firstName, ...lastNameParts] = fullName.split(' ');
+      const lastName = lastNameParts.join(' ');
+      
+      const userProfile = {
+        id: user.uid,
+        email: user.email,
+        firstName,
+        lastName,
+        ...preferences
+      };
+
+      setDocumentNonBlocking(userDocRef!, userProfile, { merge: true });
       toast({
         title: "Profil mis à jour",
         description: "Vos informations ont été enregistrées avec succès.",
       });
     });
+  }
+
+  const isLoading = isUserLoading || isProfileLoading;
+
+  if (isLoading) {
+    return (
+      <div className="flex flex-col gap-8">
+        <Skeleton className="h-12 w-1/3" />
+        <Skeleton className="h-96 w-full" />
+        <div className="flex justify-end">
+          <Skeleton className="h-10 w-48" />
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -200,7 +252,7 @@ export default function UserProfilePage() {
                   <FormItem>
                     <FormLabel>Adresse Email</FormLabel>
                     <FormControl>
-                      <Input type="email" placeholder="Email" disabled />
+                      <Input type="email" value={user?.email || ''} disabled />
                     </FormControl>
                     <FormDescription>L'adresse email ne peut pas être modifiée.</FormDescription>
                   </FormItem>

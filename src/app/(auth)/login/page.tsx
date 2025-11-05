@@ -5,9 +5,9 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import type { z } from "zod";
 import { useTransition } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 import { LoginSchema } from "@/lib/schemas";
-import { login } from "@/app/actions";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -27,10 +27,14 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/firebase";
+import { signInWithEmailAndPassword } from "firebase/auth";
 
 export default function LoginPage() {
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
+  const router = useRouter();
+  const auth = useAuth();
 
   const form = useForm<z.infer<typeof LoginSchema>>({
     resolver: zodResolver(LoginSchema),
@@ -42,13 +46,17 @@ export default function LoginPage() {
 
   const onSubmit = (values: z.infer<typeof LoginSchema>) => {
     startTransition(() => {
-      login(values).catch((error) => {
-        toast({
-          title: "Erreur de connexion",
-          description: "Vos identifiants sont incorrects.",
-          variant: "destructive",
+      signInWithEmailAndPassword(auth, values.email, values.password)
+        .then(() => {
+          router.push("/dashboard/user");
+        })
+        .catch((error) => {
+          toast({
+            title: "Erreur de connexion",
+            description: "Vos identifiants sont incorrects.",
+            variant: "destructive",
+          });
         });
-      });
     });
   };
 

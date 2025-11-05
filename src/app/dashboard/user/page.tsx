@@ -27,6 +27,9 @@ import {
 import { BarChart as RechartsBarChart, XAxis, YAxis, Bar, CartesianGrid, ResponsiveContainer } from 'recharts';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useDoc, useFirestore, useUser, useMemoFirebase } from '@/firebase';
+import { doc } from 'firebase/firestore';
+import { Skeleton } from '@/components/ui/skeleton';
 
 const chartData = [
   { month: 'Janvier', dons: 18.6 },
@@ -58,7 +61,27 @@ const supportedAssociations = [
     { id: 'greenpeace', name: 'Greenpeace' }
 ]
 
+const causesLabels: { [key: string]: string } = {
+  environnement: "Environnement",
+  precarite: "Précarité",
+  education: "Éducation",
+  sante: "Santé",
+  animaux: "Cause animale",
+};
+
 export default function UserDashboardPage() {
+  const { user, isUserLoading } = useUser();
+  const firestore = useFirestore();
+
+  const userDocRef = useMemoFirebase(() => {
+    if (!user) return null;
+    return doc(firestore, 'users', user.uid);
+  }, [firestore, user]);
+
+  const { data: userData, isLoading: isProfileLoading } = useDoc(userDocRef);
+
+  const isLoading = isUserLoading || isProfileLoading;
+
   return (
     <div className="flex flex-col gap-8">
       <div>
@@ -98,10 +121,22 @@ export default function UserDashboardPage() {
             <HandHeart className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="flex flex-wrap gap-2 pt-2">
-                <Badge>Environnement</Badge>
-                <Badge>Précarité</Badge>
-            </div>
+            {isLoading ? (
+              <div className="flex flex-wrap gap-2 pt-2">
+                <Skeleton className="h-6 w-24 rounded-full" />
+                <Skeleton className="h-6 w-20 rounded-full" />
+              </div>
+            ) : (
+              <div className="flex flex-wrap gap-2 pt-2">
+                  {userData?.causes?.map((causeId: string) => (
+                    <Badge key={causeId}>{causesLabels[causeId] || causeId}</Badge>
+                  ))}
+                  {userData?.otherCause && <Badge>{userData.otherCause}</Badge>}
+                  {(!userData?.causes || userData.causes.length === 0) && !userData?.otherCause && (
+                      <p className="text-xs text-muted-foreground">Aucune cause sélectionnée.</p>
+                  )}
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>

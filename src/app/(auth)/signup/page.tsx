@@ -5,9 +5,10 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import type { z } from "zod";
 import { useTransition } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { createUserWithEmailAndPassword } from "firebase/auth";
 
 import { SignupSchema } from "@/lib/schemas";
-import { signup } from "@/app/actions";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -27,10 +28,13 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/firebase";
 
 export default function SignupPage() {
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
+  const router = useRouter();
+  const auth = useAuth();
 
   const form = useForm<z.infer<typeof SignupSchema>>({
     resolver: zodResolver(SignupSchema),
@@ -43,13 +47,17 @@ export default function SignupPage() {
 
   const onSubmit = (values: z.infer<typeof SignupSchema>) => {
     startTransition(() => {
-      signup(values).catch((error) => {
-        toast({
-          title: "Erreur d'inscription",
-          description: "Une erreur est survenue. Veuillez réessayer.",
-          variant: "destructive",
+      createUserWithEmailAndPassword(auth, values.email, values.password)
+        .then(() => {
+          router.push("/onboarding");
+        })
+        .catch((error) => {
+          toast({
+            title: "Erreur d'inscription",
+            description: "Une erreur est survenue. Veuillez réessayer.",
+            variant: "destructive",
+          });
         });
-      });
     });
   };
 

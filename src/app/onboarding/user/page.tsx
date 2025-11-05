@@ -4,9 +4,13 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import type { z } from "zod";
 import { useTransition } from "react";
+import { useRouter } from "next/navigation";
+import { doc } from "firebase/firestore";
+
 import { useToast } from "@/hooks/use-toast";
 import { UserOnboardingSchema } from "@/lib/schemas";
-import { submitUserOnboarding } from "@/app/onboarding/actions";
+import { useFirestore, useUser } from "@/firebase";
+import { setDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -34,6 +38,9 @@ const causes = [
 export default function UserOnboardingPage() {
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
+  const router = useRouter();
+  const firestore = useFirestore();
+  const { user } = useUser();
 
   const form = useForm<z.infer<typeof UserOnboardingSchema>>({
     resolver: zodResolver(UserOnboardingSchema),
@@ -50,18 +57,29 @@ export default function UserOnboardingPage() {
   const watchedCauses = form.watch("causes", []);
 
   function onSubmit(values: z.infer<typeof UserOnboardingSchema>) {
+    if (!user) {
+      toast({ title: "Erreur", description: "Vous devez être connecté.", variant: "destructive" });
+      return;
+    }
+
     startTransition(() => {
-      submitUserOnboarding(values)
-        .then((res) => {
-          if (res?.error) {
-            toast({ title: "Erreur", description: res.error, variant: "destructive" });
-          } else {
-            toast({ title: "Profil complété !", description: "Vous allez être redirigé vers votre tableau de bord." });
-          }
-        })
-        .catch(() => {
-          toast({ title: "Erreur", description: "Une erreur est survenue.", variant: "destructive" });
-        });
+      const { fullName, ...preferences } = values;
+      const [firstName, ...lastNameParts] = fullName.split(' ');
+      const lastName = lastNameParts.join(' ');
+
+      const userProfile = {
+        id: user.uid,
+        email: user.email,
+        firstName,
+        lastName,
+        ...preferences,
+      };
+      
+      const userDocRef = doc(firestore, "users", user.uid);
+      setDocumentNonBlocking(userDocRef, userProfile, { merge: true });
+
+      toast({ title: "Profil complété !", description: "Vous allez être redirigé vers votre tableau de bord." });
+      router.push("/dashboard/user");
     });
   }
 
@@ -203,7 +221,7 @@ export default function UserOnboardingPage() {
               />
             </CardContent>
             <CardFooter>
-              <Button type="submit" disabled={isPending} className="w-full">
+              <Button type="submit" disabled={isPending || !user} className="w-full">
                 {isPending ? "Finalisation..." : "Terminer et accéder à mon espace"}
               </Button>
             </CardFooter>
