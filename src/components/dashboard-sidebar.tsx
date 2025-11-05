@@ -75,8 +75,6 @@ export function DashboardSidebar() {
 
   return (
     <Sidebar>
-       <SheetTitle className="sr-only">Menu de navigation principal</SheetTitle>
-       <SheetDescription className="sr-only">Naviguez entre les différentes sections de votre tableau de bord.</SheetDescription>
       <SidebarHeader className="flex flex-col items-start gap-4">
         <Link href="/" className="text-primary transition-colors duration-300 hover:text-primary/80">
           <DotlyLogo className="w-36 text-sidebar-primary" />
