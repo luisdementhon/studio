@@ -4,17 +4,17 @@ import { DotlyLogo } from '@/components/dotly-logo';
 
 export default function Home() {
   return (
-    <main className="flex min-h-screen flex-col">
+    <main className="flex min-h-screen flex-col bg-background">
       <header className="p-8 flex justify-center">
         <Link href="/">
-          <DotlyLogo className="w-40 h-auto text-foreground" />
+          <DotlyLogo className="w-56 h-auto text-black" />
         </Link>
       </header>
       <div className="flex-grow flex flex-col items-center justify-center text-center px-4 -mt-20">
-        <h1 className="text-4xl md:text-6xl font-headline font-bold text-foreground tracking-tight">
+        <h1 className="text-4xl md:text-6xl font-bold text-foreground tracking-tight">
           Petite monnaie,
         </h1>
-        <h2 className="text-4xl md:text-6xl font-headline font-bold text-primary tracking-tight mt-2">
+        <h2 className="text-4xl md:text-6xl font-bold text-foreground tracking-tight mt-2">
           grands gestes.
         </h2>
         <p className="mt-6 max-w-2xl text-lg text-muted-foreground">
