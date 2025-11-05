@@ -25,6 +25,7 @@ import { useUser, useFirestore, useDoc, useMemoFirebase } from "@/firebase";
 import { doc } from "firebase/firestore";
 import { setDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 import { Skeleton } from "@/components/ui/skeleton";
+import { ConnectBridgeAccount } from "@/components/connect-bridge-account";
 
 const causes = [
   { id: "environnement", label: "Environnement" },
@@ -121,8 +122,9 @@ export default function UserProfilePage() {
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)}>
           <Tabs defaultValue="preferences" className="w-full">
-            <TabsList className="grid w-full grid-cols-2">
+            <TabsList className="grid w-full grid-cols-3">
               <TabsTrigger value="preferences">Préférences de don</TabsTrigger>
+              <TabsTrigger value="connexions">Comptes connectés</TabsTrigger>
               <TabsTrigger value="infos">Informations</TabsTrigger>
             </TabsList>
 
@@ -225,6 +227,18 @@ export default function UserProfilePage() {
                       </FormItem>
                     )}
                   />
+                </CardContent>
+              </Card>
+            </TabsContent>
+            
+            <TabsContent value="connexions">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Connexions Bancaires</CardTitle>
+                  <CardDescription>Connectez vos comptes pour activer l'arrondi automatique.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <ConnectBridgeAccount />
                 </CardContent>
               </Card>
             </TabsContent>
