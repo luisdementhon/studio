@@ -64,7 +64,7 @@ export function DashboardSidebar() {
       <SidebarFooter className="space-y-2">
         <div className="flex items-center gap-3 p-2">
             <Avatar className="h-9 w-9">
-              <AvatarImage src={`https://picsum.photos/seed/${avatarSeed}/100/100`} alt={profileName} />
+              <AvatarImage src={`https://picsum.photos/seed/${avatarSeed}/100/100`} alt={profileName} data-ai-hint="person portrait"/>
               <AvatarFallback>{profileName.charAt(0)}</AvatarFallback>
             </Avatar>
             <div className="flex flex-col text-sm overflow-hidden">

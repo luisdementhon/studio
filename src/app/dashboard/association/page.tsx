@@ -24,7 +24,7 @@ import {
   ChartTooltipContent,
   ChartConfig,
 } from '@/components/ui/chart';
-import { AreaChart, XAxis, YAxis, Area, CartesianGrid } from 'recharts';
+import { AreaChart, XAxis, YAxis, Area, CartesianGrid, ResponsiveContainer } from 'recharts';
 
 const chartData = [
   { date: '24/06', total: 245 },
@@ -123,32 +123,34 @@ export default function AssociationDashboardPage() {
           </CardHeader>
           <CardContent>
             <ChartContainer config={chartConfig} className="h-64 w-full">
-              <AreaChart data={chartData} accessibilityLayer margin={{ left: -20, right: 10 }}>
-                <CartesianGrid vertical={false} />
-                <XAxis
-                  dataKey="date"
-                  tickLine={false}
-                  tickMargin={10}
-                  axisLine={false}
-                />
-                <YAxis
-                  tickLine={false}
-                  axisLine={false}
-                  tickMargin={10}
-                  tickFormatter={(value) => `€${value}`}
-                />
-                <ChartTooltip
-                  cursor={false}
-                  content={<ChartTooltipContent indicator="dot" />}
-                />
-                <defs>
-                    <linearGradient id="fillTotal" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="var(--color-total)" stopOpacity={0.8}/>
-                        <stop offset="95%" stopColor="var(--color-total)" stopOpacity={0.1}/>
-                    </linearGradient>
-                </defs>
-                <Area dataKey="total" type="natural" fill="url(#fillTotal)" stroke="var(--color-total)" stackId="a" />
-              </AreaChart>
+              <ResponsiveContainer>
+                <AreaChart data={chartData} accessibilityLayer margin={{ left: -20, right: 10 }}>
+                  <CartesianGrid vertical={false} />
+                  <XAxis
+                    dataKey="date"
+                    tickLine={false}
+                    tickMargin={10}
+                    axisLine={false}
+                  />
+                  <YAxis
+                    tickLine={false}
+                    axisLine={false}
+                    tickMargin={10}
+                    tickFormatter={(value) => `€${value}`}
+                  />
+                  <ChartTooltip
+                    cursor={false}
+                    content={<ChartTooltipContent indicator="dot" />}
+                  />
+                  <defs>
+                      <linearGradient id="fillTotal" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="var(--color-total)" stopOpacity={0.8}/>
+                          <stop offset="95%" stopColor="var(--color-total)" stopOpacity={0.1}/>
+                      </linearGradient>
+                  </defs>
+                  <Area dataKey="total" type="natural" fill="url(#fillTotal)" stroke="var(--color-total)" stackId="a" />
+                </AreaChart>
+              </ResponsiveContainer>
             </ChartContainer>
           </CardContent>
         </Card>

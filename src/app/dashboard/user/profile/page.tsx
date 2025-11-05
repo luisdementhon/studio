@@ -37,7 +37,7 @@ export default function UserProfilePage() {
   const form = useForm<z.infer<typeof UserOnboardingSchema>>({
     resolver: zodResolver(UserOnboardingSchema),
     defaultValues: {
-      fullName: "Jean Dupont",
+      fullName: "",
       causes: ["environnement", "precarite"],
       associations: [],
       donationCeiling: 50,
@@ -120,7 +120,7 @@ export default function UserProfilePage() {
                     name="donationCeiling"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Plafond hebdomadaire : {field.value}€</FormLabel>
+                        <FormLabel>Plafond mensuel : {field.value}€</FormLabel>
                         <FormControl>
                           <Slider
                             value={[field.value ?? 50]}
@@ -129,7 +129,7 @@ export default function UserProfilePage() {
                             onValueChange={(value) => field.onChange(value[0])}
                           />
                         </FormControl>
-                        <FormDescription>Le montant maximum de dons par semaine.</FormDescription>
+                        <FormDescription>Le montant maximum de dons par mois.</FormDescription>
                         <FormMessage />
                       </FormItem>
                     )}

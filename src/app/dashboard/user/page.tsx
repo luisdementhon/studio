@@ -24,7 +24,7 @@ import {
   ChartTooltipContent,
   ChartConfig,
 } from '@/components/ui/chart';
-import { BarChart as RechartsBarChart, XAxis, YAxis, Bar, CartesianGrid } from 'recharts';
+import { BarChart as RechartsBarChart, XAxis, YAxis, Bar, CartesianGrid, ResponsiveContainer } from 'recharts';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
@@ -114,26 +114,28 @@ export default function UserDashboardPage() {
           </CardHeader>
           <CardContent>
             <ChartContainer config={chartConfig} className="h-64 w-full">
-              <RechartsBarChart data={chartData} accessibilityLayer>
-                <CartesianGrid vertical={false} />
-                <XAxis
-                  dataKey="month"
-                  tickLine={false}
-                  tickMargin={10}
-                  axisLine={false}
-                />
-                <YAxis
+              <ResponsiveContainer>
+                <RechartsBarChart data={chartData} accessibilityLayer>
+                  <CartesianGrid vertical={false} />
+                  <XAxis
+                    dataKey="month"
                     tickLine={false}
-                    axisLine={false}
                     tickMargin={10}
-                    tickFormatter={(value) => `€${value}`}
-                />
-                <ChartTooltip
-                  cursor={false}
-                  content={<ChartTooltipContent indicator="dot" />}
-                />
-                <Bar dataKey="dons" fill="var(--color-dons)" radius={4} />
-              </RechartsBarChart>
+                    axisLine={false}
+                  />
+                  <YAxis
+                      tickLine={false}
+                      axisLine={false}
+                      tickMargin={10}
+                      tickFormatter={(value) => `€${value}`}
+                  />
+                  <ChartTooltip
+                    cursor={false}
+                    content={<ChartTooltipContent indicator="dot" />}
+                  />
+                  <Bar dataKey="dons" fill="var(--color-dons)" radius={4} />
+                </RechartsBarChart>
+              </ResponsiveContainer>
             </ChartContainer>
           </CardContent>
         </Card>

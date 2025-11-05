@@ -144,7 +144,7 @@ export default function UserOnboardingPage() {
                 name="donationCeiling"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Plafond de don hebdomadaire : {field.value}€</FormLabel>
+                    <FormLabel>Plafond de don mensuel : {field.value}€</FormLabel>
                     <FormControl>
                       <Slider
                         defaultValue={[50]}
@@ -154,7 +154,7 @@ export default function UserOnboardingPage() {
                       />
                     </FormControl>
                     <FormDescription>
-                      Le montant maximum que vous souhaitez donner par semaine.
+                      Le montant maximum que vous souhaitez donner par mois.
                     </FormDescription>
                     <FormMessage />
                   </FormItem>
