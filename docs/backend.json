@@ -1,0 +1,324 @@
+{
+  "entities": {
+    "User": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "User",
+      "type": "object",
+      "description": "Represents a user of the Dotly application.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the User entity."
+        },
+        "firstName": {
+          "type": "string",
+          "description": "The first name of the user."
+        },
+        "lastName": {
+          "type": "string",
+          "description": "The last name of the user."
+        },
+        "email": {
+          "type": "string",
+          "description": "The email address of the user.",
+          "format": "email"
+        },
+        "phoneNumber": {
+          "type": "string",
+          "description": "The phone number of the user."
+        },
+        "donationMultiplier": {
+          "type": "number",
+          "description": "The donation multiplier applied to the user's round-ups."
+        },
+        "donationCeiling": {
+          "type": "number",
+          "description": "The maximum amount the user is willing to donate in a given period."
+        },
+        "preferredCauseIds": {
+          "type": "array",
+          "description": "References to Causes. (Relationship: User 1:N Cause)",
+          "items": {
+            "type": "string"
+          }
+        },
+        "preferredAssociationIds": {
+          "type": "array",
+          "description": "References to Associations. (Relationship: User 1:N Association)",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "id",
+        "firstName",
+        "lastName",
+        "email"
+      ]
+    },
+    "Association": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Association",
+      "type": "object",
+      "description": "Represents an association registered on the Dotly platform.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Association entity."
+        },
+        "name": {
+          "type": "string",
+          "description": "The name of the association."
+        },
+        "representativeName": {
+          "type": "string",
+          "description": "The name of the association's representative."
+        },
+        "contactEmail": {
+          "type": "string",
+          "description": "The contact email address of the association.",
+          "format": "email"
+        },
+        "contactPhoneNumber": {
+          "type": "string",
+          "description": "The contact phone number of the association."
+        },
+        "rnaNumber": {
+          "type": "string",
+          "description": "The RNA (Répertoire National des Associations) number of the association."
+        },
+        "description": {
+          "type": "string",
+          "description": "A description of the association's mission and activities."
+        },
+        "fundraisingGoal": {
+          "type": "number",
+          "description": "The association's fundraising goal."
+        },
+        "currentMissions": {
+          "type": "string",
+          "description": "A description of the association's current missions."
+        },
+        "taxReceiptEligible": {
+          "type": "boolean",
+          "description": "Indicates whether the association is eligible to issue tax receipts for donations."
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "representativeName",
+        "contactEmail",
+        "rnaNumber"
+      ]
+    },
+    "Donation": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Donation",
+      "type": "object",
+      "description": "Represents a donation made by a user to an association or cause.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Donation entity."
+        },
+        "userId": {
+          "type": "string",
+          "description": "Reference to User. (Relationship: User 1:N Donation)"
+        },
+        "associationId": {
+          "type": "string",
+          "description": "Reference to Association. (Relationship: Association 1:N Donation)"
+        },
+        "amount": {
+          "type": "number",
+          "description": "The amount of the donation."
+        },
+        "transactionDate": {
+          "type": "string",
+          "description": "The date and time when the donation was made.",
+          "format": "date-time"
+        },
+        "isRecurring": {
+          "type": "boolean",
+          "description": "Indicates whether the donation is a recurring donation."
+        }
+      },
+      "required": [
+        "id",
+        "userId",
+        "associationId",
+        "amount",
+        "transactionDate"
+      ]
+    },
+    "Cause": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Cause",
+      "type": "object",
+      "description": "Represents a cause that users can donate to (e.g., environment, poverty).",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Cause entity."
+        },
+        "name": {
+          "type": "string",
+          "description": "The name of the cause."
+        },
+        "description": {
+          "type": "string",
+          "description": "A description of the cause."
+        },
+        "associationIds": {
+          "type": "array",
+          "description": "References to Associations. (Relationship: Cause N:N Association)",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "id",
+        "name"
+      ]
+    },
+    "Transaction": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Transaction",
+      "type": "object",
+      "description": "Represents a user's financial transaction that is rounded up for donation.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Transaction entity."
+        },
+        "userId": {
+          "type": "string",
+          "description": "Reference to User. (Relationship: User 1:N Transaction)"
+        },
+        "transactionDate": {
+          "type": "string",
+          "description": "The date and time of the transaction.",
+          "format": "date-time"
+        },
+        "amount": {
+          "type": "number",
+          "description": "The original amount of the transaction."
+        },
+        "roundedUpAmount": {
+          "type": "number",
+          "description": "The rounded-up amount of the transaction."
+        },
+        "roundUpDifference": {
+          "type": "number",
+          "description": "The difference between the rounded-up amount and the original amount, which is the donation amount."
+        }
+      },
+      "required": [
+        "id",
+        "userId",
+        "transactionDate",
+        "amount",
+        "roundedUpAmount",
+        "roundUpDifference"
+      ]
+    }
+  },
+  "auth": {
+    "providers": [
+      "password",
+      "anonymous"
+    ]
+  },
+  "firestore": {
+    "structure": [
+      {
+        "path": "/users/{userId}",
+        "definition": {
+          "entityName": "User",
+          "schema": {
+            "$ref": "#/backend/entities/User"
+          },
+          "description": "Stores user profiles. Only the authenticated user can access their own profile. Profile data includes preferredCauseIds and preferredAssociationIds to reflect user's preferences. Path-based ownership ensures only the authenticated user can access their profile.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier for the user."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/associations/{associationId}",
+        "definition": {
+          "entityName": "Association",
+          "schema": {
+            "$ref": "#/backend/entities/Association"
+          },
+          "description": "Stores association profiles. Associations are managed independently.",
+          "params": [
+            {
+              "name": "associationId",
+              "description": "The unique identifier for the association."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/transactions/{transactionId}",
+        "definition": {
+          "entityName": "Transaction",
+          "schema": {
+            "$ref": "#/backend/entities/Transaction"
+          },
+          "description": "Stores transactions for each user. Path-based ownership restricts access to only the authenticated user.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier for the user."
+            },
+            {
+              "name": "transactionId",
+              "description": "The unique identifier for the transaction."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/causes/{causeId}",
+        "definition": {
+          "entityName": "Cause",
+          "schema": {
+            "$ref": "#/backend/entities/Cause"
+          },
+          "description": "Stores causes. Causes are globally accessible.",
+          "params": [
+            {
+              "name": "causeId",
+              "description": "The unique identifier for the cause."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/donations/{donationId}",
+        "definition": {
+          "entityName": "Donation",
+          "schema": {
+            "$ref": "#/backend/entities/Donation"
+          },
+          "description": "Stores donations. Includes userId and associationId for filtering and reporting. These fields are required to allow listing and filtering based on user and/or association.",
+          "params": [
+            {
+              "name": "donationId",
+              "description": "The unique identifier for the donation."
+            }
+          ]
+        }
+      }
+    ],
+    "reasoning": "The Firestore structure is designed to ensure Authorization Independence, support QAPs (queries are not filters), and provide clarity for security rules. User and Association data are segregated into their own collections for clarity and security. Ownership is enforced through path-based rules for user-specific data. \n\n*   **/users/{userId}**: Stores user profiles. Path-based ownership ensures that only the authenticated user can access their own profile. This achieves Authorization Independence as profile access doesn't rely on external data.\n*   **/associations/{associationId}**: Stores association profiles. Each association document is publicly readable, but only the association itself can update its profile. Associations are managed independently.\n*   **/users/{userId}/transactions/{transactionId}**: Stores transactions for each user. Path-based ownership restricts access to only the authenticated user, and enables list operations that don't require filtering.\n*   **/causes/{causeId}**: Stores causes. Causes are globally accessible.\n*   **/donations/{donationId}**: Donations are stored in a top-level collection. Every donation denormalizes the userId and associationId to enable simple security rules.\n\nThis design emphasizes Authorization Independence by avoiding `get()` calls in security rules. QAPs are supported by segregating data based on access needs and using path-based ownership."
+  }
+}
