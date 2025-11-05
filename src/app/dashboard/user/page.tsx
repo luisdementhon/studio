@@ -1,6 +1,6 @@
 "use client";
 
-import { BarChart, Coins, PiggyBank, HandHeart } from 'lucide-react';
+import { HandHeart, PiggyBank, Coins } from 'lucide-react';
 import {
   Card,
   CardContent,
@@ -8,7 +8,6 @@ import {
   CardTitle,
   CardDescription,
 } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import {
   Table,
   TableBody,
@@ -25,11 +24,13 @@ import {
   ChartConfig,
 } from '@/components/ui/chart';
 import { BarChart as RechartsBarChart, XAxis, YAxis, Bar, CartesianGrid, ResponsiveContainer } from 'recharts';
-import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useDoc, useFirestore, useUser, useMemoFirebase } from '@/firebase';
-import { doc } from 'firebase/firestore';
+import { doc, collection, getDocs, query, limit } from 'firebase/firestore';
 import { Skeleton } from '@/components/ui/skeleton';
+import { DonationForm } from '@/components/donation-form';
+import { useEffect, useState } from 'react';
+import type { Association } from '@/lib/schemas';
+
 
 const chartData = [
   { month: 'Janvier', dons: 18.6 },
@@ -55,11 +56,6 @@ const recentTransactions = [
     { id: 5, merchant: "Starbucks", amount: 0.50, date: "2024-07-19" },
 ];
 
-const supportedAssociations = [
-    { id: 'resto_du_coeur', name: 'Les Restos du Coeur' },
-    { id: 'wwf', name: 'WWF' },
-    { id: 'greenpeace', name: 'Greenpeace' }
-]
 
 const causesLabels: { [key: string]: string } = {
   environnement: "Environnement",
@@ -72,6 +68,8 @@ const causesLabels: { [key: string]: string } = {
 export default function UserDashboardPage() {
   const { user, isUserLoading } = useUser();
   const firestore = useFirestore();
+  const [associations, setAssociations] = useState<Association[]>([]);
+  const [associationsLoading, setAssociationsLoading] = useState(true);
 
   const userDocRef = useMemoFirebase(() => {
     if (!user) return null;
@@ -79,6 +77,28 @@ export default function UserDashboardPage() {
   }, [firestore, user]);
 
   const { data: userData, isLoading: isProfileLoading } = useDoc(userDocRef);
+
+  useEffect(() => {
+    async function fetchAssociations() {
+        if (!firestore) return;
+        setAssociationsLoading(true);
+        try {
+            const associationsRef = collection(firestore, 'associations');
+            const q = query(associationsRef, limit(10)); // Get a few associations
+            const querySnapshot = await getDocs(q);
+            const assos: Association[] = [];
+            querySnapshot.forEach((doc) => {
+                assos.push({ id: doc.id, ...doc.data() } as Association);
+            });
+            setAssociations(assos);
+        } catch (error) {
+            console.error("Failed to fetch associations:", error);
+        } finally {
+            setAssociationsLoading(false);
+        }
+    }
+    fetchAssociations();
+  }, [firestore]);
 
   const isLoading = isUserLoading || isProfileLoading;
 
@@ -174,26 +194,7 @@ export default function UserDashboardPage() {
             </ChartContainer>
           </CardContent>
         </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle>Faire un don unique</CardTitle>
-            <CardDescription>Soutenez une association instantanément.</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <Select>
-                <SelectTrigger>
-                    <SelectValue placeholder="Choisir une association" />
-                </SelectTrigger>
-                <SelectContent>
-                    {supportedAssociations.map(asso => (
-                        <SelectItem key={asso.id} value={asso.id}>{asso.name}</SelectItem>
-                    ))}
-                </SelectContent>
-            </Select>
-            <Input type="number" placeholder="Montant en €" />
-            <Button className="w-full" variant="secondary">Faire un don</Button>
-          </CardContent>
-        </Card>
+        <DonationForm associations={associations} isLoading={associationsLoading} />
       </div>
       
       <Card>

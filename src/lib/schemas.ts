@@ -33,3 +33,5 @@ export const AssociationOnboardingSchema = z.object({
   fundraisingGoal: z.coerce.number().positive("L'objectif doit être un nombre positif."),
   currentMissions: z.string().optional(),
 });
+
+export type Association = z.infer<typeof AssociationOnboardingSchema> & { id: string };
