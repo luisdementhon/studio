@@ -15,11 +15,13 @@ export default function DashboardLayout({
       <DashboardSidebar />
       <div className="flex flex-col flex-1">
         {/* Mobile Header */}
-        <header className="sticky top-0 z-10 flex h-14 items-center justify-between border-b bg-background px-4 md:hidden">
-          <Link href="/">
-            <DotlyLogo className="h-6 w-auto text-primary" />
-          </Link>
-          <SidebarTrigger />
+        <header className="sticky top-0 z-10 flex h-16 items-center justify-between border-b bg-background px-4 md:hidden">
+          <SidebarTrigger className="h-8 w-8" />
+          <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
+            <Link href="/">
+              <DotlyLogo className="h-7 w-auto text-primary" />
+            </Link>
+          </div>
         </header>
 
         <SidebarInset>
