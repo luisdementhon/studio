@@ -226,7 +226,7 @@ export default function UserOnboardingPage() {
                 {isPending ? "Finalisation..." : "Terminer et accéder à mon espace"}
               </Button>
               <Button asChild variant="ghost" className="w-full">
-                <Link href="/dashboard/user">Passer pour l'instant</Link>
+                <Link href="/dashboard/user">Passer et aller au tableau de bord</Link>
               </Button>
             </CardFooter>
           </form>

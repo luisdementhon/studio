@@ -53,11 +53,7 @@ export default function AssociationOnboardingPage() {
     }
 
     startTransition(() => {
-      // In a real app, you would probably want to create the association in a separate collection
-      // and link it to the user. For this prototype, we'll store the association info
-      // on the user's document as a simplification.
       const associationProfile = {
-        // We use the user's UID as a stand-in for a real association ID for this prototype
         id: user.uid, 
         ...values
       };
@@ -182,7 +178,7 @@ export default function AssociationOnboardingPage() {
                 {isPending ? "Vérification..." : "Finaliser l'inscription"}
               </Button>
               <Button asChild variant="ghost" className="w-full">
-                <Link href="/dashboard/association">Passer pour l'instant</Link>
+                <Link href="/dashboard/association">Passer et aller au tableau de bord</Link>
               </Button>
             </CardFooter>
           </form>
