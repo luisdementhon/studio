@@ -10,16 +10,15 @@ export function DotlyLogo(props: SVGProps<SVGSVGElement>) {
       {...props}
       className={cn(props.className)}
     >
-      <rect width="160" height="90" fill="white" />
       <text
         x="50%"
         y="50%"
         dominantBaseline="middle"
         textAnchor="middle"
-        fill="#000000"
+        fill="currentColor"
         fontFamily="'Playfair Display', 'Times New Roman', serif"
         fontWeight="bold"
-        fontSize="18"
+        fontSize="48"
       >
         Dotly
       </text>
