@@ -1,3 +1,5 @@
+"use client";
+
 import { Users, PiggyBank, Target, Calendar } from 'lucide-react';
 import {
   Card,
