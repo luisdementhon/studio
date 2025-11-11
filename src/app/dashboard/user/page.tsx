@@ -88,7 +88,11 @@ export default function UserDashboardPage() {
             const querySnapshot = await getDocs(q);
             const assos: Association[] = [];
             querySnapshot.forEach((doc) => {
-                assos.push({ id: doc.id, ...doc.data() } as Association);
+                const data = doc.data();
+                // Filter out the test association
+                if (data.associationName?.toLowerCase() !== 'prout') {
+                    assos.push({ id: doc.id, ...data } as Association);
+                }
             });
             setAssociations(assos);
         } catch (error) {
