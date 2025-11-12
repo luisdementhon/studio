@@ -39,7 +39,7 @@ const chartData = [
 const chartConfig = {
   total: {
     label: 'Total (€)',
-    color: 'hsl(var(--accent))',
+    color: 'hsl(var(--chart-2))',
   },
 } satisfies ChartConfig;
 

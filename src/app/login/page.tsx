@@ -28,6 +28,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/firebase";
 import { useToast } from "@/hooks/use-toast";
+import { BrandPattern } from "@/components/brand-pattern";
 
 export default function LoginPage() {
   const auth = useAuth();
@@ -56,8 +57,9 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center p-4">
-        <Card className="w-full max-w-sm">
+    <div className="relative flex min-h-screen flex-col items-center justify-center p-4">
+        <BrandPattern />
+        <Card className="w-full max-w-sm z-10">
         <CardHeader>
             <CardTitle className="text-2xl">Connexion</CardTitle>
             <CardDescription>
@@ -111,7 +113,7 @@ export default function LoginPage() {
                 />
             </CardContent>
             <CardFooter className="flex flex-col gap-4">
-                <Button type="submit" className="w-full" disabled={form.formState.isSubmitting}>
+                <Button type="submit" className="w-full" disabled={form.formState.isSubmitting} variant="vibrant">
                 {form.formState.isSubmitting ? "Connexion..." : "Se connecter"}
                 </Button>
                 <div className="text-sm text-muted-foreground">

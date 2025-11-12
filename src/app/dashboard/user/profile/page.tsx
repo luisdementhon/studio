@@ -276,7 +276,7 @@ export default function UserProfilePage() {
           </Tabs>
           
           <div className="mt-8 flex justify-end">
-            <Button type="submit" disabled={isPending}>
+            <Button type="submit" disabled={isPending} variant="vibrant">
               {isPending ? "Sauvegarde..." : "Sauvegarder les changements"}
             </Button>
           </div>

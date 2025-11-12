@@ -44,7 +44,7 @@ const chartData = [
 const chartConfig = {
   dons: {
     label: 'Dons (€)',
-    color: 'hsl(var(--accent))',
+    color: 'hsl(var(--chart-1))',
   },
 } satisfies ChartConfig;
 

@@ -232,7 +232,7 @@ export default function UserOnboardingPage() {
               </div>
             </CardContent>
             <CardFooter className="flex-col gap-2">
-              <Button type="submit" disabled={isPending || !user} className="w-full">
+              <Button type="submit" disabled={isPending || !user} className="w-full" variant="vibrant">
                 {isPending ? "Finalisation..." : "Terminer et accéder à mon espace"}
               </Button>
               <Button asChild variant="ghost" className="w-full">

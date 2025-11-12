@@ -26,6 +26,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/firebase";
 import { useToast } from "@/hooks/use-toast";
+import { BrandPattern } from "@/components/brand-pattern";
 
 const ForgotPasswordSchema = z.object({
   email: z.string().email({ message: "Veuillez entrer une adresse email valide." }),
@@ -60,8 +61,9 @@ export default function ForgotPasswordPage() {
   };
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center p-4">
-        <Card className="w-full max-w-sm">
+    <div className="relative flex min-h-screen flex-col items-center justify-center p-4">
+        <BrandPattern />
+        <Card className="w-full max-w-sm z-10">
         <CardHeader>
             <CardTitle className="text-2xl">Mot de passe oublié</CardTitle>
             <CardDescription>
@@ -90,7 +92,7 @@ export default function ForgotPasswordPage() {
                 />
             </CardContent>
             <CardFooter className="flex flex-col gap-4">
-                <Button type="submit" className="w-full" disabled={form.formState.isSubmitting}>
+                <Button type="submit" className="w-full" disabled={form.formState.isSubmitting} variant="vibrant">
                 {form.formState.isSubmitting ? "Envoi..." : "Envoyer le lien"}
                 </Button>
                 <div className="text-sm text-muted-foreground">
