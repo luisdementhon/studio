@@ -1,6 +1,7 @@
+
 "use client";
 
-import { HandHeart, PiggyBank, Coins } from 'lucide-react';
+import { HandHeart, PiggyBank, Coins, ShieldCheck } from 'lucide-react';
 import {
   Card,
   CardContent,
@@ -71,6 +72,11 @@ export default function UserDashboardPage() {
   const [associations, setAssociations] = useState<Association[]>([]);
   const [associationsLoading, setAssociationsLoading] = useState(true);
 
+  // Hardcoded monthly donation amount for now
+  const monthlyDonation = 23.70;
+  const taxDeductibleAmount = monthlyDonation * 0.66;
+
+
   const userDocRef = useMemoFirebase(() => {
     if (!user) return null;
     return doc(firestore, 'users', user.uid);
@@ -112,7 +118,7 @@ export default function UserDashboardPage() {
         <h1 className="text-3xl font-bold tracking-tight">Mes Dons</h1>
         <p className="text-muted-foreground">Suivez l'impact de votre générosité.</p>
       </div>
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
@@ -121,7 +127,7 @@ export default function UserDashboardPage() {
             <PiggyBank className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">23,70 €</div>
+            <div className="text-2xl font-bold">{monthlyDonation.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' })}</div>
             <p className="text-xs text-muted-foreground">
               +18.2% par rapport au mois dernier
             </p>
@@ -136,6 +142,18 @@ export default function UserDashboardPage() {
             <div className="text-2xl font-bold">5,45 €</div>
             <p className="text-xs text-muted-foreground">
               Sur 12 transactions
+            </p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Avantage Fiscal (estimation)</CardTitle>
+            <ShieldCheck className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{taxDeductibleAmount.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' })}</div>
+            <p className="text-xs text-muted-foreground">
+              66% de vos dons mensuels
             </p>
           </CardContent>
         </Card>
