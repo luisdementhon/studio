@@ -44,7 +44,7 @@ const chartData = [
 const chartConfig = {
   dons: {
     label: 'Dons (€)',
-    color: 'hsl(var(--primary))',
+    color: 'hsl(var(--accent))',
   },
 } satisfies ChartConfig;
 
@@ -153,9 +153,9 @@ export default function UserDashboardPage() {
             ) : (
               <div className="flex flex-wrap gap-2 pt-2">
                   {userData?.causes?.map((causeId: string) => (
-                    <Badge key={causeId}>{causesLabels[causeId] || causeId}</Badge>
+                    <Badge key={causeId} variant="secondary">{causesLabels[causeId] || causeId}</Badge>
                   ))}
-                  {userData?.otherCause && <Badge>{userData.otherCause}</Badge>}
+                  {userData?.otherCause && <Badge variant="secondary">{userData.otherCause}</Badge>}
                   {(!userData?.causes || userData.causes.length === 0) && !userData?.otherCause && (
                       <p className="text-xs text-muted-foreground">Aucune cause sélectionnée.</p>
                   )}
@@ -219,7 +219,7 @@ export default function UserDashboardPage() {
               {recentTransactions.map((tx) => (
                 <TableRow key={tx.id}>
                   <TableCell className="font-medium">{tx.merchant}</TableCell>
-                  <TableCell className="text-right text-primary font-semibold">
+                  <TableCell className="text-right text-accent font-semibold">
                     {tx.amount.toFixed(2)} €
                   </TableCell>
                   <TableCell className="text-right text-muted-foreground">

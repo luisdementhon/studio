@@ -7,7 +7,7 @@ export default function Home() {
     <main className="flex min-h-screen flex-col bg-background">
       <header className="p-8 flex justify-center">
         <Link href="/">
-          <DotlyLogo className="w-56 h-auto text-black" />
+          <DotlyLogo className="w-56 h-auto text-primary" />
         </Link>
       </header>
       <div className="flex-grow flex flex-col items-center justify-center text-center px-4 -mt-16">
@@ -23,10 +23,10 @@ export default function Home() {
           À chaque achat par carte, arrondissez à l’euro supérieur et reversez la différence à des associations qui vous tiennent à cœur. Simple, automatique, puissant.
         </p>
         <div className="mt-10 flex flex-col sm:flex-row gap-4">
-          <Button asChild size="lg">
+          <Button asChild size="lg" className="bg-accent text-accent-foreground hover:bg-accent/90">
             <Link href="/signup">Commencer</Link>
           </Button>
-          <Button asChild variant="secondary" size="lg">
+          <Button asChild variant="outline" size="lg">
             <Link href="/login">Se connecter</Link>
           </Button>
         </div>

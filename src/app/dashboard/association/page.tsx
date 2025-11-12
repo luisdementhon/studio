@@ -39,7 +39,7 @@ const chartData = [
 const chartConfig = {
   total: {
     label: 'Total (€)',
-    color: 'hsl(var(--primary))',
+    color: 'hsl(var(--accent))',
   },
 } satisfies ChartConfig;
 
@@ -190,7 +190,7 @@ export default function AssociationDashboardPage() {
               {recentDonors.map((donor) => (
                 <TableRow key={donor.id}>
                   <TableCell className="font-medium">{donor.name}</TableCell>
-                  <TableCell className="text-right text-primary font-semibold">
+                  <TableCell className="text-right text-accent font-semibold">
                     {donor.amount.toFixed(2)} €
                   </TableCell>
                   <TableCell className="text-right text-muted-foreground">
