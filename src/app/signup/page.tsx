@@ -132,7 +132,7 @@ export default function SignupPage() {
                 />
             </CardContent>
             <CardFooter className="flex flex-col gap-4">
-                <Button type="submit" className="w-full" disabled={form.formState.isSubmitting} variant="vibrant">
+                <Button type="submit" className="w-full" disabled={form.formState.isSubmitting}>
                 {form.formState.isSubmitting ? "Création..." : "Créer mon compte"}
                 </Button>
                 <div className="text-sm text-muted-foreground">

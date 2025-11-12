@@ -27,7 +27,7 @@ export default function Home() {
             À chaque achat par carte, arrondissez à l’euro supérieur et reversez la différence à des associations qui vous tiennent à cœur. Simple, automatique, puissant.
           </p>
           <div className="mt-10 flex flex-col sm:flex-row gap-4">
-            <Button asChild size="lg" variant="vibrant">
+            <Button asChild size="lg">
               <Link href="/signup">Commencer</Link>
             </Button>
             <Button asChild variant="secondary" size="lg">
