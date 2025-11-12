@@ -165,7 +165,7 @@ export default function AssociationDashboardPage() {
                 <span className="text-sm text-muted-foreground">/ {fundraisingGoal.toLocaleString('fr-FR')}€</span>
             </div>
             <div className="space-y-2">
-                <Progress value={progressPercentage} />
+                <Progress value={progressPercentage} className="h-3" />
                 <p className="text-center text-sm text-muted-foreground">{progressPercentage.toFixed(1)}% de l'objectif atteint</p>
             </div>
           </CardContent>

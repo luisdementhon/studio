@@ -113,7 +113,8 @@ function CheckoutForm({
     <form onSubmit={handleSubmit}>
       <PaymentElement />
       <Button
-        className="w-full mt-4 bg-accent text-accent-foreground hover:bg-accent/90"
+        className="w-full mt-4"
+        variant="vibrant"
         disabled={!stripe || !elements}
         type="submit"
       >
@@ -217,7 +218,8 @@ export function DonationForm({ associations, isLoading }: DonationFormProps) {
               min="1"
             />
             <Button
-              className="w-full bg-accent text-accent-foreground hover:bg-accent/90"
+              className="w-full"
+              variant="vibrant"
               onClick={handleDonationClick}
               disabled={isProcessing || isLoading}
             >
