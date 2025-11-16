@@ -16,7 +16,6 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Badge } from '@/components/ui/badge';
 import { Progress } from "@/components/ui/progress";
 import {
   ChartContainer,
@@ -25,16 +24,12 @@ import {
   ChartConfig,
 } from '@/components/ui/chart';
 import { AreaChart, XAxis, YAxis, Area, CartesianGrid, ResponsiveContainer } from 'recharts';
-
-const chartData = [
-  { date: '24/06', total: 245 },
-  { date: '25/06', total: 280 },
-  { date: '26/06', total: 320 },
-  { date: '27/06', total: 290 },
-  { date: '28/06', total: 350 },
-  { date: '29/06', total: 410 },
-  { date: '30/06', total: 430 },
-];
+import { useUser, useFirestore, useDoc, useCollection, useMemoFirebase } from '@/firebase';
+import { doc, collection, query, where, orderBy, limit } from 'firebase/firestore';
+import { useEffect, useMemo, useState } from 'react';
+import { subDays, format } from 'date-fns';
+import { fr } from 'date-fns/locale';
+import { Skeleton } from '@/components/ui/skeleton';
 
 const chartConfig = {
   total: {
@@ -43,18 +38,129 @@ const chartConfig = {
   },
 } satisfies ChartConfig;
 
-const recentDonors = [
-  { id: 1, name: "Jean D.", amount: 5.45, date: "2024-07-21" },
-  { id: 2, name: "Marie L.", amount: 12.10, date: "2024-07-21" },
-  { id: 3, name: "Anonyme", amount: 2.30, date: "2024-07-20" },
-  { id: 4, name: "Claire M.", amount: 8.90, date: "2024-07-19" },
-  { id: 5, name: "Anonyme", amount: 20.00, date: "2024-07-19" },
-];
 
 export default function AssociationDashboardPage() {
-  const fundraisingGoal = 50000;
-  const currentFunds = 28750;
-  const progressPercentage = (currentFunds / fundraisingGoal) * 100;
+  const { user, isUserLoading } = useUser();
+  const firestore = useFirestore();
+
+  // 1. Fetch association profile data
+  const associationDocRef = useMemoFirebase(() => {
+    if (!user) return null;
+    return doc(firestore, 'associations', user.uid);
+  }, [firestore, user]);
+  const { data: associationData, isLoading: isAssociationLoading } = useDoc(associationDocRef);
+  
+  // 2. Fetch donations for this association
+  const donationsQuery = useMemoFirebase(() => {
+    if (!user) return null;
+    return query(
+      collection(firestore, 'donations'),
+      where('associationId', '==', user.uid),
+      orderBy('transactionDate', 'desc'),
+      limit(50) // Get the 50 most recent donations for performance
+    );
+  }, [firestore, user]);
+  const { data: donations, isLoading: isDonationsLoading } = useCollection(donationsQuery);
+
+  // 3. Calculate KPIs from the data
+  const {
+    monthlyFunds,
+    monthlyFundsGrowth,
+    uniqueDonors,
+    averageDonation,
+    totalFunds,
+    chartData,
+    recentDonors
+  } = useMemo(() => {
+    if (!donations) return {
+        monthlyFunds: 0,
+        monthlyFundsGrowth: 0,
+        uniqueDonors: 0,
+        averageDonation: 0,
+        totalFunds: 0,
+        chartData: [],
+        recentDonors: [],
+    };
+
+    const now = new Date();
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const startOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const endOfLastMonth = new Date(now.getFullYear(), now.getMonth(), 0);
+
+    let monthlyFunds = 0;
+    let lastMonthFunds = 0;
+    let totalFunds = 0;
+    const donorIds = new Set<string>();
+    
+    const donationsByDay: {[key: string]: number} = {};
+    const today = new Date();
+    for (let i = 0; i < 7; i++) {
+        const day = subDays(today, i);
+        donationsByDay[format(day, 'yyyy-MM-dd')] = 0;
+    }
+
+    donations.forEach(donation => {
+      const donationDate = new Date(donation.transactionDate);
+      totalFunds += donation.amount;
+      donorIds.add(donation.userId);
+      
+      if (donationDate >= startOfMonth) {
+        monthlyFunds += donation.amount;
+      }
+      if (donationDate >= startOfLastMonth && donationDate <= endOfLastMonth) {
+        lastMonthFunds += donation.amount;
+      }
+
+      const dayKey = format(donationDate, 'yyyy-MM-dd');
+      if (dayKey in donationsByDay) {
+          donationsByDay[dayKey] += donation.amount;
+      }
+    });
+
+    const monthlyFundsGrowth = lastMonthFunds > 0 ? ((monthlyFunds - lastMonthFunds) / lastMonthFunds) * 100 : monthlyFunds > 0 ? 100 : 0;
+    const averageDonation = donations.length > 0 ? totalFunds / donations.length : 0;
+
+    const chartData = Object.keys(donationsByDay).map(date => ({
+        date: format(new Date(date), 'dd/MM', { locale: fr }),
+        total: donationsByDay[date],
+    })).reverse();
+
+    const recentDonors = donations.slice(0, 5).map(d => ({
+        id: d.id,
+        name: "Donateur Anonyme", // We can't fetch user names here for performance/privacy
+        amount: d.amount,
+        date: new Date(d.transactionDate).toLocaleDateString('fr-FR')
+    }));
+
+    return { monthlyFunds, monthlyFundsGrowth, uniqueDonors: donorIds.size, averageDonation, totalFunds, chartData, recentDonors };
+  }, [donations]);
+
+  const fundraisingGoal = associationData?.fundraisingGoal || 1; // Avoid division by zero
+  const progressPercentage = (totalFunds / fundraisingGoal) * 100;
+
+  const isLoading = isUserLoading || isAssociationLoading || isDonationsLoading;
+
+  if (isLoading) {
+    return (
+      <div className="flex flex-col gap-8">
+        <div className="space-y-2">
+            <Skeleton className="h-8 w-1/3" />
+            <Skeleton className="h-4 w-1/2" />
+        </div>
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+            <Skeleton className="h-28 w-full" />
+            <Skeleton className="h-28 w-full" />
+            <Skeleton className="h-28 w-full" />
+            <Skeleton className="h-28 w-full" />
+        </div>
+        <div className="grid gap-8 md:grid-cols-5">
+            <Skeleton className="h-96 md:col-span-3" />
+            <Skeleton className="h-96 md:col-span-2" />
+        </div>
+        <Skeleton className="h-96 w-full" />
+      </div>
+    )
+  }
 
   return (
     <div className="flex flex-col gap-8">
@@ -71,21 +177,21 @@ export default function AssociationDashboardPage() {
             <PiggyBank className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">4,850.20 €</div>
-            <p className="text-xs text-muted-foreground">
-              +20.1% par rapport au mois dernier
+            <div className="text-2xl font-bold">{monthlyFunds.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' })}</div>
+            <p className={`text-xs ${monthlyFundsGrowth >= 0 ? 'text-accent' : 'text-destructive'}`}>
+              {monthlyFundsGrowth >= 0 ? '+' : ''}{monthlyFundsGrowth.toFixed(1)}% par rapport au mois dernier
             </p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Nouveaux Donateurs</CardTitle>
+            <CardTitle className="text-sm font-medium">Donateurs Uniques</CardTitle>
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">+132</div>
+            <div className="text-2xl font-bold">{uniqueDonors}</div>
             <p className="text-xs text-muted-foreground">
-              Ce mois-ci
+              Depuis le début
             </p>
           </CardContent>
         </Card>
@@ -95,7 +201,7 @@ export default function AssociationDashboardPage() {
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">12,75 €</div>
+            <div className="text-2xl font-bold">{averageDonation.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' })}</div>
             <p className="text-xs text-muted-foreground">
               Sur toutes les donations
             </p>
@@ -161,7 +267,7 @@ export default function AssociationDashboardPage() {
           </CardHeader>
           <CardContent className="flex flex-col justify-center gap-4 h-full">
             <div className="flex items-baseline justify-center gap-2">
-                <span className="text-4xl font-bold">{currentFunds.toLocaleString('fr-FR')}€</span>
+                <span className="text-4xl font-bold">{totalFunds.toLocaleString('fr-FR')}€</span>
                 <span className="text-sm text-muted-foreground">/ {fundraisingGoal.toLocaleString('fr-FR')}€</span>
             </div>
             <div className="space-y-2">
@@ -191,10 +297,10 @@ export default function AssociationDashboardPage() {
                 <TableRow key={donor.id}>
                   <TableCell className="font-medium">{donor.name}</TableCell>
                   <TableCell className="text-right text-accent font-semibold">
-                    {donor.amount.toFixed(2)} €
+                    {donor.amount.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' })}
                   </TableCell>
                   <TableCell className="text-right text-muted-foreground">
-                    {new Date(donor.date).toLocaleDateString('fr-FR')}
+                    {donor.date}
                   </TableCell>
                 </TableRow>
               ))}
@@ -205,3 +311,5 @@ export default function AssociationDashboardPage() {
     </div>
   );
 }
+
+    
