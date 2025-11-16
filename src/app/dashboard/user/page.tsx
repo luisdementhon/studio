@@ -1,7 +1,7 @@
 
 "use client";
 
-import { HandHeart, PiggyBank, Coins, ShieldCheck } from 'lucide-react';
+import { HandHeart, PiggyBank, Coins, ShieldCheck, Landmark } from 'lucide-react';
 import {
   Card,
   CardContent,
@@ -25,22 +25,15 @@ import {
   ChartConfig,
 } from '@/components/ui/chart';
 import { BarChart as RechartsBarChart, XAxis, YAxis, Bar, CartesianGrid, ResponsiveContainer } from 'recharts';
-import { useDoc, useFirestore, useUser, useMemoFirebase } from '@/firebase';
-import { doc, collection, getDocs, query, limit } from 'firebase/firestore';
+import { useDoc, useFirestore, useUser, useMemoFirebase, useCollection } from '@/firebase';
+import { doc, collection, getDocs, query, limit, where, orderBy } from 'firebase/firestore';
 import { Skeleton } from '@/components/ui/skeleton';
 import { DonationForm } from '@/components/donation-form';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import type { Association } from '@/lib/schemas';
+import { format, getMonth } from 'date-fns';
+import { fr } from 'date-fns/locale';
 
-
-const chartData = [
-  { month: 'Janvier', dons: 18.6 },
-  { month: 'Février', dons: 20.5 },
-  { month: 'Mars', dons: 19.3 },
-  { month: 'Avril', dons: 22.1 },
-  { month: 'Mai', dons: 24.9 },
-  { month: 'Juin', dons: 23.7 },
-];
 
 const chartConfig = {
   dons: {
@@ -48,15 +41,6 @@ const chartConfig = {
     color: 'hsl(var(--chart-1))',
   },
 } satisfies ChartConfig;
-
-const recentTransactions = [
-    { id: 1, merchant: "Carrefour City", amount: 0.78, date: "2024-07-21" },
-    { id: 2, merchant: "Boulangerie 'Au bon pain'", amount: 0.20, date: "2024-07-21" },
-    { id: 3, merchant: "Fnac", amount: 0.05, date: "2024-07-20" },
-    { id: 4, merchant: "RATP", amount: 0.90, date: "2024-07-19" },
-    { id: 5, merchant: "Starbucks", amount: 0.50, date: "2024-07-19" },
-];
-
 
 const causesLabels: { [key: string]: string } = {
   environnement: "Environnement",
@@ -72,25 +56,32 @@ export default function UserDashboardPage() {
   const [associations, setAssociations] = useState<Association[]>([]);
   const [associationsLoading, setAssociationsLoading] = useState(true);
 
-  // Hardcoded monthly donation amount for now
-  const monthlyDonation = 23.70;
-  const taxDeductibleAmount = monthlyDonation * 0.66;
-
-
+  // 1. Fetch user profile
   const userDocRef = useMemoFirebase(() => {
     if (!user) return null;
     return doc(firestore, 'users', user.uid);
   }, [firestore, user]);
-
   const { data: userData, isLoading: isProfileLoading } = useDoc(userDocRef);
 
+  // 2. Fetch user's donations
+  const donationsQuery = useMemoFirebase(() => {
+    if (!user) return null;
+    return query(
+      collection(firestore, 'donations'),
+      where('userId', '==', user.uid),
+      orderBy('transactionDate', 'desc')
+    );
+  }, [firestore, user]);
+  const { data: donations, isLoading: isDonationsLoading } = useCollection(donationsQuery);
+  
+  // 3. Fetch associations for donation form and donation list
   useEffect(() => {
     async function fetchAssociations() {
         if (!firestore) return;
         setAssociationsLoading(true);
         try {
             const associationsRef = collection(firestore, 'associations');
-            const q = query(associationsRef, limit(10)); // Get a few associations
+            const q = query(associationsRef, limit(20));
             const querySnapshot = await getDocs(q);
             const assos: Association[] = [];
             querySnapshot.forEach((doc) => {
@@ -110,7 +101,69 @@ export default function UserDashboardPage() {
     fetchAssociations();
   }, [firestore]);
 
-  const isLoading = isUserLoading || isProfileLoading;
+
+  // 4. Calculate KPIs from dynamic data
+  const {
+    monthlyDonation,
+    taxDeductibleAmount,
+    chartData,
+    recentDonations,
+    weeklyRoundups,
+  } = useMemo(() => {
+    if (!donations) {
+        return { monthlyDonation: 0, taxDeductibleAmount: 0, chartData: [], recentDonations: [], weeklyRoundups: 0 };
+    }
+
+    const now = new Date();
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+
+    let monthlyDonation = 0;
+    const monthlyTotals: number[] = Array(6).fill(0);
+    const monthLabels: string[] = [];
+
+    // Initialize month labels for the last 6 months
+    for (let i = 5; i >= 0; i--) {
+        const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+        monthLabels.push(format(d, 'MMMM', { locale: fr }));
+    }
+
+    donations.forEach(d => {
+        const donationDate = new Date(d.transactionDate);
+        if (donationDate >= startOfMonth) {
+            monthlyDonation += d.amount;
+        }
+
+        // Aggregate data for the chart
+        const monthDiff = (now.getFullYear() - donationDate.getFullYear()) * 12 + (now.getMonth() - donationDate.getMonth());
+        if (monthDiff >= 0 && monthDiff < 6) {
+            monthlyTotals[5 - monthDiff] += d.amount;
+        }
+    });
+
+    const taxDeductibleAmount = monthlyDonation * 0.66;
+    
+    const chartData = monthlyTotals.map((total, index) => ({
+        month: monthLabels[index],
+        dons: parseFloat(total.toFixed(2)),
+    }));
+
+    const recentDonationsWithAssoName = donations.slice(0, 5).map(d => {
+        const asso = associations.find(a => a.id === d.associationId);
+        return {
+            ...d,
+            associationName: asso?.associationName || 'Association inconnue',
+        }
+    });
+
+    // Mock weekly roundups since transaction data isn't available
+    const weeklyRoundups = donations.length > 0 ? (monthlyDonation / 4) * (Math.random() * 0.5 + 0.75) : 0;
+
+    return { monthlyDonation, taxDeductibleAmount, chartData, recentDonations: recentDonationsWithAssoName, weeklyRoundups };
+
+  }, [donations, associations]);
+
+
+  const isLoading = isUserLoading || isProfileLoading || isDonationsLoading;
 
   return (
     <div className="flex flex-col gap-8">
@@ -127,9 +180,9 @@ export default function UserDashboardPage() {
             <PiggyBank className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{monthlyDonation.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' })}</div>
+            {isLoading ? <Skeleton className="h-8 w-2/3" /> : <div className="text-2xl font-bold">{monthlyDonation.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' })}</div>}
             <p className="text-xs text-muted-foreground">
-              +18.2% par rapport au mois dernier
+              Merci pour votre générosité !
             </p>
           </CardContent>
         </Card>
@@ -139,9 +192,9 @@ export default function UserDashboardPage() {
             <Coins className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">5,45 €</div>
+             {isLoading ? <Skeleton className="h-8 w-1/2" /> : <div className="text-2xl font-bold">{weeklyRoundups.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' })}</div>}
             <p className="text-xs text-muted-foreground">
-              Sur 12 transactions
+              (Estimation)
             </p>
           </CardContent>
         </Card>
@@ -151,7 +204,7 @@ export default function UserDashboardPage() {
             <ShieldCheck className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{taxDeductibleAmount.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' })}</div>
+            {isLoading ? <Skeleton className="h-8 w-1/2" /> : <div className="text-2xl font-bold">{taxDeductibleAmount.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' })}</div>}
             <p className="text-xs text-muted-foreground">
               66% de vos dons mensuels
             </p>
@@ -190,6 +243,9 @@ export default function UserDashboardPage() {
             <CardDescription>Évolution de vos dons au cours des 6 derniers mois.</CardDescription>
           </CardHeader>
           <CardContent>
+            {isLoading ? (
+                <Skeleton className="h-64 w-full" />
+            ) : (
             <ChartContainer config={chartConfig} className="h-64 w-full">
               <ResponsiveContainer>
                 <RechartsBarChart data={chartData} accessibilityLayer>
@@ -220,6 +276,7 @@ export default function UserDashboardPage() {
                 </RechartsBarChart>
               </ResponsiveContainer>
             </ChartContainer>
+            )}
           </CardContent>
         </Card>
         <DonationForm associations={associations} isLoading={associationsLoading} />
@@ -227,30 +284,46 @@ export default function UserDashboardPage() {
       
       <Card>
         <CardHeader>
-          <CardTitle>Arrondis Récents</CardTitle>
-          <CardDescription>Vos dernières transactions ayant généré un don.</CardDescription>
+          <CardTitle>Dons Récents</CardTitle>
+          <CardDescription>Vos dernières contributions via un don unique.</CardDescription>
         </CardHeader>
         <CardContent>
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Commerçant</TableHead>
+                <TableHead className="flex items-center gap-2"><Landmark className="h-4 w-4" /> Association</TableHead>
                 <TableHead className="text-right">Montant Donné</TableHead>
                 <TableHead className="text-right">Date</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {recentTransactions.map((tx) => (
-                <TableRow key={tx.id}>
-                  <TableCell className="font-medium">{tx.merchant}</TableCell>
-                  <TableCell className="text-right text-accent font-semibold">
-                    {tx.amount.toFixed(2)} €
-                  </TableCell>
-                  <TableCell className="text-right text-muted-foreground">
-                    {new Date(tx.date).toLocaleDateString('fr-FR')}
-                  </TableCell>
+              {isLoading ? (
+                  Array.from({ length: 3 }).map((_, i) => (
+                    <TableRow key={i}>
+                        <TableCell><Skeleton className="h-5 w-32" /></TableCell>
+                        <TableCell><Skeleton className="h-5 w-20 ml-auto" /></TableCell>
+                        <TableCell><Skeleton className="h-5 w-24 ml-auto" /></TableCell>
+                    </TableRow>
+                  ))
+              ) : recentDonations.length === 0 ? (
+                <TableRow>
+                    <TableCell colSpan={3} className="text-center text-muted-foreground py-8">
+                        Aucun don unique pour le moment.
+                    </TableCell>
                 </TableRow>
-              ))}
+              ) : (
+                recentDonations.map((tx) => (
+                    <TableRow key={tx.id}>
+                    <TableCell className="font-medium">{tx.associationName}</TableCell>
+                    <TableCell className="text-right text-accent font-semibold">
+                        {tx.amount.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' })}
+                    </TableCell>
+                    <TableCell className="text-right text-muted-foreground">
+                        {format(new Date(tx.transactionDate), 'd MMM yyyy', { locale: fr })}
+                    </TableCell>
+                    </TableRow>
+                ))
+              )}
             </TableBody>
           </Table>
         </CardContent>
@@ -258,3 +331,5 @@ export default function UserDashboardPage() {
     </div>
   );
 }
+
+    
