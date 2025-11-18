@@ -108,10 +108,5 @@ service cloud.firestore {
       allow get: if isSignedIn();
       allow create, update, delete: if false;
     }
-
-    // This rule allows querying the 'donations' collection.
-    match /donations {
-      allow list: if isSignedIn();
-    }
   }
 }
