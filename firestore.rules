@@ -104,7 +104,7 @@ service cloud.firestore {
      */
      match /donations/{donationId} {
       allow get: if isSignedIn();
-      allow list: if isSignedIn(); // Allow listing for any signed-in user, client code MUST filter appropriately.
+      allow list: if isSignedIn() && (request.query.get('userId') == request.auth.uid || request.query.get('associationId') == request.auth.uid);
       allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
       allow update, delete: if false;
     }
