@@ -56,6 +56,7 @@ export default function AssociationDashboardPage() {
     return query(
       collection(firestore, 'donations'),
       where('associationId', '==', user.uid),
+      orderBy('associationId'), // Added for security rule compliance
       orderBy('transactionDate', 'desc'),
       limit(50) // Get the 50 most recent donations for performance
     );
@@ -311,5 +312,3 @@ export default function AssociationDashboardPage() {
     </div>
   );
 }
-
-    

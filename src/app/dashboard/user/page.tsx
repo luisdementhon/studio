@@ -69,6 +69,7 @@ export default function UserDashboardPage() {
     return query(
       collection(firestore, 'donations'),
       where('userId', '==', user.uid),
+      orderBy('userId'), // Added for security rule compliance
       orderBy('transactionDate', 'desc')
     );
   }, [firestore, user]);
@@ -331,5 +332,3 @@ export default function UserDashboardPage() {
     </div>
   );
 }
-
-    

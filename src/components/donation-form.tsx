@@ -28,6 +28,9 @@ import {
 import { STRIPE_PUBLISHABLE_KEY } from '@/lib/stripe';
 import type { Association } from '@/lib/schemas';
 import { Skeleton } from './ui/skeleton';
+import { useUser, useFirestore, addDocumentNonBlocking } from '@/firebase';
+import { collection, serverTimestamp } from 'firebase/firestore';
+
 
 const stripePromise = loadStripe(STRIPE_PUBLISHABLE_KEY);
 
@@ -40,10 +43,12 @@ function CheckoutForm({
   amount,
   selectedAssociation,
   setProcessing,
+  onSuccessfulPayment,
 }: {
   amount: number;
   selectedAssociation: Association | undefined;
   setProcessing: (isProcessing: boolean) => void;
+  onSuccessfulPayment: () => void;
 }) {
   const stripe = useStripe();
   const elements = useElements();
@@ -69,33 +74,11 @@ function CheckoutForm({
       return;
     }
 
-    const res = await fetch('/api/stripe/create-payment-intent', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        amount,
-        associationName: selectedAssociation?.associationName,
-      }),
-    });
-
-    const { clientSecret, error: backendError } = await res.json();
-
-    if (backendError) {
-      toast({
-        variant: 'destructive',
-        title: 'Erreur',
-        description: backendError,
-      });
-      setProcessing(false);
-      return;
-    }
-
-    const { error } = await stripe.confirmPayment({
+    // Le `paymentIntent` est déjà créé à l'étape précédente,
+    // il suffit de le confirmer ici.
+    const { error, paymentIntent } = await stripe.confirmPayment({
       elements,
-      clientSecret,
-      confirmParams: {
-        return_url: `${window.location.origin}/dashboard/user`,
-      },
+      redirect: 'if_required', // Ne redirige que si nécessaire (ex: 3D Secure)
     });
 
     if (error) {
@@ -104,9 +87,17 @@ function CheckoutForm({
         title: 'Erreur de paiement',
         description: error.message,
       });
+      setProcessing(false);
+    } else if (paymentIntent && paymentIntent.status === 'succeeded') {
+        onSuccessfulPayment(); // Appeler la fonction de callback ici
+        toast({
+            title: "Paiement réussi !",
+            description: "Votre don a bien été enregistré. Merci !",
+        });
+    } else {
+        // Gérer d'autres statuts si nécessaire
+        setProcessing(false);
     }
-
-    setProcessing(false);
   };
 
   return (
@@ -126,6 +117,9 @@ function CheckoutForm({
 
 export function DonationForm({ associations, isLoading }: DonationFormProps) {
   const { toast } = useToast();
+  const { user } = useUser();
+  const firestore = useFirestore();
+
   const [amount, setAmount] = useState<number | undefined>();
   const [selectedAssoId, setSelectedAssoId] = useState<string | undefined>();
   const [clientSecret, setClientSecret] = useState<string | null>(null);
@@ -134,6 +128,31 @@ export function DonationForm({ associations, isLoading }: DonationFormProps) {
   const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = parseFloat(e.target.value);
     setAmount(isNaN(value) ? undefined : value);
+  };
+
+  const handleCreateDonation = async () => {
+    if (!amount || !selectedAssoId || !user) {
+      // This should not happen if the logic is correct, but it's a safe guard.
+      console.error("Missing data to create donation record");
+      return;
+    }
+
+    const donationData = {
+        userId: user.uid,
+        associationId: selectedAssoId,
+        amount: amount,
+        transactionDate: serverTimestamp(),
+        isRecurring: false, // For single donations
+    };
+
+    const donationsRef = collection(firestore, 'donations');
+    addDocumentNonBlocking(donationsRef, donationData);
+    
+    // Reset form state after successful donation
+    setClientSecret(null);
+    setAmount(undefined);
+    setSelectedAssoId(undefined);
+    setProcessing(false);
   };
 
   const handleDonationClick = async () => {
@@ -188,6 +207,7 @@ export function DonationForm({ associations, isLoading }: DonationFormProps) {
               amount={amount!}
               selectedAssociation={selectedAssociation}
               setProcessing={setProcessing}
+              onSuccessfulPayment={handleCreateDonation}
             />
           </Elements>
         ) : isLoading ? (
@@ -221,7 +241,7 @@ export function DonationForm({ associations, isLoading }: DonationFormProps) {
               className="w-full"
               variant="vibrant"
               onClick={handleDonationClick}
-              disabled={isProcessing || isLoading}
+              disabled={isProcessing || isLoading || !user}
             >
               {isProcessing ? 'Chargement...' : 'Faire un don'}
             </Button>
