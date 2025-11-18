@@ -3,24 +3,21 @@
  *
  * Core Philosophy:
  * This ruleset enforces a strict user-ownership model for user profiles and transactions,
- * while allowing public read access to association and cause data. Donations are publicly accessible,
- * but creating, updating, and deleting them is not allowed in this prototype.
+ * while allowing public read access to association and cause data. Donations are readable
+ * based on specific, indexed queries to ensure both performance and security.
  *
  * Data Structure:
  * - /users/{userId}: Stores user profiles, accessible only by the authenticated user.
  * - /associations/{associationId}: Stores association profiles, publicly readable.
  * - /users/{userId}/transactions/{transactionId}: Stores user transactions, accessible only by the authenticated user.
  * - /causes/{causeId}: Stores causes, globally accessible.
- * - /donations/{donationId}: Stores donation data with denormalized userId and associationId to enable simple security rules, publicly readable.
+ * - /donations/{donationId}: Stores donation data. Reads are restricted to queries filtered by `userId` or `associationId`.
  *
  * Key Security Decisions:
  * - User listing is disallowed to prevent data leakage.
  * - Association and cause data are publicly readable.
- * - Donations are publicly readable, but writes are disallowed during prototyping.
  * - Strict ownership is enforced for user profiles and transactions.
- *
- * Denormalization for Authorization:
- * - Donations include `userId` and `associationId` to enable filtering and reporting without additional `get()` calls in the rules.
+ * - Donation queries are restricted to the owner (user) or the recipient (association), preventing users from seeing others' donations.
  */
 rules_version = '2';
 service cloud.firestore {
@@ -97,15 +94,17 @@ service cloud.firestore {
     }
 
     /**
-     * @description Allows read access to donations for authenticated users. Write access is disabled in the prototype.
+     * @description Allows a user to read their own donations, or an association to read its received donations.
+     *              Write access is disabled in the prototype.
      * @path /donations/{donationId}
-     * @allow (get) Any authenticated user can read a single donation.
-     * @allow (list) Any authenticated user can query the donations collection.
-     * @deny (create, update, delete) No user can create, update, or delete donations.
-     * @principle Allows public read access while restricting write access during the prototype phase.
+     * @allow (get) An authenticated user can read any single donation document (e.g., if they have a direct link).
+     * @allow (list) A user can list donations if they are querying by their own `userId` OR by an `associationId`.
+     * @deny (create, update, delete) No user can create, update, or delete donations through this rule.
+     * @principle Restricts collection queries to specific, indexed filters, which is secure and performant.
      */
     match /donations/{donationId} {
       allow get: if isSignedIn();
+      allow list: if isSignedIn() && (request.query.get('userId') == request.auth.uid || request.query.get('associationId') == request.auth.uid);
       allow create, update, delete: if false;
     }
   }
