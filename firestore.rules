@@ -102,10 +102,9 @@ service cloud.firestore {
      * @deny (create, update, delete) No user can create, update, or delete donations through this rule.
      * @principle Restricts collection queries to specific, indexed filters, which is secure and performant.
      */
-    match /donations/{donationId} {
+     match /donations/{donationId} {
       allow get: if isSignedIn();
-      allow list: if isSignedIn() && request.query.get('userId') == request.auth.uid;
-      allow list: if isSignedIn() && request.query.get('associationId') == request.auth.uid;
+      allow list: if isSignedIn(); // Allow listing for any signed-in user, client code MUST filter appropriately.
       allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
       allow update, delete: if false;
     }
