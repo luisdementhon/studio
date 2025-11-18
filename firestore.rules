@@ -99,14 +99,19 @@ service cloud.firestore {
     /**
      * @description Allows read access to donations for authenticated users. Write access is disabled in the prototype.
      * @path /donations/{donationId}
-     * @allow (get, list) Any authenticated user can read donations.
+     * @allow (get) Any authenticated user can read a single donation.
+     * @allow (list) Any authenticated user can query the donations collection.
      * @deny (create, update, delete) No user can create, update, or delete donations.
      * @principle Allows public read access while restricting write access during the prototype phase.
      */
     match /donations/{donationId} {
       allow get: if isSignedIn();
-      allow list: if isSignedIn();
       allow create, update, delete: if false;
+    }
+
+    // This rule allows querying the 'donations' collection.
+    match /donations {
+      allow list: if isSignedIn();
     }
   }
 }
