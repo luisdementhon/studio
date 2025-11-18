@@ -1,41 +1,61 @@
 import Link from 'next/link';
-import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { DotlyLogo } from '@/components/dotly-logo';
 import { BrandPattern } from '@/components/brand-pattern';
+import { Badge } from '@/components/ui/badge';
+import { ArrowRight, Zap, ShieldCheck, HandHeart, Sparkles } from 'lucide-react';
 
 export default function Home() {
   return (
-    <main className="relative flex min-h-screen flex-col bg-background overflow-hidden">
+    <div className="relative flex min-h-screen flex-col bg-background">
       <BrandPattern />
-      <header className="p-8 flex justify-start">
-        <Link href="/">
-          <DotlyLogo className="w-40 h-auto text-primary" />
+      <header className="absolute top-0 left-0 right-0 z-20 flex items-center justify-between p-6 md:p-8">
+        <Link href="/" aria-label="Accueil">
+          <DotlyLogo className="h-8 w-auto text-primary" />
         </Link>
+        <Button asChild variant="ghost">
+          <Link href="/login">Se connecter</Link>
+        </Button>
       </header>
-      <div className="flex-grow flex items-center justify-center text-center px-4">
-        <div className="flex flex-col items-center">
+      <main className="flex flex-1 flex-col items-center justify-center text-center p-4">
+        <div className="z-10 flex flex-col items-center gap-6">
+          <Badge variant="outline" className="py-2 px-4 text-sm font-normal bg-white/50 backdrop-blur-sm">
+            <Sparkles className="mr-2 h-4 w-4 text-primary" />
+            Donner n'a jamais été aussi simple
+          </Badge>
           <div className="font-headline">
-            <h1 className="text-5xl md:text-7xl text-foreground tracking-tight italic">
-              Petite monnaie,
-            </h1>
-            <h2 className="text-5xl md:text-7xl font-bold text-primary tracking-tight mt-2">
+            <h1 className="text-6xl md:text-8xl text-primary font-bold tracking-tight leading-tight">
+              Petite monnaie,<br />
               grands gestes.
-            </h2>
+            </h1>
           </div>
-          <p className="mt-6 max-w-xl text-lg text-muted-foreground">
-            À chaque achat par carte, arrondissez à l’euro supérieur et reversez la différence à des associations qui vous tiennent à cœur. Simple, automatique, puissant.
-          </p>
-          <div className="mt-10 flex flex-col sm:flex-row gap-4">
-            <Button asChild size="lg">
-              <Link href="/signup">Commencer</Link>
+          <div className="mt-4 flex flex-col sm:flex-row items-center gap-4">
+            <Button asChild size="lg" variant="default" className="bg-primary hover:bg-primary/90 text-primary-foreground text-base font-semibold px-6 py-6 rounded-xl shadow-lg hover:shadow-primary/20 transition-shadow">
+              <Link href="/signup">
+                Commencer gratuitement
+                <ArrowRight className="ml-2 h-4 w-4" />
+              </Link>
             </Button>
-            <Button asChild variant="secondary" size="lg">
-              <Link href="/login">Se connecter</Link>
+            <Button asChild size="lg" variant="outline" className="bg-white/50 hover:bg-white/80 border-border text-foreground text-base font-semibold px-6 py-6 rounded-xl backdrop-blur-sm">
+              <Link href="#how-it-works">Comment ça marche ?</Link>
             </Button>
+          </div>
+          <div className="mt-8 flex flex-col sm:flex-row items-center gap-6 text-sm text-muted-foreground">
+              <div className="flex items-center gap-2">
+                <ShieldCheck className="h-4 w-4 text-primary" />
+                <span>100% Sécurisé</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Zap className="h-4 w-4 text-primary" />
+                <span>0€ de frais</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <HandHeart className="h-4 w-4 text-primary" />
+                <span>Impact garanti</span>
+              </div>
           </div>
         </div>
-      </div>
-    </main>
+      </main>
+    </div>
   );
 }
