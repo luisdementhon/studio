@@ -103,10 +103,10 @@ service cloud.firestore {
      * @principle Restricts collection queries to specific, indexed filters, which is secure and performant.
      */
      match /donations/{donationId} {
-      allow get: if isSignedIn();
-      allow list: if isSignedIn() && (request.query.get('userId') == request.auth.uid || request.query.get('associationId') == request.auth.uid);
-      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
-      allow update, delete: if false;
+        allow get: if isSignedIn();
+        allow list: if isSignedIn() && (request.query.limit <= 50 || request.auth.uid == request.query.where.userId || request.auth.uid == request.query.where.associationId);
+        allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+        allow update, delete: if false;
     }
   }
 }
