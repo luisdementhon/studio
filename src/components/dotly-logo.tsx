@@ -4,7 +4,7 @@ import { cn } from '@/lib/utils';
 export function DotlyLogo(props: SVGProps<SVGSVGElement>) {
   return (
     <svg
-      viewBox="0 0 400 120"
+      viewBox="0 0 400 150"
       xmlns="http://www.w3.org/2000/svg"
       aria-label="Dotly Logo"
       {...props}
