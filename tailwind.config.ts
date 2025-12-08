@@ -11,7 +11,7 @@ export default {
     extend: {
       fontFamily: {
         body: ['Inter', 'sans-serif'],
-        headline: ['"Playfair Display"', 'serif'],
+        headline: ['Inter', 'sans-serif'], // Changed to Inter as per guidelines
         code: ['monospace'],
       },
       colors: {
@@ -40,6 +40,10 @@ export default {
         accent: {
           DEFAULT: 'hsl(var(--accent))',
           foreground: 'hsl(var(--accent-foreground))',
+        },
+        'accent-vibrant': {
+          DEFAULT: 'hsl(var(--accent-vibrant))',
+          foreground: 'hsl(var(--accent-vibrant-foreground))',
         },
         destructive: {
           DEFAULT: 'hsl(var(--destructive))',
