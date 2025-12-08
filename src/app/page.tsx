@@ -17,7 +17,7 @@ export default function Home() {
         <Link href="/" aria-label="Accueil">
           <DotlyLogo className="h-8 w-auto text-primary" />
         </Link>
-        <Button asChild variant="ghost">
+        <Button asChild variant="ghost" className="hidden sm:inline-flex">
           <Link href="/login">Se connecter</Link>
         </Button>
       </header>
@@ -33,12 +33,15 @@ export default function Home() {
           <p className="max-w-2xl text-lg text-foreground/80">
             À chaque dépense, Dotly arrondit automatiquement vos paiements à l'euro supérieur et transforme ces centimes en dons pour les causes qui vous sont chères.
           </p>
-          <div className="mt-4 flex flex-col sm:flex-row items-center justify-center gap-4">
+          <div className="mt-4 flex flex-col items-center justify-center gap-4">
             <Button asChild size="lg" className="text-base font-semibold px-8 py-7 rounded-xl" variant="default">
               <Link href="/signup">
                 Commencez
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Link>
+            </Button>
+             <Button asChild variant="link" className="text-base text-muted-foreground">
+              <Link href="/login">Vous avez déjà un compte ? Se connecter</Link>
             </Button>
           </div>
         </div>
@@ -63,7 +66,7 @@ export default function Home() {
                     <CardHeader>
                       <div className="flex items-center gap-4">
                         <div className="bg-primary/10 text-primary p-3 rounded-lg"><Link2 className="w-7 h-7" /></div>
-                        <CardTitle className="font-semibold tracking-tight text-xl">Connectez</CardTitle>
+                        <CardTitle className="font-semibold tracking-tight text-xl whitespace-nowrap">Connectez</CardTitle>
                       </div>
                       <CardDescription className="text-muted-foreground pt-4 text-base">Liez votre compte bancaire en quelques clics. Vos données sont chiffrées et protégées.</CardDescription>
                     </CardHeader>
@@ -72,7 +75,7 @@ export default function Home() {
                     <CardHeader>
                       <div className="flex items-center gap-4">
                         <div className="bg-primary/10 text-primary p-3 rounded-lg"><ShoppingCart className="w-7 h-7" /></div>
-                        <CardTitle className="font-semibold tracking-tight text-xl">Dépensez</CardTitle>
+                        <CardTitle className="font-semibold tracking-tight text-xl whitespace-nowrap">Dépensez</CardTitle>
                       </div>
                       <CardDescription className="text-muted-foreground pt-4 text-base">Nous arrondissons automatiquement chaque paiement à l'euro supérieur, sans que vous ayez à y penser.</CardDescription>
                     </CardHeader>
@@ -81,7 +84,7 @@ export default function Home() {
                     <CardHeader>
                       <div className="flex items-center gap-4">
                         <div className="bg-primary/10 text-primary p-3 rounded-lg"><HeartHandshake className="w-7 h-7" /></div>
-                        <CardTitle className="font-semibold tracking-tight text-xl">Soutenez</CardTitle>
+                        <CardTitle className="font-semibold tracking-tight text-xl whitespace-nowrap">Soutenez</CardTitle>
                       </div>
                       <CardDescription className="text-muted-foreground pt-4 text-base">La somme de vos arrondis est reversée aux associations que vous avez choisies. Suivez votre impact en temps réel.</CardDescription>
                     </CardHeader>
@@ -93,7 +96,7 @@ export default function Home() {
                   <Card className="text-left">
                     <CardHeader>
                       <div className="flex items-center gap-4">
-                        <div className="bg-primary/10 text-primary p-3 rounded-lg"><Building2 className="w-7 h-7" /></div>
+                        <div className="bg-primary/10 text-primary p-3 rounded-lg"><Building2 className="w-6 h-6" /></div>
                         <CardTitle className="font-semibold tracking-tight text-xl whitespace-nowrap">Créez</CardTitle>
                       </div>
                       <CardDescription className="text-muted-foreground pt-4 text-base">Créez le profil de votre association en quelques minutes. Présentez votre mission.</CardDescription>
@@ -102,7 +105,7 @@ export default function Home() {
                    <Card className="text-left">
                     <CardHeader>
                       <div className="flex items-center gap-4">
-                        <div className="bg-primary/10 text-primary p-3 rounded-lg"><ShieldCheck className="w-7 h-7" /></div>
+                        <div className="bg-primary/10 text-primary p-3 rounded-lg"><ShieldCheck className="w-6 h-6" /></div>
                         <CardTitle className="font-semibold tracking-tight text-xl whitespace-nowrap">Validez</CardTitle>
                       </div>
                       <CardDescription className="text-muted-foreground pt-4 text-base">Notre équipe vérifie vos informations pour garantir la confiance et la transparence de la plateforme.</CardDescription>
@@ -111,7 +114,7 @@ export default function Home() {
                    <Card className="text-left">
                     <CardHeader>
                       <div className="flex items-center gap-4">
-                        <div className="bg-primary/10 text-primary p-3 rounded-lg"><PiggyBank className="w-7 h-7" /></div>
+                        <div className="bg-primary/10 text-primary p-3 rounded-lg"><PiggyBank className="w-6 h-6" /></div>
                         <CardTitle className="font-semibold tracking-tight text-xl whitespace-nowrap">Recevez</CardTitle>
                       </div>
                       <CardDescription className="text-muted-foreground pt-4 text-base">Recevez un flux de micro-dons régulier et automatique. Suivez vos collectes depuis votre tableau de bord.</CardDescription>
