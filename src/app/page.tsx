@@ -28,8 +28,7 @@ export default function Home() {
             </h1>
           </div>
           <p className="max-w-2xl text-lg text-foreground/80">
-            L'application qui transforme vos arrondis de dépenses en dons pour les causes qui vous tiennent à cœur.
-            Simple, automatique et transparent.
+            Arrondissez vos dépenses. Amplifiez votre impact. Le moyen le plus simple de soutenir les causes qui comptent pour vous, sans effort.
           </p>
           <div className="mt-4 flex flex-col sm:flex-row items-center justify-center gap-4">
             <Button asChild size="lg" className="text-base font-semibold px-8 py-7 rounded-xl" variant="default">
