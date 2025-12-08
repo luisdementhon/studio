@@ -105,7 +105,7 @@ export default function Home() {
                         <div className="bg-primary/10 text-primary p-3 rounded-lg"><ShieldCheck className="w-7 h-7" /></div>
                         <CardTitle className="text-xl whitespace-nowrap">Validez</CardTitle>
                       </div>
-                      <CardDescription className="pt-4 text-base">Notre équipe vérifie vos informations (RNA, etc.) pour garantir la confiance et la transparence de la plateforme pour tous.</CardDescription>
+                      <CardDescription className="pt-4 text-base">Notre équipe vérifie vos informations pour garantir la confiance et la transparence de la plateforme.</CardDescription>
                     </CardHeader>
                   </Card>
                    <Card className="text-left">
