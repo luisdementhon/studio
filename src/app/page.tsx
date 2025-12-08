@@ -83,7 +83,7 @@ export default function Home() {
                         <div className="bg-primary/10 text-primary p-3 rounded-lg"><HeartHandshake className="w-7 h-7" /></div>
                         <CardTitle className="text-xl">Soutenez</CardTitle>
                       </div>
-                      <CardDescription className="pt-4 text-base">La somme de vos arrondis est reversée chaque mois à la ou les associations que vous avez choisies. Suivez votre impact en temps réel.</CardDescription>
+                      <CardDescription className="pt-4 text-base">La somme de vos arrondis est reversée à la ou les associations que vous avez choisies. Suivez votre impact en temps réel.</CardDescription>
                     </CardHeader>
                   </Card>
                 </div>
