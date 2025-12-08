@@ -1,3 +1,4 @@
+
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { DotlyLogo } from '@/components/dotly-logo';
@@ -21,20 +22,24 @@ export default function Home() {
         <div className="z-10 flex flex-col items-center gap-6">
           
           <div className="font-headline">
-            <h1 className="text-6xl md:text-8xl from-primary to-accent/80 bg-gradient-to-br bg-clip-text font-bold tracking-tight text-transparent drop-shadow-sm">
+            <h1 className="text-6xl md:text-8xl from-primary to-green-400 bg-gradient-to-br bg-clip-text font-bold tracking-tight text-transparent drop-shadow-sm leading-normal">
               Petite monnaie,<br />
               grands gestes.
             </h1>
           </div>
+          <p className="max-w-2xl text-lg text-foreground/80">
+            L'application qui transforme vos arrondis de dépenses en dons pour les causes qui vous tiennent à cœur.
+            Simple, automatique et transparent.
+          </p>
           <div className="mt-4 flex flex-col sm:flex-row items-center gap-4">
-            <Button asChild size="lg" variant="default" className="bg-primary hover:bg-primary/90 text-primary-foreground text-base font-semibold px-6 py-6 rounded-xl shadow-lg hover:shadow-primary/20 transition-shadow">
+            <Button asChild size="lg" variant="vibrant" className="text-base font-semibold px-8 py-7 rounded-xl shadow-lg shadow-accent-vibrant/20 transition-shadow hover:shadow-xl hover:shadow-accent-vibrant/30">
               <Link href="/signup">
-                Commencer gratuitement
+                Devenir donateur
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Link>
             </Button>
-            <Button asChild size="lg" variant="outline" className="bg-white/50 hover:bg-white/80 border-border text-foreground text-base font-semibold px-6 py-6 rounded-xl backdrop-blur-sm">
-              <Link href="#how-it-works">Comment ça marche ?</Link>
+            <Button asChild size="lg" variant="outline" className="bg-white/50 hover:bg-white/80 border-border text-foreground text-base font-semibold px-8 py-7 rounded-xl backdrop-blur-sm">
+              <Link href="/onboarding/association">Pour les associations</Link>
             </Button>
           </div>
         </div>
