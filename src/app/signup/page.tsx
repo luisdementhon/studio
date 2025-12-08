@@ -48,7 +48,7 @@ export default function SignupPage() {
 
   const onGoogleSignIn = () => {
     initiateGoogleSignIn(auth);
-    // Redirection is handled by the auth loading page
+    router.push('/auth/loading');
   };
 
   const onSubmit = async (values: z.infer<typeof SignupSchema>) => {
