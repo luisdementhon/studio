@@ -13,10 +13,12 @@ export default function Home() {
   return (
     <div className="relative flex flex-col bg-background">
       <BrandPattern />
-      <header className="absolute top-0 left-0 right-0 z-20 flex items-center justify-between p-6 md:p-8">
-        <Link href="/" aria-label="Accueil">
-          <DotlyLogo className="h-8 w-auto text-primary" />
-        </Link>
+      <header className="absolute top-0 left-0 right-0 z-20 flex items-center justify-center p-6 md:p-8">
+        <div className="flex justify-center w-full">
+            <Link href="/" aria-label="Accueil">
+              <DotlyLogo className="h-8 w-auto text-primary" />
+            </Link>
+        </div>
       </header>
       <main className="flex min-h-screen flex-col items-center justify-center text-center p-4">
         <div className="z-10 flex flex-col items-center gap-6">
