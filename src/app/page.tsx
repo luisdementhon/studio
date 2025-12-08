@@ -20,7 +20,7 @@ export default function Home() {
             </Link>
         </div>
       </header>
-      <main className="flex min-h-screen flex-col items-center justify-center text-center p-4">
+      <main className="flex min-h-[85vh] flex-col items-center justify-center text-center p-4">
         <div className="z-10 flex flex-col items-center gap-6">
           
           <div className="font-headline">
