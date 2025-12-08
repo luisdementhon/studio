@@ -37,12 +37,6 @@ export default function Home() {
               <Link href="#how-it-works">Comment ça marche ?</Link>
             </Button>
           </div>
-          <div className="mt-8 flex flex-col sm:flex-row items-center gap-6 text-sm text-muted-foreground">
-              <div className="flex items-center gap-2">
-                <HandHeart className="h-4 w-4 text-primary" />
-                <span>Impact garanti</span>
-              </div>
-          </div>
         </div>
       </main>
     </div>
