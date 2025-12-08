@@ -31,15 +31,12 @@ export default function Home() {
             L'application qui transforme vos arrondis de dépenses en dons pour les causes qui vous tiennent à cœur.
             Simple, automatique et transparent.
           </p>
-          <div className="mt-4 flex flex-col sm:flex-row items-center gap-4">
+          <div className="mt-4 flex flex-col sm:flex-row items-center justify-center gap-4">
             <Button asChild size="lg" variant="vibrant" className="text-base font-semibold px-8 py-7 rounded-xl shadow-lg shadow-accent-vibrant/20 transition-shadow hover:shadow-xl hover:shadow-accent-vibrant/30">
               <Link href="/signup">
                 Devenir donateur
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Link>
-            </Button>
-            <Button asChild size="lg" variant="outline" className="bg-white/50 hover:bg-white/80 border-border text-foreground text-base font-semibold px-8 py-7 rounded-xl backdrop-blur-sm">
-              <Link href="/onboarding/association">Pour les associations</Link>
             </Button>
           </div>
         </div>
