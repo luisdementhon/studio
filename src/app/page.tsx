@@ -49,9 +49,6 @@ export default function Home() {
           <div className="flex flex-col items-center space-y-6 text-center">
             <div className="space-y-3">
               <h2 className="text-4xl font-bold tracking-tighter sm:text-5xl font-headline text-primary">Comment ça marche ?</h2>
-              <p className="max-w-[900px] text-foreground/80 md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed">
-                Découvrez comment Dotly transforme vos petites dépenses en un grand soutien, que vous soyez un donateur ou une association.
-              </p>
             </div>
           </div>
           <div className="mx-auto max-w-5xl mt-12">
