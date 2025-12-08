@@ -125,6 +125,12 @@ export function DonationForm({ associations, isLoading }: DonationFormProps) {
   const [clientSecret, setClientSecret] = useState<string | null>(null);
   const [isProcessing, setProcessing] = useState(false);
 
+  const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    const numberValue = parseFloat(value);
+    setAmount(value === '' ? undefined : (isNaN(numberValue) ? amount : numberValue));
+  };
+
   const handleCreateDonation = async () => {
     if (!amount || !selectedAssoId || !user) {
       // This should not happen if the logic is correct, but it's a safe guard.
