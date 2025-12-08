@@ -112,7 +112,7 @@ export default function Home() {
                     <CardHeader>
                       <div className="flex items-center gap-4">
                         <div className="bg-primary/10 text-primary p-3 rounded-lg"><PiggyBank className="w-7 h-7" /></div>
-                        <CardTitle className="text-xl whitespace-nowrap">Recevez les fonds</CardTitle>
+                        <CardTitle className="text-xl whitespace-nowrap">Recevez</CardTitle>
                       </div>
                       <CardDescription className="pt-4 text-base">Recevez un flux de micro-dons régulier et automatique. Suivez vos collectes depuis votre tableau de bord dédié.</CardDescription>
                     </CardHeader>
