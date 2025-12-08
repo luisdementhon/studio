@@ -8,26 +8,22 @@
       "properties": {
         "id": {
           "type": "string",
-          "description": "Unique identifier for the user entity."
-        },
-        "email": {
-          "type": "string",
-          "description": "Email address of the user.",
-          "format": "email"
+          "description": "Unique identifier for the User entity."
         },
         "firstName": {
           "type": "string",
-          "description": "First name of the user."
+          "description": "User's first name."
         },
         "lastName": {
           "type": "string",
-          "description": "Last name of the user."
+          "description": "User's last name."
         },
-        "phoneNumber": {
+        "email": {
           "type": "string",
-          "description": "Phone number of the user."
+          "description": "User's email address.",
+          "format": "email"
         },
-        "preferredCauses": {
+        "causesOfInterest": {
           "type": "array",
           "description": "List of causes the user is interested in supporting.",
           "items": {
@@ -36,43 +32,36 @@
         },
         "preferredAssociations": {
           "type": "array",
-          "description": "List of association IDs the user is interested in supporting.",
+          "description": "List of association IDs the user prefers to support.",
           "items": {
             "type": "string"
           }
         },
         "donationMultiplier": {
           "type": "number",
-          "description": "Multiplier applied to donations based on user income.",
-          "format": "number"
+          "description": "Multiplier applied to donations, based on income."
         },
         "donationCeiling": {
           "type": "number",
-          "description": "Maximum weekly/monthly donation amount.",
-          "format": "number"
-        },
-        "isAssociation": {
-          "type": "boolean",
-          "description": "Flag indicating if the user represents an association."
+          "description": "Maximum amount a user will donate in a given period."
         }
       },
       "required": [
         "id",
-        "email",
         "firstName",
         "lastName",
-        "isAssociation"
+        "email"
       ]
     },
     "Association": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Association",
       "type": "object",
-      "description": "Represents an association registered on the Dotly application.",
+      "description": "Represents an association using the Dotly application.",
       "properties": {
         "id": {
           "type": "string",
-          "description": "Unique identifier for the association entity."
+          "description": "Unique identifier for the Association entity."
         },
         "name": {
           "type": "string",
@@ -80,43 +69,38 @@
         },
         "representativeName": {
           "type": "string",
-          "description": "Name of the association representative."
+          "description": "Name of the association's representative."
         },
-        "contactEmail": {
+        "contactInformation": {
           "type": "string",
-          "description": "Contact email address of the association.",
-          "format": "email"
-        },
-        "contactPhoneNumber": {
-          "type": "string",
-          "description": "Contact phone number of the association."
+          "description": "Contact information for the association."
         },
         "rnaNumber": {
           "type": "string",
-          "description": "RNA (Répertoire National des Associations) number of the association."
+          "description": "Association's RNA number."
         },
-        "description": {
+        "associationInformation": {
           "type": "string",
-          "description": "Description of the association's activities and mission."
+          "description": "Additional information about the association."
         },
         "fundraisingGoals": {
           "type": "string",
-          "description": "Fundraising goals of the association."
+          "description": "Association's fundraising goals."
         },
         "currentMissions": {
           "type": "string",
-          "description": "Current missions the association is trying to fund."
+          "description": "Description of the association's current missions."
         },
         "taxReceiptEligible": {
           "type": "boolean",
-          "description": "Indicates if the association is eligible to issue tax receipts."
+          "description": "Indicates whether the association is eligible to issue tax receipts."
         }
       },
       "required": [
         "id",
         "name",
         "representativeName",
-        "contactEmail",
+        "contactInformation",
         "rnaNumber"
       ]
     },
@@ -124,34 +108,28 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Donation",
       "type": "object",
-      "description": "Represents a single donation made by a user to an association.",
+      "description": "Represents a donation made through the Dotly application.",
       "properties": {
         "id": {
           "type": "string",
-          "description": "Unique identifier for the donation."
+          "description": "Unique identifier for the Donation entity."
         },
         "userId": {
           "type": "string",
-          "description": "Reference to the User who made the donation. (Relationship: User 1:N Donation)"
+          "description": "Reference to User. (Relationship: User 1:N Donation)"
         },
         "associationId": {
           "type": "string",
-          "description": "Reference to the Association that received the donation. (Relationship: Association 1:N Donation)"
+          "description": "Reference to Association. (Relationship: Association 1:N Donation)"
         },
         "amount": {
           "type": "number",
-          "description": "Amount of the donation in euros.",
-          "format": "number"
+          "description": "Amount of the donation."
         },
         "transactionDate": {
           "type": "string",
-          "description": "Date and time when the donation was processed.",
+          "description": "Date and time of the donation transaction.",
           "format": "date-time"
-        },
-        "roundedUpAmount": {
-          "type": "number",
-          "description": "The amount the transaction was rounded up to.",
-          "format": "number"
         }
       },
       "required": [
@@ -166,8 +144,7 @@
   "auth": {
     "providers": [
       "password",
-      "anonymous",
-      "google"
+      "anonymous"
     ]
   },
   "firestore": {
@@ -179,7 +156,7 @@
           "schema": {
             "$ref": "#/backend/entities/User"
           },
-          "description": "Stores user profiles. Access is restricted to the user themselves.",
+          "description": "Stores user profiles. Path-based ownership for user data.",
           "params": [
             {
               "name": "userId",
@@ -195,7 +172,7 @@
           "schema": {
             "$ref": "#/backend/entities/Association"
           },
-          "description": "Stores association profiles.  Access is restricted to authorized association representatives.",
+          "description": "Stores association profiles. Publicly readable, restricted write access.",
           "params": [
             {
               "name": "associationId",
@@ -211,7 +188,7 @@
           "schema": {
             "$ref": "#/backend/entities/Donation"
           },
-          "description": "Stores donations made by a specific user. Access is restricted to the user who made the donation.",
+          "description": "Stores donation records.  Includes denormalized `associationId` for authorization independence.",
           "params": [
             {
               "name": "userId",
@@ -225,6 +202,6 @@
         }
       }
     ],
-    "reasoning": "The Firestore structure is designed to address the 'Missing or insufficient permissions' error by ensuring authorization independence and secure data access.  The error occurred because the user was attempting to `list` all documents in the `donations` collection, which is not allowed in this structure. `Donations` are stored within user-specific subcollections, ensuring users can only list *their* donations. This design avoids the security risks of allowing general collection listing.\n\nKey structural choices:\n\n1.  **Authorization Independence:** The structure uses path-based ownership for donations (`/users/{userId}/donations/{donationId}`). This eliminates the need for `get()` calls in security rules to check the donor's identity, since the `userId` is embedded in the path. No denormalization is required because authorization is implicit in the path.\n\n2.  **Structural Segregation:**  User data, association data, and donation data are stored in separate collections to enforce distinct security policies.  Donations are further segregated as subcollections under the respective user's document.\n\n3. **User and Association Separation:** User and association data are strictly segregated. There is no mixing of data related to users or associations in the same collection or document. This segregation allows for distinct security rules for users and associations.\n\n4.  **QAPs (Rules are not Filters):**\n    *   Listing donations is restricted to the donations owned by the user. Therefore, a user can list donations under `/users/{userId}/donations`, but not donations of other users. Associations should not be able to list donations. This is a critical security feature.\n\nThis design promotes security and scalability by enforcing clear ownership and limiting access to data based on the user's identity."
+    "reasoning": "The Firestore data structure is designed to support Dotly's core features: user and association onboarding, donation customization, rounded-up transaction processing, and dashboards. The structure prioritizes Authorization Independence and QAPs by denormalizing authorization data and segregating data based on access needs.\n\n1.  **Users Collection:** Stores user profiles, including donation preferences (multiplier, ceiling). Path-based ownership (`/users/{userId}`) ensures only the user can access their data.\n2.  **Associations Collection:** Stores association profiles. Publicly readable for discovery, but write access is restricted.\n3.  **Donations Collection:**  Stores donation records. Uses a subcollection structure (`/users/{userId}/donations/{donationId}`) to clearly associate donations with users. The `associationId` is denormalized into this document to eliminate the need for `get()` calls to authorize listing donations for a specific association on a specific user. This also makes reporting easier. Rules ensure that only the user can create a donation document under their path, and associations can only view donations associated with their ID.\n\nThis design ensures Authorization Independence by avoiding hierarchical dependencies. Security rules can operate on individual documents without needing to fetch parent document data. It supports QAPs by segregating data based on ownership and using membership maps where needed. The structure also facilitates the enforcement of invariants, such as ensuring only the owner can modify their data and maintaining consistent timestamps."
   }
 }

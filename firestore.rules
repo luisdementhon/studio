@@ -1,131 +1,162 @@
 /**
- * # Firestore Security Rules
+ * This ruleset enforces a security model for the Dotly application with a focus
+ * on strict user data privacy and public discoverability for associations.
  *
- * ## Core Philosophy
- * This ruleset enforces a strict, user-centric ownership model designed for security and scalability.
- * The primary goal is to ensure that users can only access and manage their own data, preventing
- * unauthorized access or data leakage between users.
+ * Core Philosophy:
+ * The rules establish a strong user-ownership model, where each user has
+ * exclusive control over their personal data and associated records like donations.
+ * Data intended for public consumption is explicitly separated into its own
+ * top-level collection.
  *
- * ## Data Structure
- * - `/users/{userId}`: Stores private user profile data.
- * - `/users/{userId}/donations/{donationId}`: A subcollection storing all donations made by a specific user.
- *   Nesting donations this way is a critical security decision that makes ownership checks simple,
- *   performant, and directly solves the permission error related to listing donations.
- * - `/associations/{associationId}`: Stores public profiles for associations.
+ * Data Structure:
+ * - /users/{userId}: Contains private user profile information. All subcollections
+ *   inherit the ownership model of this parent document.
+ * - /users/{userId}/donations/{donationId}: Stores donation records, which are
+ *   private to the user who made them.
+ * - /associations/{associationId}: A top-level collection for association profiles,
+ *   which are publicly readable to facilitate discovery within the app.
  *
- * ## Key Security Decisions
- * - **No Global Listing:** Listing documents from the top-level `/users` collection is explicitly
- *   disallowed to prevent user enumeration and protect privacy.
- * - **Path-Based Ownership:** The rules for the `/users/{userId}/donations` subcollection leverage
- *   the `userId` from the path for authorization. This is highly performant as it avoids extra
- *   database reads (`get()` calls) to verify ownership.
- * - **Public Association Profiles:** Association data is treated as public information, readable by anyone.
- *   However, write access is currently disabled due to a missing ownership link in the data model.
- *   This is a "secure by default" posture that prevents unauthorized modification until the schema is updated.
- * - **Self-Service User Profile:** Users are allowed to create their own user document, but only if
- *   the document ID matches their authenticated UID. They retain full control over this document afterward.
+ * Key Security Decisions:
+ * - Strict User Data Segregation: A user can ONLY access documents within their
+ *   own data tree (e.g., /users/their-own-id/...).
+ * - No User Listing: To protect user privacy, it is impossible for any client
+ *   to list the documents in the top-level `/users` collection.
+ * - Public Read-Only for Associations: Association data is public for any client
+ *   to read, but all write operations are disabled by default until a secure
+ *   ownership or admin model is defined in the application's data schema.
+ * - Denormalization for Authorization: User and association IDs are stored directly
+ *   on donation documents. This avoids costly and slow `get()` calls in rules,
+ *   allowing for fast and simple ownership checks based on the document path.
  *
- * ## Denormalization for Authorization
- * The chosen data structure for donations (`/users/{userId}/donations`) is a form of structural
- * denormalization. By placing donations under the user who owns them, we make the authorization
- * check implicit in the path, which is the most efficient and secure way to handle ownership in Firestore.
- * No further denormalization (like copying user IDs onto documents) is needed for this core relationship.
- *
- * ## Structural Segregation
- * Data is cleanly segregated into distinct collections (`users`, `associations`) and subcollections
- * (`donations`) to apply different security policies to each data type. This separation is fundamental
- to the security model.
+ * Prototyping Mode:
+ * These rules enforce strict authorization (who can access what) but remain
+ * flexible on data shapes. They do not validate specific fields or data types,
+ * allowing for rapid front-end development and iteration. The only data
+ * validation performed is on fields critical for maintaining relational integrity,
+ * such as ensuring a document's internal owner ID matches the ID in its path.
  */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    //-------------------------------------------------------------------------
+    // -------------------------------------------------------------------------
     // Helper Functions
-    //-------------------------------------------------------------------------
+    // -------------------------------------------------------------------------
 
     /**
-     * Checks if the current request is from an authenticated user.
+     * Checks if the user is authenticated.
      */
     function isSignedIn() {
       return request.auth != null;
     }
 
     /**
-     * Checks if the requesting user's UID matches the provided userId.
-     * This is the primary function for verifying document ownership.
+     * Checks if the currently authenticated user's ID matches the provided userId.
+     * This is the primary function for enforcing data ownership.
      */
     function isOwner(userId) {
       return isSignedIn() && request.auth.uid == userId;
     }
 
     /**
-     * Checks for ownership on an existing document. Used for safe updates and deletes.
-     * Denies requests for documents that do not exist, preventing unintended side effects.
+     * Checks if the document exists AND the authenticated user is the owner.
+     * Used for safe update and delete operations to prevent modifying non-existent data.
      */
     function isExistingOwner(userId) {
       return isOwner(userId) && resource != null;
     }
 
-    //-------------------------------------------------------------------------
-    // Collection: users
-    //-------------------------------------------------------------------------
+    /**
+     * On create, validates that the user is setting their own UID as the document's ID.
+     * This establishes the ownership link and maintains data consistency.
+     */
+    function isCreatingOwnUserDocument(userId) {
+      return request.resource.data.id == userId;
+    }
 
     /**
-     * @description Rules for a user's own profile document.
-     * @path        /users/{userId}
-     * @allow       (create) A new user can create their own profile document.
-     * @allow       (get) An authenticated user can read their own profile.
-     * @deny        (list) A user cannot list other users' profiles.
-     * @deny        (update) A user cannot update another user's profile.
-     * @principle   Restricts access to a user's own data tree and allows for self-creation of a profile.
+     * On update, ensures the document's unique ID (which links to the user) cannot be changed.
+     */
+    function isUserIdImmutable() {
+      return request.resource.data.id == resource.data.id;
+    }
+
+    /**
+     * On create, validates that the donation's internal userId matches the user's path.
+     * This ensures donations are correctly associated with the creator.
+     */
+    function hasCorrectDonationOwner(userId) {
+      return request.resource.data.userId == userId;
+    }
+
+    /**
+     * On update, ensures the donation's owner link (userId) cannot be changed.
+     */
+    function isDonationOwnerImmutable() {
+      return request.resource.data.userId == resource.data.userId;
+    }
+
+
+    // -------------------------------------------------------------------------
+    // User Profiles (/users/{userId})
+    // -------------------------------------------------------------------------
+
+    /**
+     * @description Controls access to user profile documents. A user can create, read,
+     *   update, and delete their own profile, but cannot see or list others.
+     * @path /users/{userId}
+     * @allow (get) A logged-in user with uid 'user123' retrieving '/users/user123'.
+     * @deny (get) A logged-in user with uid 'user456' retrieving '/users/user123'.
+     * @deny (list) Any user attempting to list the '/users' collection.
+     * @principle Restricts access to a user's own data tree, preventing data leakage.
      */
     match /users/{userId} {
       allow get: if isOwner(userId);
       allow list: if false;
-      allow create: if isOwner(userId) && request.resource.data.id == userId;
-      allow update: if isExistingOwner(userId) && request.resource.data.id == resource.data.id;
+      allow create: if isOwner(userId) && isCreatingOwnUserDocument(userId);
+      allow update: if isExistingOwner(userId) && isUserIdImmutable();
       allow delete: if isExistingOwner(userId);
-
-      //-----------------------------------------------------------------------
-      // Subcollection: donations
-      //-----------------------------------------------------------------------
-
-      /**
-       * @description Rules for a user's donations, nested under their own document.
-       * @path        /users/{userId}/donations/{donationId}
-       * @allow       (list) A user can list all of their own past donations.
-       * @allow       (create) A user can create a new donation record for themselves.
-       * @deny        (get) A user cannot read another user's specific donation record.
-       * @deny        (delete) An attacker cannot delete another user's donation history.
-       * @principle   Enforces document ownership for all operations using a path-based security model.
-       */
-      match /donations/{donationId} {
-        allow get: if isOwner(userId);
-        allow list: if isOwner(userId);
-        allow create: if isOwner(userId) && request.resource.data.userId == userId;
-        allow update: if isExistingOwner(userId) && request.resource.data.userId == resource.data.userId;
-        allow delete: if isExistingOwner(userId);
-      }
     }
 
-    //-------------------------------------------------------------------------
-    // Collection: associations
-    //-------------------------------------------------------------------------
+
+    // -------------------------------------------------------------------------
+    // User Donations (/users/{userId}/donations/{donationId})
+    // -------------------------------------------------------------------------
 
     /**
-     * @description Rules for public-facing association profiles.
-     * @path        /associations/{associationId}
-     * @allow       (get, list) Any user, signed in or not, can view association profiles.
-     * @deny        (create, update, delete) All write operations are denied because the data model
-     *              lacks an ownership field to securely authorize a representative.
-     * @principle   Provides public read access while defaulting to a secure, "no-write" posture
-     *              for data that lacks a clear ownership link.
+     * @description Manages access to donation records, which are stored in a subcollection
+     *   under the user who created them.
+     * @path /users/{userId}/donations/{donationId}
+     * @allow (create) User 'user123' creating a donation at '/users/user123/donations/don456'.
+     * @allow (list) User 'user123' listing their own donations at '/users/user123/donations'.
+     * @deny (get) User 'user456' trying to read a donation at '/users/user123/donations/don456'.
+     * @principle Enforces document ownership for all operations based on the URL path.
+     */
+    match /users/{userId}/donations/{donationId} {
+      allow get, list: if isOwner(userId);
+      allow create: if isOwner(userId) && hasCorrectDonationOwner(userId);
+      allow update: if isExistingOwner(userId) && isDonationOwnerImmutable();
+      allow delete: if isExistingOwner(userId);
+    }
+
+
+    // -------------------------------------------------------------------------
+    // Associations (/associations/{associationId})
+    // -------------------------------------------------------------------------
+
+    /**
+     * @description Manages public profiles for associations. This data is intended
+     *   for public discovery, so all reads are permitted. Writes are disabled.
+     * @path /associations/{associationId}
+     * @allow (get, list) Any user, signed in or not, reading association data.
+     * @deny (create, update, delete) Any user attempting to modify association data.
+     * @principle Provides public read access while defaulting to a secure "deny all"
+     *   posture for writes until a proper admin/ownership model is implemented.
      */
     match /associations/{associationId} {
-      allow get: if true;
-      allow list: if true;
-      // CRITICAL: Cannot implement owner-only writes. The 'Association' entity is missing an 'ownerId' or 'representativeUid' field.
+      allow get, list: if true;
+      // CRITICAL: Cannot implement owner-only writes. The 'Association' entity is missing an 'ownerId' or 'creatorId' field.
+      // Writes are disabled for security. Update schema and rules to enable.
       allow create: if false; // TODO: Add owner validation once the schema is updated with an ownership field.
       allow update: if false; // TODO: Add owner validation once the schema is updated with an ownership field.
       allow delete: if false; // TODO: Add owner validation once the schema is updated with an ownership field.
