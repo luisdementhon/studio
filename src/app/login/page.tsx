@@ -29,6 +29,9 @@ import { Input } from "@/components/ui/input";
 import { useAuth } from "@/firebase";
 import { useToast } from "@/hooks/use-toast";
 import { BrandPattern } from "@/components/brand-pattern";
+import { initiateGoogleSignIn } from "@/firebase/non-blocking-login";
+import { GoogleIcon } from "@/components/google-icon";
+import { Separator } from "@/components/ui/separator";
 
 export default function LoginPage() {
   const auth = useAuth();
@@ -42,6 +45,11 @@ export default function LoginPage() {
       password: "",
     },
   });
+
+  const onGoogleSignIn = () => {
+    initiateGoogleSignIn(auth);
+    // Redirection is handled by the auth loading page
+  };
 
   const onSubmit = async (values: z.infer<typeof LoginSchema>) => {
     try {
@@ -66,6 +74,22 @@ export default function LoginPage() {
             Ravi de vous revoir ! Connectez-vous pour continuer.
             </CardDescription>
         </CardHeader>
+        <CardContent className="grid gap-4">
+            <Button variant="outline" onClick={onGoogleSignIn}>
+                <GoogleIcon className="h-5 w-5 mr-2" />
+                Continuer avec Google
+            </Button>
+            <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                    <span className="w-full border-t" />
+                </div>
+                <div className="relative flex justify-center text-xs uppercase">
+                    <span className="bg-background px-2 text-muted-foreground">
+                    Ou continuer avec
+                    </span>
+                </div>
+            </div>
+        </CardContent>
         <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             <CardContent className="grid gap-4">
