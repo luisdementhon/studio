@@ -96,7 +96,7 @@ export default function Home() {
                         <div className="bg-primary/10 text-primary p-3 rounded-lg"><Building2 className="w-7 h-7" /></div>
                         <CardTitle className="text-xl whitespace-nowrap">Créez</CardTitle>
                       </div>
-                      <CardDescription className="pt-4 text-base">Créez le profil de votre association en quelques minutes. Présentez votre mission et vos projets pour inspirer les donateurs.</CardDescription>
+                      <CardDescription className="pt-4 text-base">Créez le profil de votre association en quelques minutes. Présentez votre mission et vos projets.</CardDescription>
                     </CardHeader>
                   </Card>
                    <Card className="text-left">
