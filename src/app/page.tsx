@@ -39,10 +39,6 @@ export default function Home() {
           </div>
           <div className="mt-8 flex flex-col sm:flex-row items-center gap-6 text-sm text-muted-foreground">
               <div className="flex items-center gap-2">
-                <ShieldCheck className="h-4 w-4 text-primary" />
-                <span>100% Sécurisé</span>
-              </div>
-              <div className="flex items-center gap-2">
                 <Zap className="h-4 w-4 text-primary" />
                 <span>0€ de frais</span>
               </div>
