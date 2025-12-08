@@ -22,7 +22,7 @@ export default function Home() {
         <div className="z-10 flex flex-col items-center gap-6">
           
           <div className="font-headline">
-            <h1 className="text-6xl md:text-8xl from-primary to-green-400 bg-gradient-to-br bg-clip-text font-bold tracking-tight text-transparent drop-shadow-sm leading-normal">
+            <h1 className="text-6xl md:text-8xl from-primary to-green-400 bg-gradient-to-br bg-clip-text font-bold tracking-tight text-transparent drop-shadow-sm leading-snug">
               Petite monnaie,<br />
               grands gestes.
             </h1>
@@ -32,7 +32,7 @@ export default function Home() {
             Simple, automatique et transparent.
           </p>
           <div className="mt-4 flex flex-col sm:flex-row items-center justify-center gap-4">
-            <Button asChild size="lg" className="text-base font-semibold px-8 py-7 rounded-xl">
+            <Button asChild size="lg" className="text-base font-semibold px-8 py-7 rounded-xl" variant="default">
               <Link href="/signup">
                 Commencez
                 <ArrowRight className="ml-2 h-4 w-4" />
