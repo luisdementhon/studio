@@ -32,9 +32,9 @@ export default function Home() {
             Simple, automatique et transparent.
           </p>
           <div className="mt-4 flex flex-col sm:flex-row items-center justify-center gap-4">
-            <Button asChild size="lg" variant="vibrant" className="text-base font-semibold px-8 py-7 rounded-xl shadow-lg shadow-accent-vibrant/20 transition-shadow hover:shadow-xl hover:shadow-accent-vibrant/30">
+            <Button asChild size="lg" className="text-base font-semibold px-8 py-7 rounded-xl">
               <Link href="/signup">
-                Devenir donateur
+                Commencez
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Link>
             </Button>
