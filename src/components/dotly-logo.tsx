@@ -18,7 +18,7 @@ export function DotlyLogo(props: SVGProps<SVGSVGElement>) {
         fill="currentColor"
         fontFamily="'Playfair Display', serif"
         fontWeight="bold"
-        fontSize="120"
+        fontSize="140"
       >
         Dotly
       </text>
