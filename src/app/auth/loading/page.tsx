@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useUser, useFirestore } from '@/firebase';
 import { doc, getDoc } from 'firebase/firestore';
@@ -11,54 +11,54 @@ export default function AuthLoadingPage() {
   const { user, isUserLoading } = useUser();
   const router = useRouter();
   const firestore = useFirestore();
+  const [triggered, setTriggered] = useState(false);
 
+  // This effect will run when user or isUserLoading state changes.
   useEffect(() => {
-    // Ne rien faire tant que Firebase n'a pas fini de déterminer l'état d'authentification.
-    if (isUserLoading) {
-      return;
-    }
+    // Only trigger the check once Firebase has determined the auth state.
+    if (!isUserLoading && !triggered) {
+      setTriggered(true); // Mark as triggered to avoid re-running
 
-    // Une fois le chargement terminé, vérifier s'il y a un utilisateur.
-    if (!user) {
-      // Si aucun utilisateur, l'authentification a échoué ou l'utilisateur n'est pas connecté.
-      // Retour à la page de connexion.
-      router.replace('/login');
-      return;
-    }
-
-    // Si un utilisateur est bien connecté, on vérifie son profil.
-    const checkUserProfile = async () => {
-      try {
-        // 1. Vérifier si un profil "user" existe
-        const userDocRef = doc(firestore, 'users', user.uid);
-        const userDocSnap = await getDoc(userDocRef);
-        if (userDocSnap.exists()) {
-          router.replace('/dashboard/user');
-          return;
-        }
-
-        // 2. Sinon, vérifier si un profil "association" existe
-        const associationDocRef = doc(firestore, 'associations', user.uid);
-        const associationDocSnap = await getDoc(associationDocRef);
-        if (associationDocSnap.exists()) {
-          router.replace('/dashboard/association');
-          return;
-        }
-
-        // 3. Si aucun profil n'existe, c'est un nouvel utilisateur.
-        router.replace('/onboarding');
-
-      } catch (e) {
-        // En cas d'erreur (problème de permissions, etc.), rediriger vers l'onboarding par sécurité.
-        console.error("Erreur de redirection post-authentification :", e);
-        router.replace('/onboarding');
+      if (!user) {
+        // If there's no user, auth failed. Go back to login.
+        router.replace('/login');
+        return;
       }
-    };
 
-    checkUserProfile();
+      // If there is a user, check for their profile.
+      const checkUserProfile = async () => {
+        try {
+          // 1. Check if a "user" profile exists
+          const userDocRef = doc(firestore, 'users', user.uid);
+          const userDocSnap = await getDoc(userDocRef);
+          if (userDocSnap.exists()) {
+            router.replace('/dashboard/user');
+            return;
+          }
 
-  }, [user, isUserLoading, router, firestore]);
+          // 2. Otherwise, check if an "association" profile exists
+          const associationDocRef = doc(firestore, 'associations', user.uid);
+          const associationDocSnap = await getDoc(associationDocRef);
+          if (associationDocSnap.exists()) {
+            router.replace('/dashboard/association');
+            return;
+          }
 
+          // 3. If no profile exists, it's a new user.
+          router.replace('/onboarding');
+
+        } catch (e) {
+          // In case of an error, redirect to onboarding as a fallback.
+          console.error("Error during post-auth redirection:", e);
+          router.replace('/onboarding');
+        }
+      };
+
+      checkUserProfile();
+    }
+  }, [user, isUserLoading, router, firestore, triggered]);
+
+  // Display a loading skeleton while we wait.
   return (
     <div className="flex h-[80vh] w-full items-center justify-center">
       <div className="w-full max-w-md space-y-6">
