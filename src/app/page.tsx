@@ -65,7 +65,7 @@ export default function Home() {
                         <div className="bg-primary/10 text-primary p-3 rounded-lg"><Link2 className="w-7 h-7" /></div>
                         <CardTitle className="text-xl">1. Connectez</CardTitle>
                       </div>
-                      <CardDescription className="pt-4 text-base">Liez votre compte bancaire en quelques clics via notre partenaire sécurisé. Vos données sont chiffrées et protégées.</CardDescription>
+                      <CardDescription className="pt-4 text-base">Liez votre compte bancaire en quelques clics. Vos données sont chiffrées et protégées.</CardDescription>
                     </CardHeader>
                   </Card>
                    <Card className="text-left">
