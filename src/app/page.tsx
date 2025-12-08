@@ -19,10 +19,7 @@ export default function Home() {
       </header>
       <main className="flex flex-1 flex-col items-center justify-center text-center p-4">
         <div className="z-10 flex flex-col items-center gap-6">
-          <Badge variant="outline" className="py-2 px-4 text-sm font-normal bg-white/50 backdrop-blur-sm">
-            <Sparkles className="mr-2 h-4 w-4 text-primary" />
-            Donner n'a jamais été aussi simple
-          </Badge>
+          
           <div className="font-headline">
             <h1 className="text-6xl md:text-8xl text-primary font-bold tracking-tight leading-tight">
               Petite monnaie,<br />
