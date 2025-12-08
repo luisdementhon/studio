@@ -25,7 +25,7 @@ import {
 } from '@/components/ui/chart';
 import { AreaChart, XAxis, YAxis, Area, CartesianGrid, ResponsiveContainer } from 'recharts';
 import { useUser, useFirestore, useDoc, useCollection, useMemoFirebase } from '@/firebase';
-import { doc, collection, query, where, orderBy, limit } from 'firebase/firestore';
+import { doc, collection, collectionGroup, query, where, orderBy, limit } from 'firebase/firestore';
 import { useEffect, useMemo, useState } from 'react';
 import { subDays, format } from 'date-fns';
 import { fr } from 'date-fns/locale';
@@ -50,14 +50,15 @@ export default function AssociationDashboardPage() {
   }, [firestore, user]);
   const { data: associationData, isLoading: isAssociationLoading } = useDoc(associationDocRef);
   
-  // 2. Fetch donations for this association
+  // 2. Fetch donations for this association using a collectionGroup query
   const donationsQuery = useMemoFirebase(() => {
     if (!user) return null;
+    // This query now looks across all 'donations' subcollections
     return query(
-      collection(firestore, 'donations'),
+      collectionGroup(firestore, 'donations'),
       where('associationId', '==', user.uid),
       orderBy('transactionDate', 'desc'),
-      limit(50) // Get the 50 most recent donations for performance
+      limit(50)
     );
   }, [firestore, user]);
   const { data: donations, isLoading: isDonationsLoading } = useCollection(donationsQuery);
@@ -100,7 +101,7 @@ export default function AssociationDashboardPage() {
     }
 
     donations.forEach(donation => {
-      const donationDate = new Date(donation.transactionDate);
+      const donationDate = donation.transactionDate.toDate(); // Convert Firestore Timestamp to Date
       totalFunds += donation.amount;
       donorIds.add(donation.userId);
       
@@ -129,7 +130,7 @@ export default function AssociationDashboardPage() {
         id: d.id,
         name: "Donateur Anonyme", // We can't fetch user names here for performance/privacy
         amount: d.amount,
-        date: new Date(d.transactionDate).toLocaleDateString('fr-FR')
+        date: d.transactionDate.toDate().toLocaleDateString('fr-FR')
     }));
 
     return { monthlyFunds, monthlyFundsGrowth, uniqueDonors: donorIds.size, averageDonation, totalFunds, chartData, recentDonors };

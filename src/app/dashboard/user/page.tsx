@@ -26,7 +26,7 @@ import {
 } from '@/components/ui/chart';
 import { BarChart as RechartsBarChart, XAxis, YAxis, Bar, CartesianGrid, ResponsiveContainer } from 'recharts';
 import { useDoc, useFirestore, useUser, useMemoFirebase, useCollection } from '@/firebase';
-import { doc, collection, getDocs, query, limit, where, orderBy } from 'firebase/firestore';
+import { doc, collection, getDocs, query, limit, orderBy } from 'firebase/firestore';
 import { Skeleton } from '@/components/ui/skeleton';
 import { DonationForm } from '@/components/donation-form';
 import { useEffect, useState, useMemo } from 'react';
@@ -63,12 +63,11 @@ export default function UserDashboardPage() {
   }, [firestore, user]);
   const { data: userData, isLoading: isProfileLoading } = useDoc(userDocRef);
 
-  // 2. Fetch user's donations
+  // 2. Fetch user's donations from the subcollection
   const donationsQuery = useMemoFirebase(() => {
     if (!user) return null;
     return query(
-      collection(firestore, 'donations'),
-      where('userId', '==', user.uid),
+      collection(firestore, 'users', user.uid, 'donations'),
       orderBy('transactionDate', 'desc')
     );
   }, [firestore, user]);
@@ -128,7 +127,7 @@ export default function UserDashboardPage() {
     }
 
     donations.forEach(d => {
-        const donationDate = new Date(d.transactionDate);
+        const donationDate = new Date(d.transactionDate.toDate()); // Convert Firestore Timestamp to Date
         if (donationDate >= startOfMonth) {
             monthlyDonation += d.amount;
         }
@@ -152,6 +151,7 @@ export default function UserDashboardPage() {
         return {
             ...d,
             associationName: asso?.associationName || 'Association inconnue',
+            transactionDate: d.transactionDate.toDate(), // Convert for formatting
         }
     });
 

@@ -125,11 +125,6 @@ export function DonationForm({ associations, isLoading }: DonationFormProps) {
   const [clientSecret, setClientSecret] = useState<string | null>(null);
   const [isProcessing, setProcessing] = useState(false);
 
-  const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = parseFloat(e.target.value);
-    setAmount(isNaN(value) ? undefined : value);
-  };
-
   const handleCreateDonation = async () => {
     if (!amount || !selectedAssoId || !user) {
       // This should not happen if the logic is correct, but it's a safe guard.
@@ -145,7 +140,8 @@ export function DonationForm({ associations, isLoading }: DonationFormProps) {
         isRecurring: false, // For single donations
     };
 
-    const donationsRef = collection(firestore, 'donations');
+    // Donations are now in a subcollection of the user
+    const donationsRef = collection(firestore, 'users', user.uid, 'donations');
     addDocumentNonBlocking(donationsRef, donationData);
     
     // Reset form state after successful donation

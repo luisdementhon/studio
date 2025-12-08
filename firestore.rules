@@ -34,7 +34,7 @@
  * ## Structural Segregation
  * Data is cleanly segregated into distinct collections (`users`, `associations`) and subcollections
  * (`donations`) to apply different security policies to each data type. This separation is fundamental
- * to the security model.
+ to the security model.
  */
 rules_version = '2';
 service cloud.firestore {
