@@ -74,7 +74,7 @@ export default function Home() {
                         <div className="bg-primary/10 text-primary p-3 rounded-lg"><ShoppingCart className="w-7 h-7" /></div>
                         <CardTitle className="text-xl">Dépensez</CardTitle>
                       </div>
-                      <CardDescription className="pt-4 text-base">Faites vos achats quotidiens. Nous arrondissons automatiquement chaque paiement à l'euro supérieur, sans que vous ayez à y penser.</CardDescription>
+                      <CardDescription className="pt-4 text-base">Nous arrondissons automatiquement chaque paiement à l'euro supérieur, sans que vous ayez à y penser.</CardDescription>
                     </CardHeader>
                   </Card>
                    <Card className="text-left">
