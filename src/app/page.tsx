@@ -17,9 +17,6 @@ export default function Home() {
         <Link href="/" aria-label="Accueil">
           <DotlyLogo className="h-8 w-auto text-primary" />
         </Link>
-        <Button asChild variant="ghost" className="hidden sm:inline-flex">
-          <Link href="/login">Se connecter</Link>
-        </Button>
       </header>
       <main className="flex min-h-screen flex-col items-center justify-center text-center p-4">
         <div className="z-10 flex flex-col items-center gap-6">
