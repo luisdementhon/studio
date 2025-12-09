@@ -4,24 +4,24 @@
 
 @layer base {
   :root {
-    --background: 220 40% 12%; /* Navy Blue */
-    --foreground: 45 87% 50%; /* Gold #efb810 */
-    --card: 220 40% 16%;
-    --card-foreground: 45 87% 50%;
-    --popover: 220 40% 16%;
-    --popover-foreground: 45 87% 50%;
+    --background: 0 0% 100%; /* White */
+    --foreground: 220 40% 12%; /* Navy Blue Text */
+    --card: 0 0% 98%; /* Light Gray for Cards */
+    --card-foreground: 220 40% 12%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 220 40% 12%;
     --primary: 45 87% 50%; /* Gold #efb810 */
     --primary-foreground: 220 40% 12%;
-    --secondary: 220 40% 20%;
-    --secondary-foreground: 45 87% 50%;
-    --muted: 220 40% 20%;
-    --muted-foreground: 45 87% 38%;
+    --secondary: 0 0% 96%;
+    --secondary-foreground: 220 40% 12%;
+    --muted: 0 0% 96%;
+    --muted-foreground: 220 40% 40%;
     --accent: 45 87% 50%; /* Gold #efb810 */
     --accent-foreground: 220 40% 12%;
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 98%;
-    --border: 220 40% 25%;
-    --input: 220 40% 25%;
+    --border: 0 0% 90%;
+    --input: 0 0% 90%;
     --ring: 45 87% 50%; /* Gold #efb810 */
     --chart-1: 45 87% 50%; /* Gold #efb810 */
     --chart-2: 347 100% 59%;
@@ -31,7 +31,7 @@
     --accent-vibrant: 347 100% 59%;
     --accent-vibrant-foreground: 0 0% 100%;
 
-    /* Sidebar Theme (can be adjusted to match the new theme) */
+    /* Sidebar Theme */
     --sidebar-background: 220 40% 10%; 
     --sidebar-foreground: 45 87% 50%;
     --sidebar-primary: 45 87% 50%;
