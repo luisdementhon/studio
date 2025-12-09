@@ -50,7 +50,7 @@ export default function Home() {
         <div className="container mx-auto px-4 md:px-6">
           <div className="flex flex-col items-center space-y-6 text-center">
             <div className="space-y-3">
-              <h2 className="text-4xl font-bold tracking-tighter sm:text-5xl font-headline text-primary">Comment ça marche ?</h2>
+              <h2 className="text-4xl font-bold tracking-tighter sm:text-5xl font-headline text-transparent bg-clip-text bg-gradient-to-r from-primary to-red-500">Comment ça marche ?</h2>
             </div>
           </div>
           <div className="mx-auto max-w-5xl mt-12">
