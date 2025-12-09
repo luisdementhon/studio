@@ -5,25 +5,25 @@
 @layer base {
   :root {
     --background: 220 40% 12%; /* Navy Blue */
-    --foreground: 45 80% 70%; /* Gold */
+    --foreground: 45 96% 48%; /* Gold #EFBF04 */
     --card: 220 40% 16%;
-    --card-foreground: 45 80% 70%;
+    --card-foreground: 45 96% 48%;
     --popover: 220 40% 16%;
-    --popover-foreground: 45 80% 70%;
-    --primary: 45 70% 60%; /* Lighter Gold for accents */
+    --popover-foreground: 45 96% 48%;
+    --primary: 45 96% 55%; /* Lighter Gold for accents */
     --primary-foreground: 220 40% 12%;
     --secondary: 220 40% 20%;
-    --secondary-foreground: 45 80% 70%;
+    --secondary-foreground: 45 96% 48%;
     --muted: 220 40% 20%;
-    --muted-foreground: 45 80% 50%;
+    --muted-foreground: 45 96% 38%;
     --accent: 347 100% 59%; /* Kept pink for vibrant actions */
     --accent-foreground: 0 0% 100%;
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 98%;
     --border: 220 40% 25%;
     --input: 220 40% 25%;
-    --ring: 45 70% 60%;
-    --chart-1: 45 70% 60%;
+    --ring: 45 96% 55%;
+    --chart-1: 45 96% 55%;
     --chart-2: 347 100% 59%;
     --radius: 0.8rem;
 
@@ -33,36 +33,36 @@
 
     /* Sidebar Theme (can be adjusted to match the new theme) */
     --sidebar-background: 220 40% 10%; 
-    --sidebar-foreground: 45 80% 75%;
-    --sidebar-primary: 45 80% 75%;
+    --sidebar-foreground: 45 96% 60%;
+    --sidebar-primary: 45 96% 60%;
     --sidebar-primary-foreground: 220 40% 10%;
     --sidebar-accent: 220 40% 15%; 
-    --sidebar-accent-foreground: 45 70% 60%;
+    --sidebar-accent-foreground: 45 96% 55%;
     --sidebar-border: 220 40% 18%;
-    --sidebar-ring: 45 70% 60%;
+    --sidebar-ring: 45 96% 55%;
   }
 
   .dark {
     --background: 220 40% 12%; /* Navy Blue */
-    --foreground: 45 80% 70%; /* Gold */
+    --foreground: 45 96% 48%; /* Gold #EFBF04 */
     --card: 220 40% 16%;
-    --card-foreground: 45 80% 70%;
+    --card-foreground: 45 96% 48%;
     --popover: 220 40% 16%;
-    --popover-foreground: 45 80% 70%;
-    --primary: 45 70% 60%; /* Lighter Gold for accents */
+    --popover-foreground: 45 96% 48%;
+    --primary: 45 96% 55%; /* Lighter Gold for accents */
     --primary-foreground: 220 40% 12%;
     --secondary: 220 40% 20%;
-    --secondary-foreground: 45 80% 70%;
+    --secondary-foreground: 45 96% 48%;
     --muted: 220 40% 20%;
-    --muted-foreground: 45 80% 50%;
+    --muted-foreground: 45 96% 38%;
     --accent: 347 100% 59%; /* Kept pink for vibrant actions */
     --accent-foreground: 0 0% 100%;
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 0 0% 98%;
     --border: 220 40% 25%;
     --input: 220 40% 25%;
-    --ring: 45 70% 60%;
-    --chart-1: 45 70% 60%;
+    --ring: 45 96% 55%;
+    --chart-1: 45 96% 55%;
     --chart-2: 347 100% 59%;
 
     /* Custom vibrant variant */
@@ -71,13 +71,13 @@
 
     /* Sidebar Theme */
     --sidebar-background: 220 40% 10%; 
-    --sidebar-foreground: 45 80% 75%;
-    --sidebar-primary: 45 80% 75%;
+    --sidebar-foreground: 45 96% 60%;
+    --sidebar-primary: 45 96% 60%;
     --sidebar-primary-foreground: 220 40% 10%;
     --sidebar-accent: 220 40% 15%; 
-    --sidebar-accent-foreground: 45 70% 60%;
+    --sidebar-accent-foreground: 45 96% 55%;
     --sidebar-border: 220 40% 18%;
-    --sidebar-ring: 45 70% 60%;
+    --sidebar-ring: 45 96% 55%;
   }
 }
 
