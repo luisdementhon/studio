@@ -1,4 +1,5 @@
 import type {Config} from 'tailwindcss';
+import { plugin } from 'tailwindcss/plugin';
 
 export default {
   darkMode: ['class'],
@@ -9,6 +10,9 @@ export default {
   ],
   theme: {
     extend: {
+      textShadow: {
+        'strong': '0 2px 4px rgba(0, 0, 0, 0.4)',
+      },
       fontFamily: {
         body: ['Inter', 'sans-serif'],
         headline: ['Inter', 'sans-serif'], // Changed to Inter as per guidelines
@@ -99,5 +103,15 @@ export default {
       },
     },
   },
-  plugins: [require('tailwindcss-animate')],
+  plugins: [
+    require('tailwindcss-animate'),
+    plugin(function({ addUtilities, theme }) {
+      const newUtilities = {
+        '.text-shadow-strong': {
+          textShadow: theme('textShadow.strong'),
+        },
+      }
+      addUtilities(newUtilities)
+    })
+  ],
 } satisfies Config;
