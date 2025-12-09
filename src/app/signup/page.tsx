@@ -49,7 +49,6 @@ export default function SignupPage() {
 
   const onGoogleSignIn = () => {
     initiateGoogleSignIn(auth);
-    router.push('/auth/loading');
   };
 
   const onSubmit = async (values: z.infer<typeof SignupSchema>) => {
@@ -78,7 +77,7 @@ export default function SignupPage() {
         <BrandPattern />
         <Card className="w-full max-w-sm z-10 shadow-xl">
         <CardHeader>
-            <CardTitle className="text-2xl">Inscription</CardTitle>
+            <CardTitle>Inscription</CardTitle>
             <CardDescription>
             Créez votre compte pour commencer à faire la différence.
             </CardDescription>

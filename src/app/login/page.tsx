@@ -48,7 +48,6 @@ export default function LoginPage() {
 
   const onGoogleSignIn = () => {
     initiateGoogleSignIn(auth);
-    router.push('/auth/loading');
   };
 
   const onSubmit = async (values: z.infer<typeof LoginSchema>) => {
@@ -69,7 +68,7 @@ export default function LoginPage() {
         <BrandPattern />
         <Card className="w-full max-w-sm z-10">
         <CardHeader>
-            <CardTitle className="text-2xl">Connexion</CardTitle>
+            <CardTitle>Connexion</CardTitle>
             <CardDescription>
             Ravi de vous revoir ! Connectez-vous pour continuer.
             </CardDescription>
