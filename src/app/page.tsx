@@ -68,7 +68,7 @@ export default function Home() {
                     <CardHeader>
                       <div className="flex items-center gap-4">
                         <div className="bg-primary/10 text-primary p-3 rounded-lg"><Link2 className="w-6 h-6" /></div>
-                        <CardTitle className="font-semibold tracking-tight text-xl whitespace-nowrap">Connectez</CardTitle>
+                        <CardTitle className="font-semibold tracking-tight text-xl whitespace-nowrap text-transparent bg-clip-text bg-gradient-to-r from-primary to-red-500">Connectez</CardTitle>
                       </div>
                       <CardDescription className="text-muted-foreground pt-4 text-base">Liez votre compte bancaire en quelques clics. Vos données sont chiffrées et protégées.</CardDescription>
                     </CardHeader>
@@ -77,7 +77,7 @@ export default function Home() {
                     <CardHeader>
                       <div className="flex items-center gap-4">
                         <div className="bg-primary/10 text-primary p-3 rounded-lg"><ShoppingCart className="w-6 h-6" /></div>
-                        <CardTitle className="font-semibold tracking-tight text-xl whitespace-nowrap">Dépensez</CardTitle>
+                        <CardTitle className="font-semibold tracking-tight text-xl whitespace-nowrap text-transparent bg-clip-text bg-gradient-to-r from-primary to-red-500">Dépensez</CardTitle>
                       </div>
                       <CardDescription className="text-muted-foreground pt-4 text-base">Nous arrondissons automatiquement chaque paiement à l'euro supérieur, sans que vous ayez à y penser.</CardDescription>
                     </CardHeader>
@@ -86,7 +86,7 @@ export default function Home() {
                     <CardHeader>
                       <div className="flex items-center gap-4">
                         <div className="bg-primary/10 text-primary p-3 rounded-lg"><HeartHandshake className="w-6 h-6" /></div>
-                        <CardTitle className="font-semibold tracking-tight text-xl whitespace-nowrap">Soutenez</CardTitle>
+                        <CardTitle className="font-semibold tracking-tight text-xl whitespace-nowrap text-transparent bg-clip-text bg-gradient-to-r from-primary to-red-500">Soutenez</CardTitle>
                       </div>
                       <CardDescription className="text-muted-foreground pt-4 text-base">La somme de vos arrondis est reversée aux associations que vous avez choisies. Suivez votre impact en temps réel.</CardDescription>
                     </CardHeader>
@@ -99,7 +99,7 @@ export default function Home() {
                     <CardHeader>
                       <div className="flex items-center gap-4">
                         <div className="bg-primary/10 text-primary p-3 rounded-lg"><Building2 className="w-6 h-6" /></div>
-                        <CardTitle className="font-semibold tracking-tight text-xl whitespace-nowrap">Créez</CardTitle>
+                        <CardTitle className="font-semibold tracking-tight text-xl whitespace-nowrap text-transparent bg-clip-text bg-gradient-to-r from-primary to-red-500">Créez</CardTitle>
                       </div>
                       <CardDescription className="text-muted-foreground pt-4 text-base">Créez le profil de votre association en quelques minutes. Présentez votre mission.</CardDescription>
                     </CardHeader>
@@ -108,7 +108,7 @@ export default function Home() {
                     <CardHeader>
                       <div className="flex items-center gap-4">
                         <div className="bg-primary/10 text-primary p-3 rounded-lg"><ShieldCheck className="w-6 h-6" /></div>
-                        <CardTitle className="font-semibold tracking-tight text-xl whitespace-nowrap">Validez</CardTitle>
+                        <CardTitle className="font-semibold tracking-tight text-xl whitespace-nowrap text-transparent bg-clip-text bg-gradient-to-r from-primary to-red-500">Validez</CardTitle>
                       </div>
                       <CardDescription className="text-muted-foreground pt-4 text-base">Notre équipe vérifie vos informations pour garantir la confiance et la transparence de la plateforme.</CardDescription>
                     </CardHeader>
@@ -117,7 +117,7 @@ export default function Home() {
                     <CardHeader>
                       <div className="flex items-center gap-4">
                         <div className="bg-primary/10 text-primary p-3 rounded-lg"><PiggyBank className="w-6 h-6" /></div>
-                        <CardTitle className="font-semibold tracking-tight text-xl whitespace-nowrap">Recevez</CardTitle>
+                        <CardTitle className="font-semibold tracking-tight text-xl whitespace-nowrap text-transparent bg-clip-text bg-gradient-to-r from-primary to-red-500">Recevez</CardTitle>
                       </div>
                       <CardDescription className="text-muted-foreground pt-4 text-base">Recevez un flux de micro-dons régulier et automatique. Suivez vos collectes depuis votre tableau de bord.</CardDescription>
                     </CardHeader>
