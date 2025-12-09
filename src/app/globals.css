@@ -6,13 +6,13 @@
   :root {
     --background: 0 0% 100%; /* White */
     --foreground: 220 40% 12%; /* Navy Blue Text */
-    --card: 0 0% 98%; /* Light Gray for Cards */
+    --card: 0 0% 100%; /* Was Light Gray for Cards, now white */
     --card-foreground: 220 40% 12%;
     --popover: 0 0% 100%;
     --popover-foreground: 220 40% 12%;
     --primary: 45 87% 50%; /* Gold #efb810 */
     --primary-foreground: 220 40% 12%;
-    --secondary: 0 0% 96%;
+    --secondary: 0 0% 98%; /* Lighter gray for secondary elements */
     --secondary-foreground: 220 40% 12%;
     --muted: 0 0% 96%;
     --muted-foreground: 220 40% 40%;
