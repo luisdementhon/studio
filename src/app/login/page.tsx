@@ -48,6 +48,7 @@ export default function LoginPage() {
 
   const onGoogleSignIn = () => {
     initiateGoogleSignIn(auth);
+    router.push('/auth/loading');
   };
 
   const onSubmit = async (values: z.infer<typeof LoginSchema>) => {

@@ -3,15 +3,38 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useUser, useFirestore } from '@/firebase';
+import { useUser, useFirestore, useAuth } from '@/firebase';
 import { doc, getDoc } from 'firebase/firestore';
+import { getRedirectResult } from 'firebase/auth';
 import { Skeleton } from '@/components/ui/skeleton';
 
 export default function AuthLoadingPage() {
   const { user, isUserLoading } = useUser();
+  const auth = useAuth();
   const router = useRouter();
   const firestore = useFirestore();
   const [triggered, setTriggered] = useState(false);
+
+  // This effect handles the result from a Google Sign-In redirect.
+  useEffect(() => {
+    if (auth && !isUserLoading && !user) {
+      getRedirectResult(auth)
+        .then((result) => {
+          if (result && result.user) {
+            // The user is available in the result, the onAuthStateChanged listener
+            // in the provider will also fire. The logic below will handle redirection.
+            // We don't need to do anything here, the user state will update.
+          }
+          // If result is null, it means it's not a redirect sign-in,
+          // or the result has already been processed.
+        })
+        .catch((error) => {
+          console.error("Error processing redirect result:", error);
+          router.replace('/login'); // Fallback to login on error
+        });
+    }
+  }, [auth, isUserLoading, user, router]);
+
 
   // This effect will run when user or isUserLoading state changes.
   useEffect(() => {
