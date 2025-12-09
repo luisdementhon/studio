@@ -39,9 +39,12 @@ export default function Home() {
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Link>
             </Button>
-             <Button asChild variant="link" className="text-base text-muted-foreground">
-              <Link href="/login">Vous avez déjà un compte ? Se connecter</Link>
-            </Button>
+             <p className="text-base text-muted-foreground">
+                Vous avez déjà un compte ?{' '}
+                <Link href="/login" className="font-semibold text-transparent bg-clip-text bg-gradient-to-r from-primary to-red-500 hover:brightness-110 transition-all">
+                    Se connecter
+                </Link>
+            </p>
           </div>
         </div>
       </main>
