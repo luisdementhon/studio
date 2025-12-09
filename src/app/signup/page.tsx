@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useForm } from "react-hook-form";
@@ -75,7 +76,7 @@ export default function SignupPage() {
   return (
     <div className="relative flex min-h-screen flex-col items-center justify-center p-4">
         <BrandPattern />
-        <Card className="w-full max-w-sm z-10">
+        <Card className="w-full max-w-sm z-10 shadow-xl">
         <CardHeader>
             <CardTitle className="text-2xl">Inscription</CardTitle>
             <CardDescription>
@@ -83,7 +84,7 @@ export default function SignupPage() {
             </CardDescription>
         </CardHeader>
         <CardContent className="grid gap-4">
-            <Button variant="outline" onClick={onGoogleSignIn}>
+            <Button variant="outline" onClick={onGoogleSignIn} className="shadow-md hover:shadow-lg transition-shadow">
                 <GoogleIcon className="h-5 w-5 mr-2" />
                 Continuer avec Google
             </Button>
@@ -92,7 +93,7 @@ export default function SignupPage() {
                     <span className="w-full border-t" />
                 </div>
                 <div className="relative flex justify-center text-xs uppercase">
-                    <span className="bg-background px-2 text-muted-foreground">
+                    <span className="bg-card px-2 text-muted-foreground">
                     Ou s'inscrire avec un e-mail
                     </span>
                 </div>
@@ -154,7 +155,7 @@ export default function SignupPage() {
                 />
             </CardContent>
             <CardFooter className="flex flex-col gap-4">
-                <Button type="submit" className="w-full" disabled={form.formState.isSubmitting}>
+                <Button type="submit" className="w-full" disabled={form.formState.isSubmitting} variant="vibrant">
                 {form.formState.isSubmitting ? "Création..." : "Créer mon compte"}
                 </Button>
                 <div className="text-sm text-muted-foreground">
