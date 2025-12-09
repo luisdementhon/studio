@@ -23,8 +23,8 @@ export default function Home() {
       <main className="flex min-h-[85vh] flex-col items-center justify-center text-center p-4 pt-12">
         <div className="z-10 flex flex-col items-center gap-6">
           
-          <div className="font-headline">
-            <h1 className="pb-4 text-5xl md:text-7xl from-primary to-yellow-300 bg-gradient-to-br bg-clip-text font-bold tracking-tight text-transparent drop-shadow-lg leading-snug">
+          <div className="font-headline pt-12">
+            <h1 className="pb-4 text-5xl md:text-7xl font-bold tracking-tight text-primary drop-shadow-lg leading-snug">
               Petite monnaie,<br />
               grands gestes.
             </h1>
