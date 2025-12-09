@@ -24,7 +24,7 @@ export default function Home() {
         <div className="z-10 flex flex-col items-center gap-6">
           
           <div className="font-headline pt-12">
-            <h1 className="pb-4 text-5xl md:text-7xl font-bold tracking-tight text-primary drop-shadow-lg leading-snug">
+            <h1 className="pb-4 text-4xl md:text-6xl font-bold tracking-tight text-primary drop-shadow-lg leading-snug">
               Petite monnaie,<br />
               grands gestes.
             </h1>
