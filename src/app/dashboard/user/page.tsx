@@ -55,6 +55,7 @@ export default function UserDashboardPage() {
   const firestore = useFirestore();
   const [associations, setAssociations] = useState<Association[]>([]);
   const [associationsLoading, setAssociationsLoading] = useState(true);
+  const [weeklyRoundups, setWeeklyRoundups] = useState(0);
 
   // 1. Fetch user profile
   const userDocRef = useMemoFirebase(() => {
@@ -107,10 +108,9 @@ export default function UserDashboardPage() {
     taxDeductibleAmount,
     chartData,
     recentDonations,
-    weeklyRoundups,
   } = useMemo(() => {
     if (!donations) {
-        return { monthlyDonation: 0, taxDeductibleAmount: 0, chartData: [], recentDonations: [], weeklyRoundups: 0 };
+        return { monthlyDonation: 0, taxDeductibleAmount: 0, chartData: [], recentDonations: [] };
     }
 
     const now = new Date();
@@ -155,13 +155,25 @@ export default function UserDashboardPage() {
         }
     });
 
-    // Mock weekly roundups since transaction data isn't available
-    const weeklyRoundups = donations.length > 0 ? (monthlyDonation / 4) * (Math.random() * 0.5 + 0.75) : 0;
-
-    return { monthlyDonation, taxDeductibleAmount, chartData, recentDonations: recentDonationsWithAssoName, weeklyRoundups };
+    return { monthlyDonation, taxDeductibleAmount, chartData, recentDonations: recentDonationsWithAssoName };
 
   }, [donations, associations]);
 
+  // Generate weekly roundups on client side to avoid hydration mismatch
+  useEffect(() => {
+    if (donations) {
+      const monthlyDonation = donations.reduce((acc, d) => {
+        const donationDate = d.transactionDate.toDate();
+        const now = new Date();
+        const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+        if (donationDate >= startOfMonth) {
+          return acc + d.amount;
+        }
+        return acc;
+      }, 0);
+      setWeeklyRoundups(donations.length > 0 ? (monthlyDonation / 4) * (Math.random() * 0.5 + 0.75) : 0);
+    }
+  }, [donations]);
 
   const isLoading = isUserLoading || isProfileLoading || isDonationsLoading;
 
@@ -174,7 +186,7 @@ export default function UserDashboardPage() {
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
+            <CardTitle>
               Total Donné (ce mois-ci)
             </CardTitle>
             <PiggyBank className="h-4 w-4 text-muted-foreground" />
@@ -188,7 +200,7 @@ export default function UserDashboardPage() {
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Arrondis de la semaine</CardTitle>
+            <CardTitle>Arrondis de la semaine</CardTitle>
             <Coins className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -200,7 +212,7 @@ export default function UserDashboardPage() {
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Avantage Fiscal (estimation)</CardTitle>
+            <CardTitle>Avantage Fiscal (estimation)</CardTitle>
             <ShieldCheck className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -212,7 +224,7 @@ export default function UserDashboardPage() {
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Causes Soutenues</CardTitle>
+            <CardTitle>Causes Soutenues</CardTitle>
             <HandHeart className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -331,3 +343,5 @@ export default function UserDashboardPage() {
     </div>
   );
 }
+
+    

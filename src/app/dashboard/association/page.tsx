@@ -1,3 +1,4 @@
+
 "use client";
 
 import { Users, PiggyBank, Target, Calendar } from 'lucide-react';
@@ -42,6 +43,7 @@ const chartConfig = {
 export default function AssociationDashboardPage() {
   const { user, isUserLoading } = useUser();
   const firestore = useFirestore();
+  const [nextPayout, setNextPayout] = useState({ date: '', amount: '' });
 
   // 1. Fetch association profile data
   const associationDocRef = useMemoFirebase(() => {
@@ -136,6 +138,22 @@ export default function AssociationDashboardPage() {
     return { monthlyFunds, monthlyFundsGrowth, uniqueDonors: donorIds.size, averageDonation, totalFunds, chartData, recentDonors };
   }, [donations]);
 
+  // Calculate next payout on client to avoid hydration issues
+  useEffect(() => {
+    if (donations) {
+        const nextPayoutDate = new Date();
+        nextPayoutDate.setMonth(nextPayoutDate.getMonth() + 1);
+        nextPayoutDate.setDate(1);
+
+        const estimatedAmount = monthlyFunds * (Math.random() * 0.2 + 0.9); // Simulate some variation
+
+        setNextPayout({
+            date: format(nextPayoutDate, 'dd/MM/yyyy'),
+            amount: `~${estimatedAmount.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' })}`
+        });
+    }
+  }, [donations, monthlyFunds]);
+
   const fundraisingGoal = associationData?.fundraisingGoal || 1; // Avoid division by zero
   const progressPercentage = (totalFunds / fundraisingGoal) * 100;
 
@@ -172,7 +190,7 @@ export default function AssociationDashboardPage() {
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
+            <CardTitle>
               Fonds Récoltés (ce mois-ci)
             </CardTitle>
             <PiggyBank className="h-4 w-4 text-muted-foreground" />
@@ -186,7 +204,7 @@ export default function AssociationDashboardPage() {
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Donateurs Uniques</CardTitle>
+            <CardTitle>Donateurs Uniques</CardTitle>
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -198,7 +216,7 @@ export default function AssociationDashboardPage() {
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Don Moyen</CardTitle>
+            <CardTitle>Don Moyen</CardTitle>
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -210,13 +228,13 @@ export default function AssociationDashboardPage() {
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Prochain virement</CardTitle>
+            <CardTitle>Prochain virement</CardTitle>
             <Calendar className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">01/08/2024</div>
+            <div className="text-2xl font-bold">{nextPayout.date}</div>
             <p className="text-xs text-muted-foreground">
-              Montant estimé : ~1,200 €
+              Montant estimé : {nextPayout.amount}
             </p>
           </CardContent>
         </Card>
@@ -312,3 +330,5 @@ export default function AssociationDashboardPage() {
     </div>
   );
 }
+
+    
