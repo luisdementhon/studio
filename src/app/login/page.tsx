@@ -33,11 +33,13 @@ import { BrandPattern } from "@/components/brand-pattern";
 import { initiateGoogleSignIn } from "@/firebase/non-blocking-login";
 import { GoogleIcon } from "@/components/google-icon";
 import { Separator } from "@/components/ui/separator";
+import { useState } from "react";
 
 export default function LoginPage() {
   const auth = useAuth();
   const router = useRouter();
   const { toast } = useToast();
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
 
   const form = useForm<z.infer<typeof LoginSchema>>({
     resolver: zodResolver(LoginSchema),
@@ -47,10 +49,22 @@ export default function LoginPage() {
     },
   });
 
-  const onGoogleSignIn = () => {
-    // We initiate the redirect, but don't navigate ourselves.
-    // Firebase will handle the page redirection to Google.
-    initiateGoogleSignIn(auth);
+  const onGoogleSignIn = async () => {
+    setIsGoogleLoading(true);
+    try {
+      await initiateGoogleSignIn(auth);
+      router.push('/auth/loading');
+    } catch (error: any) {
+       if (error.code !== 'auth/popup-closed-by-user') {
+            toast({
+                variant: "destructive",
+                title: "Erreur de connexion",
+                description: "Impossible de se connecter avec Google. Veuillez réessayer.",
+            });
+       }
+    } finally {
+        setIsGoogleLoading(false);
+    }
   };
 
   const onSubmit = async (values: z.infer<typeof LoginSchema>) => {
@@ -66,6 +80,8 @@ export default function LoginPage() {
     }
   };
 
+  const isSubmitting = form.formState.isSubmitting || isGoogleLoading;
+
   return (
     <div className="relative flex min-h-screen flex-col items-center justify-center p-4">
         <BrandPattern />
@@ -77,9 +93,9 @@ export default function LoginPage() {
             </CardDescription>
         </CardHeader>
         <CardContent className="grid gap-4">
-            <Button variant="outline" onClick={onGoogleSignIn}>
+            <Button variant="outline" onClick={onGoogleSignIn} disabled={isSubmitting}>
                 <GoogleIcon className="h-5 w-5 mr-2" />
-                Continuer avec Google
+                {isGoogleLoading ? 'Connexion en cours...' : 'Continuer avec Google'}
             </Button>
             <div className="relative">
                 <div className="absolute inset-0 flex items-center">
@@ -106,6 +122,7 @@ export default function LoginPage() {
                         type="email"
                         placeholder="Email"
                         {...field}
+                        disabled={isSubmitting}
                         />
                     </FormControl>
                     <FormMessage />
@@ -131,6 +148,7 @@ export default function LoginPage() {
                         type="password"
                         placeholder="Mot de passe"
                         {...field}
+                        disabled={isSubmitting}
                         />
                     </FormControl>
                     <FormMessage />
@@ -139,12 +157,12 @@ export default function LoginPage() {
                 />
             </CardContent>
             <CardFooter className="flex flex-col gap-4">
-                <Button type="submit" className="w-full" disabled={form.formState.isSubmitting} variant="vibrant">
+                <Button type="submit" className="w-full" disabled={isSubmitting} variant="vibrant">
                 {form.formState.isSubmitting ? "Connexion..." : "Se connecter"}
                 </Button>
                 <div className="text-sm text-muted-foreground">
                 Pas encore de compte ?{" "}
-                <Link href="/signup" className="font-medium text-primary hover:underline">
+                <Link href="/signup" className="font-medium text-transparent bg-clip-text bg-gradient-to-r from-primary to-red-500 hover:brightness-110 transition-all">
                     Inscrivez-vous
                 </Link>
                 </div>
