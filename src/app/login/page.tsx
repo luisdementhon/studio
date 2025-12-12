@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useForm } from "react-hook-form";
@@ -47,8 +48,9 @@ export default function LoginPage() {
   });
 
   const onGoogleSignIn = () => {
+    // We initiate the redirect, but don't navigate ourselves.
+    // Firebase will handle the page redirection to Google.
     initiateGoogleSignIn(auth);
-    router.push('/auth/loading');
   };
 
   const onSubmit = async (values: z.infer<typeof LoginSchema>) => {

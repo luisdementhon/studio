@@ -48,8 +48,9 @@ export default function SignupPage() {
   });
 
   const onGoogleSignIn = () => {
+    // We initiate the redirect, but don't navigate ourselves.
+    // Firebase will handle the page redirection to Google.
     initiateGoogleSignIn(auth);
-    router.push('/auth/loading');
   };
 
   const onSubmit = async (values: z.infer<typeof SignupSchema>) => {
