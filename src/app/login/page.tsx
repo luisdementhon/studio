@@ -41,11 +41,19 @@ export default function LoginPage() {
   const { toast } = useToast();
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
 
-  const onGoogleSignIn = () => {
+  const form = useForm<z.infer<typeof LoginSchema>>({
+    resolver: zodResolver(LoginSchema),
+    defaultValues: {
+      email: "",
+      password: "",
+    },
+  });
+
+  const onGoogleSignIn = async () => {
     setIsGoogleLoading(true);
     try {
-      initiateGoogleSignIn(auth);
-      // signInWithRedirect handles the navigation, no need for router.push
+      await initiateGoogleSignIn(auth);
+      router.push('/auth/loading');
     } catch (error: any) {
        if (error.code !== 'auth/popup-closed-by-user') {
             toast({
@@ -54,6 +62,7 @@ export default function LoginPage() {
                 description: "Impossible de se connecter avec Google. Veuillez réessayer.",
             });
        }
+    } finally {
        setIsGoogleLoading(false);
     }
   };

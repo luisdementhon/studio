@@ -1,11 +1,10 @@
-
 'use client';
 import {
   Auth, // Import Auth type for type hinting
   signInAnonymously,
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
-  signInWithRedirect,
+  signInWithPopup,
   GoogleAuthProvider,
   UserCredential
 } from 'firebase/auth';
@@ -25,8 +24,8 @@ export function initiateEmailSignIn(authInstance: Auth, email: string, password:
   signInWithEmailAndPassword(authInstance, email, password);
 }
 
-/** Initiate Google sign-in with redirect. */
-export function initiateGoogleSignIn(authInstance: Auth): void {
+/** Initiate Google sign-in with popup. */
+export async function initiateGoogleSignIn(authInstance: Auth): Promise<UserCredential> {
   const provider = new GoogleAuthProvider();
-  signInWithRedirect(authInstance, provider);
+  return signInWithPopup(authInstance, provider);
 }

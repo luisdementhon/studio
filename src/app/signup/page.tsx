@@ -49,11 +49,11 @@ export default function SignupPage() {
     },
   });
 
-  const onGoogleSignIn = () => {
+  const onGoogleSignIn = async () => {
     setIsGoogleLoading(true);
     try {
-      initiateGoogleSignIn(auth);
-      // signInWithRedirect handles the navigation, no need for router.push
+      await initiateGoogleSignIn(auth);
+      router.push('/auth/loading');
     } catch (error: any) {
        if (error.code !== 'auth/popup-closed-by-user') {
             toast({
@@ -62,7 +62,8 @@ export default function SignupPage() {
                 description: "Impossible de se connecter avec Google. Veuillez réessayer.",
             });
        }
-       setIsGoogleLoading(false);
+    } finally {
+        setIsGoogleLoading(false);
     }
   };
 
