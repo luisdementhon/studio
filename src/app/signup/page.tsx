@@ -71,7 +71,10 @@ export default function SignupPage() {
   const handleDemoAccess = async (dashboardPath: string) => {
     if (!auth) return;
     try {
+      // Connecte l'utilisateur de manière anonyme. 
+      // Le provider Firebase détectera le changement et gérera le flux.
       await signInAnonymously(auth);
+      // Redirige directement, la page de destination gérera l'état de chargement
       router.push(dashboardPath);
     } catch (error) {
        toast({
@@ -82,9 +85,7 @@ export default function SignupPage() {
     }
   };
 
-
   const { isSubmitting } = form.formState;
-
 
   return (
     <div className="relative flex min-h-screen flex-col items-center justify-center p-4">
