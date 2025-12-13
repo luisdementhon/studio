@@ -100,7 +100,7 @@ export default function AssociationDashboardPage() {
             monthlyFundsGrowth: 15.2,
             uniqueDonors: 124,
             averageDonation: 4.38,
-            totalFunds: 75234.90,
+            totalFunds: 7523.90,
             chartData: demoChartData,
             recentDonors: demoRecentDonors,
         };
@@ -326,8 +326,8 @@ export default function AssociationDashboardPage() {
           </CardHeader>
           <CardContent className="flex flex-col justify-center gap-4 h-full">
             <div className="flex items-baseline justify-center gap-2">
-                <span className="text-4xl font-bold">{totalFunds.toLocaleString('fr-FR')}€</span>
-                <span className="text-sm text-muted-foreground">/ {fundraisingGoal.toLocaleString('fr-FR')}€</span>
+                <span className="text-4xl font-bold">{totalFunds.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' })}</span>
+                <span className="text-sm text-muted-foreground">/ {fundraisingGoal.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' })}</span>
             </div>
             <div className="space-y-2">
                 <Progress value={progressPercentage} className="h-3" />
