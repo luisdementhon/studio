@@ -100,7 +100,7 @@ export default function AssociationDashboardPage() {
             monthlyFundsGrowth: 15.2,
             uniqueDonors: 124,
             averageDonation: 4.38,
-            totalFunds: 7523.90,
+            totalFunds: 35230.90,
             chartData: demoChartData,
             recentDonors: demoRecentDonors,
         };
