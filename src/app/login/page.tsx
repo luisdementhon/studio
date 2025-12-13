@@ -53,9 +53,14 @@ export default function LoginPage() {
     setIsGoogleLoading(true);
     try {
       await initiateGoogleSignIn(auth);
+      // After a successful popup sign-in, the onAuthStateChanged listener
+      // in the Firebase provider will automatically pick up the new user.
+      // We can then navigate to the loading page to handle redirection logic.
       router.push('/auth/loading');
     } catch (error: any) {
+       // Avoid showing a toast if the user simply closes the popup.
        if (error.code !== 'auth/popup-closed-by-user') {
+            console.error("Google Sign-In Error:", error);
             toast({
                 variant: "destructive",
                 title: "Erreur de connexion",

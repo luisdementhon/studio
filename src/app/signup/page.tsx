@@ -56,6 +56,7 @@ export default function SignupPage() {
       router.push('/auth/loading');
     } catch (error: any) {
        if (error.code !== 'auth/popup-closed-by-user') {
+            console.error("Google Sign-In Error:", error);
             toast({
                 variant: "destructive",
                 title: "Erreur de connexion",
