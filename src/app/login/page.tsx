@@ -72,7 +72,7 @@ export default function LoginPage() {
         </CardHeader>
         
         <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            <form onSubmit={form.handleSubmit(onSubmit)}>
             <CardContent className="grid gap-4 pt-6">
                 <FormField
                 control={form.control}

@@ -6,7 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import type { z } from "zod";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { createUserWithEmailAndPassword } from "firebase/auth";
+import { createUserWithEmailAndPassword, signInAnonymously } from "firebase/auth";
 
 import { SignupSchema } from "@/lib/schemas";
 import { Button } from "@/components/ui/button";
@@ -30,6 +30,7 @@ import { Input } from "@/components/ui/input";
 import { useAuth } from "@/firebase";
 import { useToast } from "@/hooks/use-toast";
 import { BrandPattern } from "@/components/brand-pattern";
+import { Separator } from "@/components/ui/separator";
 
 export default function SignupPage() {
   const auth = useAuth();
@@ -67,6 +68,21 @@ export default function SignupPage() {
     }
   };
 
+  const handleDemoAccess = async (dashboardPath: string) => {
+    if (!auth) return;
+    try {
+      await signInAnonymously(auth);
+      router.push(dashboardPath);
+    } catch (error) {
+       toast({
+        variant: "destructive",
+        title: "Erreur de la démo",
+        description: "Impossible de lancer le mode démo. Veuillez réessayer.",
+      });
+    }
+  };
+
+
   const { isSubmitting } = form.formState;
 
 
@@ -81,7 +97,7 @@ export default function SignupPage() {
             </CardDescription>
         </CardHeader>
         <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            <form onSubmit={form.handleSubmit(onSubmit)}>
             <CardContent className="grid gap-4 pt-6">
                 <FormField
                 control={form.control}
@@ -151,6 +167,21 @@ export default function SignupPage() {
             </CardFooter>
             </form>
         </Form>
+        
+        <Separator className="my-4" />
+        
+        <div className="px-6 pb-6">
+            <p className="text-center text-sm text-muted-foreground mb-4">Ou explorez nos interfaces en mode démo :</p>
+            <div className="flex flex-col gap-3">
+                 <Button variant="outline" onClick={() => handleDemoAccess('/dashboard/user')}>
+                    Dashboard Donateur (Démo)
+                </Button>
+                <Button variant="outline" onClick={() => handleDemoAccess('/dashboard/association')}>
+                    Dashboard Association (Démo)
+                </Button>
+            </div>
+        </div>
+
         </Card>
     </div>
   );
