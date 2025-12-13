@@ -39,22 +39,41 @@ const chartConfig = {
   },
 } satisfies ChartConfig;
 
+const demoChartData = [
+    { date: format(subDays(new Date(), 6), 'dd/MM', { locale: fr }), total: 150 },
+    { date: format(subDays(new Date(), 5), 'dd/MM', { locale: fr }), total: 120 },
+    { date: format(subDays(new Date(), 4), 'dd/MM', { locale: fr }), total: 200 },
+    { date: format(subDays(new Date(), 3), 'dd/MM', { locale: fr }), total: 180 },
+    { date: format(subDays(new Date(), 2), 'dd/MM', { locale: fr }), total: 250 },
+    { date: format(subDays(new Date(), 1), 'dd/MM', { locale: fr }), total: 230 },
+    { date: format(new Date(), 'dd/MM', { locale: fr }), total: 300 },
+];
+
+const demoRecentDonors = [
+    { id: '1', name: 'Jean Dupont', amount: 2.50, date: format(new Date(), 'dd/MM/yyyy') },
+    { id: '2', name: 'Marie Curie', amount: 5.00, date: format(subDays(new Date(), 1), 'dd/MM/yyyy') },
+    { id: '3', name: 'Pierre Martin', amount: 1.20, date: format(subDays(new Date(), 1), 'dd/MM/yyyy') },
+    { id: '4', name: 'Sophie Lemoine', amount: 10.00, date: format(subDays(new Date(), 2), 'dd/MM/yyyy') },
+    { id: '5', name: 'Luc Durand', amount: 0.80, date: format(subDays(new Date(), 3), 'dd/MM/yyyy') },
+];
 
 export default function AssociationDashboardPage() {
   const { user, isUserLoading } = useUser();
   const firestore = useFirestore();
   const [nextPayout, setNextPayout] = useState({ date: '', amount: '' });
+  
+  const isDemoMode = user?.isAnonymous;
 
   // 1. Fetch association profile data
   const associationDocRef = useMemoFirebase(() => {
-    if (!user) return null;
+    if (!user || isDemoMode) return null;
     return doc(firestore, 'associations', user.uid);
-  }, [firestore, user]);
+  }, [firestore, user, isDemoMode]);
   const { data: associationData, isLoading: isAssociationLoading } = useDoc(associationDocRef);
   
   // 2. Fetch donations for this association using a collectionGroup query
   const donationsQuery = useMemoFirebase(() => {
-    if (!user) return null;
+    if (!user || isDemoMode) return null;
     // This query now looks across all 'donations' subcollections
     return query(
       collectionGroup(firestore, 'donations'),
@@ -62,7 +81,7 @@ export default function AssociationDashboardPage() {
       orderBy('transactionDate', 'desc'),
       limit(50)
     );
-  }, [firestore, user]);
+  }, [firestore, user, isDemoMode]);
   const { data: donations, isLoading: isDonationsLoading } = useCollection(donationsQuery);
 
   // 3. Calculate KPIs from the data
@@ -75,6 +94,17 @@ export default function AssociationDashboardPage() {
     chartData,
     recentDonors
   } = useMemo(() => {
+    if (isDemoMode) {
+        return {
+            monthlyFunds: 5430.21,
+            monthlyFundsGrowth: 15.2,
+            uniqueDonors: 124,
+            averageDonation: 4.38,
+            totalFunds: 75234.90,
+            chartData: demoChartData,
+            recentDonors: demoRecentDonors,
+        };
+    }
     if (!donations) return {
         monthlyFunds: 0,
         monthlyFundsGrowth: 0,
@@ -136,28 +166,38 @@ export default function AssociationDashboardPage() {
     }));
 
     return { monthlyFunds, monthlyFundsGrowth, uniqueDonors: donorIds.size, averageDonation, totalFunds, chartData, recentDonors };
-  }, [donations]);
+  }, [donations, isDemoMode]);
 
   // Calculate next payout on client to avoid hydration issues
   useEffect(() => {
+    if (isDemoMode) {
+        const nextPayoutDate = new Date();
+        nextPayoutDate.setMonth(nextPayoutDate.getMonth() + 1);
+        nextPayoutDate.setDate(1);
+        setNextPayout({
+            date: format(nextPayoutDate, 'dd/MM/yyyy'),
+            amount: `~5 210,00 €`
+        });
+        return;
+    }
     if (donations) {
         const nextPayoutDate = new Date();
         nextPayoutDate.setMonth(nextPayoutDate.getMonth() + 1);
         nextPayoutDate.setDate(1);
 
-        const estimatedAmount = monthlyFunds * (Math.random() * 0.2 + 0.9); // Simulate some variation
+        const estimatedAmount = monthlyFunds * (0.95); // Simulate a more stable estimation
 
         setNextPayout({
             date: format(nextPayoutDate, 'dd/MM/yyyy'),
             amount: `~${estimatedAmount.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' })}`
         });
     }
-  }, [donations, monthlyFunds]);
+  }, [donations, monthlyFunds, isDemoMode]);
 
-  const fundraisingGoal = associationData?.fundraisingGoal || 1; // Avoid division by zero
+  const fundraisingGoal = isDemoMode ? 100000 : (associationData?.fundraisingGoal || 1); // Avoid division by zero
   const progressPercentage = (totalFunds / fundraisingGoal) * 100;
 
-  const isLoading = isUserLoading || isAssociationLoading || isDonationsLoading;
+  const isLoading = !isDemoMode && (isUserLoading || isAssociationLoading || isDonationsLoading);
 
   if (isLoading) {
     return (
