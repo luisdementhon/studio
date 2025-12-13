@@ -49,11 +49,11 @@ export default function SignupPage() {
     },
   });
 
-  const onGoogleSignIn = async () => {
+  const onGoogleSignIn = () => {
     setIsGoogleLoading(true);
     try {
-      await initiateGoogleSignIn(auth);
-      router.push('/auth/loading');
+      initiateGoogleSignIn(auth);
+      // signInWithRedirect handles the navigation, no need for router.push
     } catch (error: any) {
        if (error.code !== 'auth/popup-closed-by-user') {
             toast({
@@ -62,8 +62,7 @@ export default function SignupPage() {
                 description: "Impossible de se connecter avec Google. Veuillez réessayer.",
             });
        }
-    } finally {
-        setIsGoogleLoading(false);
+       setIsGoogleLoading(false);
     }
   };
 
@@ -104,7 +103,7 @@ export default function SignupPage() {
         <CardContent className="grid gap-4">
             <Button variant="outline" onClick={onGoogleSignIn} className="shadow-md hover:shadow-lg transition-shadow" disabled={isSubmitting}>
                 <GoogleIcon className="h-5 w-5 mr-2" />
-                {isGoogleLoading ? 'Connexion en cours...' : 'Continuer avec Google'}
+                {isGoogleLoading ? 'Redirection...' : 'Continuer avec Google'}
             </Button>
             <div className="relative">
                 <div className="absolute inset-0 flex items-center">
