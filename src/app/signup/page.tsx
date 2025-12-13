@@ -50,6 +50,7 @@ export default function SignupPage() {
   });
 
   const onGoogleSignIn = async () => {
+    if (!auth) return;
     setIsGoogleLoading(true);
     try {
       await initiateGoogleSignIn(auth);
@@ -69,6 +70,7 @@ export default function SignupPage() {
   };
 
   const onSubmit = async (values: z.infer<typeof SignupSchema>) => {
+    if (!auth) return;
     try {
       await createUserWithEmailAndPassword(auth, values.email, values.password);
       router.push('/auth/loading');

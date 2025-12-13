@@ -50,6 +50,7 @@ export default function LoginPage() {
   });
 
   const onGoogleSignIn = async () => {
+    if (!auth) return;
     setIsGoogleLoading(true);
     try {
       await initiateGoogleSignIn(auth);
@@ -73,6 +74,7 @@ export default function LoginPage() {
   };
 
   const onSubmit = async (values: z.infer<typeof LoginSchema>) => {
+    if (!auth) return;
     try {
       await signInWithEmailAndPassword(auth, values.email, values.password);
       router.push('/auth/loading');
