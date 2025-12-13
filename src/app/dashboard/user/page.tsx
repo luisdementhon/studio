@@ -31,7 +31,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { DonationForm } from '@/components/donation-form';
 import { useEffect, useState, useMemo } from 'react';
 import type { Association } from '@/lib/schemas';
-import { format, getMonth } from 'date-fns';
+import { format, getMonth, subDays } from 'date-fns';
 import { fr } from 'date-fns/locale';
 
 
@@ -50,6 +50,21 @@ const causesLabels: { [key: string]: string } = {
   animaux: "Cause animale",
 };
 
+const demoChartData = [
+  { month: format(new Date(new Date().setMonth(new Date().getMonth() - 5)), 'MMMM', { locale: fr }), dons: 12.5 },
+  { month: format(new Date(new Date().setMonth(new Date().getMonth() - 4)), 'MMMM', { locale: fr }), dons: 15.8 },
+  { month: format(new Date(new Date().setMonth(new Date().getMonth() - 3)), 'MMMM', { locale: fr }), dons: 11.2 },
+  { month: format(new Date(new Date().setMonth(new Date().getMonth() - 2)), 'MMMM', { locale: fr }), dons: 21.4 },
+  { month: format(new Date(new Date().setMonth(new Date().getMonth() - 1)), 'MMMM', { locale: fr }), dons: 18.9 },
+  { month: format(new Date(), 'MMMM', { locale: fr }), dons: 25.6 },
+];
+
+const demoRecentDonations = [
+    { id: 'd1', associationName: 'Les Restos du Coeur', amount: 15.00, transactionDate: subDays(new Date(), 2) },
+    { id: 'd2', associationName: 'WWF France', amount: 25.00, transactionDate: subDays(new Date(), 10) },
+    { id: 'd3', associationName: 'Greenpeace', amount: 10.00, transactionDate: subDays(new Date(), 25) },
+];
+
 export default function UserDashboardPage() {
   const { user, isUserLoading } = useUser();
   const firestore = useFirestore();
@@ -57,25 +72,36 @@ export default function UserDashboardPage() {
   const [associationsLoading, setAssociationsLoading] = useState(true);
   const [weeklyRoundups, setWeeklyRoundups] = useState(0);
 
+  const isDemoMode = user?.isAnonymous;
+
   // 1. Fetch user profile
   const userDocRef = useMemoFirebase(() => {
-    if (!user) return null;
+    if (!user || isDemoMode) return null;
     return doc(firestore, 'users', user.uid);
-  }, [firestore, user]);
+  }, [firestore, user, isDemoMode]);
   const { data: userData, isLoading: isProfileLoading } = useDoc(userDocRef);
 
   // 2. Fetch user's donations from the subcollection
   const donationsQuery = useMemoFirebase(() => {
-    if (!user) return null;
+    if (!user || isDemoMode) return null;
     return query(
       collection(firestore, 'users', user.uid, 'donations'),
       orderBy('transactionDate', 'desc')
     );
-  }, [firestore, user]);
+  }, [firestore, user, isDemoMode]);
   const { data: donations, isLoading: isDonationsLoading } = useCollection(donationsQuery);
   
   // 3. Fetch associations for donation form and donation list
   useEffect(() => {
+    if (isDemoMode) {
+      setAssociations([
+        { id: '1', associationName: 'Les Restos du Coeur' } as Association,
+        { id: '2', associationName: 'WWF France' } as Association,
+        { id: '3', associationName: 'Greenpeace' } as Association,
+      ]);
+      setAssociationsLoading(false);
+      return;
+    }
     async function fetchAssociations() {
         if (!firestore) return;
         setAssociationsLoading(true);
@@ -99,7 +125,7 @@ export default function UserDashboardPage() {
         }
     }
     fetchAssociations();
-  }, [firestore]);
+  }, [firestore, isDemoMode]);
 
 
   // 4. Calculate KPIs from dynamic data
@@ -108,9 +134,21 @@ export default function UserDashboardPage() {
     taxDeductibleAmount,
     chartData,
     recentDonations,
+    userCauses
   } = useMemo(() => {
+    if (isDemoMode) {
+        const monthlyDonation = 25.60;
+        return {
+            monthlyDonation,
+            taxDeductibleAmount: monthlyDonation * 0.66,
+            chartData: demoChartData,
+            recentDonations: demoRecentDonations,
+            userCauses: { causes: ['environnement', 'animaux'] }
+        }
+    }
+
     if (!donations) {
-        return { monthlyDonation: 0, taxDeductibleAmount: 0, chartData: [], recentDonations: [] };
+        return { monthlyDonation: 0, taxDeductibleAmount: 0, chartData: [], recentDonations: [], userCauses: null };
     }
 
     const now = new Date();
@@ -155,12 +193,16 @@ export default function UserDashboardPage() {
         }
     });
 
-    return { monthlyDonation, taxDeductibleAmount, chartData, recentDonations: recentDonationsWithAssoName };
+    return { monthlyDonation, taxDeductibleAmount, chartData, recentDonations: recentDonationsWithAssoName, userCauses: userData };
 
-  }, [donations, associations]);
+  }, [donations, associations, isDemoMode, userData]);
 
   // Generate weekly roundups on client side to avoid hydration mismatch
   useEffect(() => {
+    if (isDemoMode) {
+      setWeeklyRoundups(5.82);
+      return;
+    }
     if (donations) {
       const monthlyDonation = donations.reduce((acc, d) => {
         const donationDate = d.transactionDate.toDate();
@@ -173,9 +215,9 @@ export default function UserDashboardPage() {
       }, 0);
       setWeeklyRoundups(donations.length > 0 ? (monthlyDonation / 4) * (Math.random() * 0.5 + 0.75) : 0);
     }
-  }, [donations]);
+  }, [donations, isDemoMode]);
 
-  const isLoading = isUserLoading || isProfileLoading || isDonationsLoading;
+  const isLoading = !isDemoMode && (isUserLoading || isProfileLoading || isDonationsLoading);
 
   return (
     <div className="flex flex-col gap-8">
@@ -235,11 +277,11 @@ export default function UserDashboardPage() {
               </div>
             ) : (
               <div className="flex flex-wrap gap-2 pt-2">
-                  {userData?.causes?.map((causeId: string) => (
+                  {userCauses?.causes?.map((causeId: string) => (
                     <Badge key={causeId} variant="secondary">{causesLabels[causeId] || causeId}</Badge>
                   ))}
-                  {userData?.otherCause && <Badge variant="secondary">{userData.otherCause}</Badge>}
-                  {(!userData?.causes || userData.causes.length === 0) && !userData?.otherCause && (
+                  {userCauses?.otherCause && <Badge variant="secondary">{userCauses.otherCause}</Badge>}
+                  {(!userCauses?.causes || userCauses.causes.length === 0) && !userCauses?.otherCause && (
                       <p className="text-xs text-muted-foreground">Aucune cause sélectionnée.</p>
                   )}
               </div>
@@ -343,5 +385,3 @@ export default function UserDashboardPage() {
     </div>
   );
 }
-
-    
