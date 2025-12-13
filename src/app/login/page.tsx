@@ -30,16 +30,11 @@ import { Input } from "@/components/ui/input";
 import { useAuth } from "@/firebase";
 import { useToast } from "@/hooks/use-toast";
 import { BrandPattern } from "@/components/brand-pattern";
-import { initiateGoogleSignIn } from "@/firebase/non-blocking-login";
-import { GoogleIcon } from "@/components/google-icon";
-import { Separator } from "@/components/ui/separator";
-import { useState } from "react";
 
 export default function LoginPage() {
   const auth = useAuth();
   const router = useRouter();
   const { toast } = useToast();
-  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
 
   const form = useForm<z.infer<typeof LoginSchema>>({
     resolver: zodResolver(LoginSchema),
@@ -48,30 +43,6 @@ export default function LoginPage() {
       password: "",
     },
   });
-
-  const onGoogleSignIn = async () => {
-    if (!auth) return;
-    setIsGoogleLoading(true);
-    try {
-      await initiateGoogleSignIn(auth);
-      // After a successful popup sign-in, the onAuthStateChanged listener
-      // in the Firebase provider will automatically pick up the new user.
-      // We can then navigate to the loading page to handle redirection logic.
-      router.push('/auth/loading');
-    } catch (error: any) {
-       // Avoid showing a toast if the user simply closes the popup.
-       if (error.code !== 'auth/popup-closed-by-user') {
-            console.error("Google Sign-In Error:", error);
-            toast({
-                variant: "destructive",
-                title: "Erreur de connexion",
-                description: "Impossible de se connecter avec Google. Veuillez réessayer.",
-            });
-       }
-    } finally {
-       setIsGoogleLoading(false);
-    }
-  };
 
   const onSubmit = async (values: z.infer<typeof LoginSchema>) => {
     if (!auth) return;
@@ -87,7 +58,7 @@ export default function LoginPage() {
     }
   };
 
-  const isSubmitting = form.formState.isSubmitting || isGoogleLoading;
+  const { isSubmitting } = form.formState;
 
   return (
     <div className="relative flex min-h-screen flex-col items-center justify-center p-4">
@@ -99,25 +70,10 @@ export default function LoginPage() {
             Ravi de vous revoir ! Connectez-vous pour continuer.
             </CardDescription>
         </CardHeader>
-        <CardContent className="grid gap-4">
-            <Button variant="outline" onClick={onGoogleSignIn} disabled={isSubmitting}>
-                <GoogleIcon className="h-5 w-5 mr-2" />
-                {isGoogleLoading ? 'Redirection...' : 'Continuer avec Google'}
-            </Button>
-            <div className="relative">
-                <div className="absolute inset-0 flex items-center">
-                    <span className="w-full border-t" />
-                </div>
-                <div className="relative flex justify-center text-xs uppercase">
-                    <span className="bg-background px-2 text-muted-foreground">
-                    Ou continuer avec
-                    </span>
-                </div>
-            </div>
-        </CardContent>
+        
         <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <CardContent className="grid gap-4">
+            <CardContent className="grid gap-4 pt-6">
                 <FormField
                 control={form.control}
                 name="email"
@@ -165,7 +121,7 @@ export default function LoginPage() {
             </CardContent>
             <CardFooter className="flex flex-col gap-4">
                 <Button type="submit" className="w-full" disabled={isSubmitting} variant="vibrant">
-                {form.formState.isSubmitting ? "Connexion..." : "Se connecter"}
+                {isSubmitting ? "Connexion..." : "Se connecter"}
                 </Button>
                 <div className="text-sm text-muted-foreground">
                 Pas encore de compte ?{" "}

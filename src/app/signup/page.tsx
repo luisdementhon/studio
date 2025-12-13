@@ -30,15 +30,11 @@ import { Input } from "@/components/ui/input";
 import { useAuth } from "@/firebase";
 import { useToast } from "@/hooks/use-toast";
 import { BrandPattern } from "@/components/brand-pattern";
-import { initiateGoogleSignIn } from "@/firebase/non-blocking-login";
-import { GoogleIcon } from "@/components/google-icon";
-import { useState } from "react";
 
 export default function SignupPage() {
   const auth = useAuth();
   const router = useRouter();
   const { toast } = useToast();
-  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
 
   const form = useForm<z.infer<typeof SignupSchema>>({
     resolver: zodResolver(SignupSchema),
@@ -48,26 +44,6 @@ export default function SignupPage() {
       confirmPassword: "",
     },
   });
-
-  const onGoogleSignIn = async () => {
-    if (!auth) return;
-    setIsGoogleLoading(true);
-    try {
-      await initiateGoogleSignIn(auth);
-      router.push('/auth/loading');
-    } catch (error: any) {
-       if (error.code !== 'auth/popup-closed-by-user') {
-            console.error("Google Sign-In Error:", error);
-            toast({
-                variant: "destructive",
-                title: "Erreur de connexion",
-                description: "Impossible de se connecter avec Google. Veuillez réessayer.",
-            });
-       }
-    } finally {
-        setIsGoogleLoading(false);
-    }
-  };
 
   const onSubmit = async (values: z.infer<typeof SignupSchema>) => {
     if (!auth) return;
@@ -91,7 +67,7 @@ export default function SignupPage() {
     }
   };
 
-  const isSubmitting = form.formState.isSubmitting || isGoogleLoading;
+  const { isSubmitting } = form.formState;
 
 
   return (
@@ -104,25 +80,9 @@ export default function SignupPage() {
             Créez votre compte pour commencer à faire la différence.
             </CardDescription>
         </CardHeader>
-        <CardContent className="grid gap-4">
-            <Button variant="outline" onClick={onGoogleSignIn} className="shadow-md hover:shadow-lg transition-shadow" disabled={isSubmitting}>
-                <GoogleIcon className="h-5 w-5 mr-2" />
-                {isGoogleLoading ? 'Redirection...' : 'Continuer avec Google'}
-            </Button>
-            <div className="relative">
-                <div className="absolute inset-0 flex items-center">
-                    <span className="w-full border-t" />
-                </div>
-                <div className="relative flex justify-center text-xs uppercase">
-                    <span className="bg-card px-2 text-muted-foreground">
-                    Ou s'inscrire avec un e-mail
-                    </span>
-                </div>
-            </div>
-        </CardContent>
         <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <CardContent className="grid gap-4">
+            <CardContent className="grid gap-4 pt-6">
                 <FormField
                 control={form.control}
                 name="email"
@@ -180,7 +140,7 @@ export default function SignupPage() {
             </CardContent>
             <CardFooter className="flex flex-col gap-4">
                 <Button type="submit" className="w-full" disabled={isSubmitting} variant="vibrant">
-                {form.formState.isSubmitting ? "Création..." : "Créer mon compte"}
+                {isSubmitting ? "Création..." : "Créer mon compte"}
                 </Button>
                 <div className="text-sm text-muted-foreground">
                 Vous avez déjà un compte ?{" "}
