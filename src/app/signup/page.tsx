@@ -71,10 +71,7 @@ export default function SignupPage() {
   const handleDemoAccess = async (dashboardPath: string) => {
     if (!auth) return;
     try {
-      // Connecte l'utilisateur de manière anonyme. 
-      // Le provider Firebase détectera le changement et gérera le flux.
       await signInAnonymously(auth);
-      // Redirige directement, la page de destination gérera l'état de chargement
       router.push(dashboardPath);
     } catch (error) {
        toast({
@@ -174,10 +171,10 @@ export default function SignupPage() {
         <div className="px-6 pb-6">
             <p className="text-center text-sm text-muted-foreground mb-4">Ou explorez nos interfaces en mode démo :</p>
             <div className="flex flex-col gap-3">
-                 <Button variant="outline" onClick={() => handleDemoAccess('/dashboard/user')}>
+                 <Button variant="vibrant" onClick={() => handleDemoAccess('/dashboard/user')}>
                     Dashboard Donateur (Démo)
                 </Button>
-                <Button variant="outline" onClick={() => handleDemoAccess('/dashboard/association')}>
+                <Button variant="vibrant" onClick={() => handleDemoAccess('/dashboard/association')}>
                     Dashboard Association (Démo)
                 </Button>
             </div>
