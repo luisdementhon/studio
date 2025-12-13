@@ -325,8 +325,8 @@ export default function AssociationDashboardPage() {
             <CardDescription>Progrès vers votre objectif de collecte.</CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col justify-center gap-4 h-full">
-            <div className="flex items-baseline justify-center gap-2">
-                <span className="text-4xl font-bold">{totalFunds.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' })}</span>
+            <div className="flex flex-wrap items-baseline justify-center gap-2">
+                <span className="text-3xl font-bold">{totalFunds.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' })}</span>
                 <span className="text-sm text-muted-foreground">/ {fundraisingGoal.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' })}</span>
             </div>
             <div className="space-y-2">
