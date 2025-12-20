@@ -14,7 +14,7 @@ export function DotlyLogo(props: SVGProps<SVGSVGElement>) {
       <defs>
         <linearGradient id={uniqueId} x1="0%" y1="0%" x2="100%" y2="100%">
           <stop offset="0%" style={{ stopColor: 'hsl(var(--accent-vibrant))', stopOpacity: 1 }} />
-          <stop offset="100%" style={{ stopColor: '#F59E0B', stopOpacity: 1 }} />
+          <stop offset="100%" style={{ stopColor: 'hsl(var(--primary))', stopOpacity: 1 }} />
         </linearGradient>
       </defs>
       <text
