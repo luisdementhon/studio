@@ -9,6 +9,38 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 
 
+const HomePageLogo = (props: React.SVGProps<SVGSVGElement>) => {
+    const uniqueId = "dotly-logo-gradient-homepage";
+    return (
+        <svg
+          viewBox="0 0 400 150"
+          xmlns="http://www.w3.org/2000/svg"
+          aria-label="Dotly Logo"
+          {...props}
+        >
+          <defs>
+            <linearGradient id={uniqueId} x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" style={{ stopColor: 'hsl(var(--accent-vibrant))', stopOpacity: 1 }} />
+              <stop offset="100%" style={{ stopColor: 'hsl(var(--primary))', stopOpacity: 1 }} />
+            </linearGradient>
+          </defs>
+          <text
+            x="50%"
+            y="50%"
+            dominantBaseline="middle"
+            textAnchor="middle"
+            fill={`url(#${uniqueId})`}
+            fontFamily="'Playfair Display', serif"
+            fontWeight="bold"
+            fontSize="120"
+          >
+            Dotly
+          </text>
+        </svg>
+    )
+}
+
+
 export default function Home() {
   return (
     <div className="relative flex flex-col bg-background">
@@ -16,7 +48,7 @@ export default function Home() {
       <header className="absolute top-0 left-0 right-0 z-20 flex items-center justify-center p-6 md:p-8">
         <div className="flex justify-center w-full">
             <Link href="/" aria-label="Accueil">
-              <DotlyLogo className="h-12 w-auto" />
+              <HomePageLogo className="h-12 w-auto" />
             </Link>
         </div>
       </header>
@@ -131,5 +163,3 @@ export default function Home() {
     </div>
   );
 }
-
-    
