@@ -22,6 +22,10 @@ export const UserOnboardingSchema = z.object({
   donationCeiling: z.number().min(0, "Le plafond doit être un nombre positif.").optional().default(50),
   donationMultiplier: z.number().min(1, "Le multiplicateur doit être d'au moins 1.").optional().default(1),
   otherCause: z.string().optional(),
+  bridgeItemId: z.string().optional(),
+  bankConnected: z.boolean().optional().default(false),
+  bankName: z.string().optional(),
+  connectedAt: z.date().optional(),
 });
 
 export const AssociationOnboardingSchema = z.object({
@@ -35,3 +39,4 @@ export const AssociationOnboardingSchema = z.object({
 });
 
 export type Association = z.infer<typeof AssociationOnboardingSchema> & { id: string };
+export type UserProfile = z.infer<typeof UserOnboardingSchema> & { id: string, email: string };

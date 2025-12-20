@@ -1,19 +1,119 @@
 "use client";
 
+import { useUser, useFirestore, useDoc, useMemoFirebase } from "@/firebase";
+import { setDocumentNonBlocking } from "@/firebase/non-blocking-updates";
+import { doc, serverTimestamp } from "firebase/firestore";
+import { useToast } from "@/hooks/use-toast";
 import { Button } from "./ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card";
+import { Banknote, CheckCircle2, Link2, Loader2, XCircle } from "lucide-react";
+import { useBridge } from "@/hooks/use-bridge";
+import { Skeleton } from "./ui/skeleton";
+import { useRouter } from "next/navigation";
 
 export function ConnectBridgeAccount() {
-  
+  const { toast } = useToast();
+  const { user, isUserLoading } = useUser();
+  const firestore = useFirestore();
+  const router = useRouter();
+
+  const userDocRef = useMemoFirebase(() => {
+    if (!user) return null;
+    return doc(firestore, 'users', user.uid);
+  }, [firestore, user]);
+
+  const { data: userData, isLoading: isProfileLoading } = useDoc(userDocRef);
+
+  const handleSuccess = (itemId: string, metadata: any) => {
+    if (!userDocRef) return;
+    setDocumentNonBlocking(userDocRef, { 
+      bridgeItemId: itemId,
+      bankConnected: true,
+      bankName: metadata.bank.name,
+      connectedAt: serverTimestamp(),
+    }, { merge: true });
+
+    toast({
+      title: "Connexion réussie !",
+      description: `Votre compte ${metadata.bank.name} est maintenant connecté.`,
+      className: "bg-green-100 text-green-800 border-green-300",
+    });
+
+    setTimeout(() => {
+        router.push('/dashboard/user');
+    }, 2000);
+  };
+
+  const handleError = () => {
+    toast({
+      variant: "destructive",
+      title: "Erreur de connexion",
+      description: "La connexion bancaire a échoué. Veuillez réessayer.",
+    });
+  };
+
+  const handleClose = () => {
+    toast({
+      title: "Connexion annulée",
+      description: "Le processus de connexion a été annulé.",
+    });
+  };
+
+  const { open, isReady, isConnecting } = useBridge({
+    onSuccess: handleSuccess,
+    onError: handleError,
+    onClose: handleClose,
+  });
+
+  const isLoading = isUserLoading || isProfileLoading;
+  const bankConnected = userData?.bankConnected;
+  const bankName = userData?.bankName;
+
+  if (isLoading) {
+    return (
+        <Card className="bg-muted/50">
+            <CardHeader>
+                <Skeleton className="h-6 w-3/4" />
+            </CardHeader>
+            <CardContent>
+                <Skeleton className="h-10 w-full" />
+            </CardContent>
+        </Card>
+    )
+  }
+
+  if (bankConnected && bankName) {
+    return (
+        <Card className="bg-green-50 border-green-200">
+            <CardHeader>
+                <div className="flex items-center gap-3">
+                    <CheckCircle2 className="h-6 w-6 text-green-600" />
+                    <CardTitle className="text-base text-green-800">Compte connecté !</CardTitle>
+                </div>
+            </CardHeader>
+            <CardContent>
+                <p className="text-sm text-green-700">
+                    Votre compte bancaire <span className="font-semibold">{bankName}</span> est connecté à Dotly. L'arrondi automatique est actif.
+                </p>
+            </CardContent>
+        </Card>
+    );
+  }
+
   return (
     <Card className="bg-muted/50">
         <CardHeader>
-            <CardTitle className="text-base">Intégration en cours</CardTitle>
+            <CardTitle className="text-base">Connecter votre banque</CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="flex flex-col items-center gap-4 text-center">
+            <Banknote className="h-12 w-12 text-primary" />
             <p className="text-sm text-muted-foreground">
-                La connexion aux comptes bancaires via Bridge est en cours de développement. Cette fonctionnalité sera bientôt disponible.
+                Activez l'arrondi automatique en connectant votre compte bancaire en toute sécurité.
             </p>
+            <Button onClick={open} disabled={!isReady || isConnecting}>
+                {isConnecting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Link2 className="mr-2 h-4 w-4" />}
+                {isConnecting ? "Connexion..." : "Connecter ma banque"}
+            </Button>
         </CardContent>
     </Card>
   );

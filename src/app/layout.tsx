@@ -4,6 +4,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { FirebaseClientProvider } from '@/firebase';
 import './globals.css';
 import { Inter } from 'next/font/google';
+import Script from 'next/script';
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
 
@@ -29,6 +30,7 @@ export default function RootLayout({
           {children}
         </FirebaseClientProvider>
         <Toaster />
+        <Script src="https://connect.bridgeapi.io/bridge.js" strategy="beforeInteractive" />
       </body>
     </html>
   );
