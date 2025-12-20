@@ -694,7 +694,7 @@ export default function Home() {
       <header className="absolute top-0 left-0 right-0 z-20 flex items-center justify-center p-6 md:p-8">
         <div className="flex justify-center w-full">
             <Link href="/" aria-label="Accueil">
-              <HomePageLogo className="h-12 w-auto" />
+              <HomePageLogo className="h-24 w-auto" />
             </Link>
         </div>
       </header>
