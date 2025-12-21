@@ -69,7 +69,7 @@ export function ConnectBridgeAccount() {
   const bankConnected = userData?.bankConnected;
   const bankName = userData?.bankName;
 
-  if (isLoading) {
+  if (isLoading && !user) {
     return (
         <Card className="bg-muted/50">
             <CardHeader>
@@ -110,7 +110,7 @@ export function ConnectBridgeAccount() {
             <p className="text-sm text-muted-foreground">
                 Activez l'arrondi automatique en connectant votre compte bancaire en toute sécurité.
             </p>
-            <Button onClick={open} disabled={!isReady || isConnecting}>
+            <Button onClick={open} disabled={!isReady || isConnecting || !user}>
                 {isConnecting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Link2 className="mr-2 h-4 w-4" />}
                 {isConnecting ? "Connexion..." : "Connecter ma banque"}
             </Button>
