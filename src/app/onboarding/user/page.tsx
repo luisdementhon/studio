@@ -87,7 +87,7 @@ export default function UserOnboardingPage() {
   }
 
   return (
-    <div className="mx-auto max-w-2xl">
+    <div className="mx-auto max-w-2xl space-y-8">
       <Card>
         <CardHeader>
           <CardTitle>Configurez votre profil donateur</CardTitle>
@@ -96,7 +96,7 @@ export default function UserOnboardingPage() {
           </CardDescription>
         </CardHeader>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+          <form onSubmit={form.handleSubmit(onSubmit)}>
             <CardContent className="space-y-8">
               <FormField
                 control={form.control}
@@ -222,14 +222,6 @@ export default function UserOnboardingPage() {
                   </FormItem>
                 )}
               />
-              <Separator />
-              <div className="space-y-4">
-                  <FormLabel className="text-base">Connexion bancaire</FormLabel>
-                  <FormDescription>
-                    Connectez votre compte bancaire pour activer l'arrondi automatique à chaque transaction. C'est sécurisé et vous gardez le contrôle.
-                  </FormDescription>
-                  <ConnectBridgeAccount />
-              </div>
             </CardContent>
             <CardFooter className="flex-col gap-2">
               <Button type="submit" disabled={isPending || !user} className="w-full" variant="vibrant">
@@ -242,6 +234,17 @@ export default function UserOnboardingPage() {
           </form>
         </Form>
       </Card>
+      
+      <Separator />
+
+      <div className="space-y-4">
+          <h3 className="text-base font-semibold">Étape suivante : Connexion bancaire (optionnel)</h3>
+          <p className="text-sm text-muted-foreground">
+            Connectez votre compte bancaire pour activer l'arrondi automatique à chaque transaction. C'est sécurisé et vous gardez le contrôle.
+          </p>
+          <ConnectBridgeAccount />
+      </div>
+
     </div>
   );
 }
