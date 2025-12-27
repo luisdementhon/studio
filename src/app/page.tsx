@@ -16,7 +16,7 @@ export default function Home() {
       <header className="absolute top-0 left-0 right-0 z-20 flex items-center justify-center p-6 md:p-8">
         <div className="flex justify-center w-full">
             <Link href="/" aria-label="Accueil">
-              <DotlyLogo className="h-24 w-auto" />
+              <DotlyLogo className="h-auto w-48 text-foreground" />
             </Link>
         </div>
       </header>
