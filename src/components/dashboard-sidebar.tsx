@@ -1,8 +1,8 @@
+
 "use client";
 
 import { usePathname, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { DotlyLogo } from '@/components/dotly-logo';
 import {
   Sidebar,
   SidebarHeader,
@@ -20,6 +20,7 @@ import { useAuth, useDoc, useFirestore, useUser, useMemoFirebase } from '@/fireb
 import { signOut } from 'firebase/auth';
 import { doc } from 'firebase/firestore';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Logo } from '@/components/logo';
 
 export function DashboardSidebar() {
   const pathname = usePathname();
@@ -78,9 +79,9 @@ export function DashboardSidebar() {
 
   return (
     <Sidebar>
-      <SidebarHeader className="flex flex-col items-start gap-4">
+      <SidebarHeader className="flex flex-col items-start">
         <Link href="/" className="text-primary transition-colors duration-300 hover:text-primary/80">
-          <DotlyLogo className="w-36 text-sidebar-primary" />
+          <Logo className="w-36 text-sidebar-primary" />
         </Link>
         <SidebarTrigger className="hidden md:flex" />
       </SidebarHeader>
