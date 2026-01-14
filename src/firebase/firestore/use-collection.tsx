@@ -62,9 +62,8 @@ export function useCollection<T = any>(
   const [error, setError] = useState<FirestoreError | Error | null>(null);
 
   useEffect(() => {
-    // This check is crucial. It ensures we don't proceed if the query is null,
-    // which can happen during initial renders before dependencies (like `firestore` or `user`) are available.
-    if (!memoizedTargetRefOrQuery) {
+    // This check is crucial. It ensures we don't proceed if the query is null or if its firestore instance is not ready.
+    if (!memoizedTargetRefOrQuery || !memoizedTargetRefOrQuery.firestore) {
       setData(null);
       setIsLoading(false);
       setError(null);
@@ -73,12 +72,6 @@ export function useCollection<T = any>(
 
     setIsLoading(true);
     setError(null);
-
-    // This check ensures that the firestore instance within the query is valid before subscribing.
-    if (!memoizedTargetRefOrQuery.firestore) {
-      setIsLoading(false);
-      return;
-    }
 
     const unsubscribe = onSnapshot(
       memoizedTargetRefOrQuery,
