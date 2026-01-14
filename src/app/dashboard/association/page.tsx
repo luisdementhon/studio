@@ -25,7 +25,7 @@ import {
   ChartConfig,
 } from '@/components/ui/chart';
 import { AreaChart, XAxis, YAxis, Area, CartesianGrid, ResponsiveContainer } from 'recharts';
-import { useUser, useFirestore, useDoc, useCollection, useMemoFirebase } from '@/firebase';
+import { useUser, useFirestore, useDoc, useCollection } from '@/firebase';
 import { doc, collectionGroup, query, where, orderBy, limit } from 'firebase/firestore';
 import { useEffect, useMemo, useState } from 'react';
 import { subDays, format } from 'date-fns';
@@ -65,23 +65,24 @@ export default function AssociationDashboardPage() {
   const isDemoMode = user?.isAnonymous;
 
   // 1. Fetch association profile data
-  const associationDocRef = useMemoFirebase(() => {
-    if (!user || isDemoMode) return null;
+  const associationDocRef = useMemo(() => {
+    if (!firestore || !user || isDemoMode) return null;
     return doc(firestore, 'associations', user.uid);
   }, [firestore, user, isDemoMode]);
   const { data: associationData, isLoading: isAssociationLoading } = useDoc(associationDocRef);
   
   // 2. Fetch donations for this association using a collectionGroup query
-  const donationsQuery = useMemoFirebase(() => {
+  const donationsQuery = useMemo(() => {
+    if (!firestore || !user || isDemoMode) return null;
     return query(
       collectionGroup(firestore, 'donations'),
       where('associationId', '==', user.uid),
       orderBy('transactionDate', 'desc'),
       limit(50)
     );
-  }, [firestore, user]);
+  }, [firestore, user, isDemoMode]);
 
-  const { data: donations, isLoading: isDonationsLoading } = useCollection(isDemoMode ? null : donationsQuery);
+  const { data: donations, isLoading: isDonationsLoading } = useCollection(donationsQuery);
 
   // 3. Calculate KPIs from the data
   const {

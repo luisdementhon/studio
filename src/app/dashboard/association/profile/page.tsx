@@ -3,7 +3,7 @@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import type { z } from "zod";
-import { useEffect, useTransition } from "react";
+import { useEffect, useTransition, useMemo } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { AssociationOnboardingSchema } from "@/lib/schemas";
 import { Button } from "@/components/ui/button";
@@ -20,7 +20,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { useUser, useFirestore, useDoc, useMemoFirebase } from "@/firebase";
+import { useUser, useFirestore, useDoc } from "@/firebase";
 import { doc } from "firebase/firestore";
 import { setDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -31,8 +31,8 @@ export default function AssociationProfilePage() {
   const { user, isUserLoading } = useUser();
   const firestore = useFirestore();
 
-  const associationDocRef = useMemoFirebase(() => {
-    if (!user) return null;
+  const associationDocRef = useMemo(() => {
+    if (!firestore || !user) return null;
     return doc(firestore, 'associations', user.uid);
   }, [firestore, user]);
 

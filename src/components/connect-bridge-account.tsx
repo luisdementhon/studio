@@ -1,6 +1,6 @@
 "use client";
 
-import { useUser, useFirestore, useDoc, useMemoFirebase } from "@/firebase";
+import { useUser, useFirestore, useDoc } from "@/firebase";
 import { setDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 import { doc, serverTimestamp } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
@@ -10,6 +10,7 @@ import { Banknote, CheckCircle2, Link2, Loader2, XCircle } from "lucide-react";
 import { useBridge } from "@/hooks/use-bridge";
 import { Skeleton } from "./ui/skeleton";
 import { useRouter } from "next/navigation";
+import { useMemo } from "react";
 
 export function ConnectBridgeAccount() {
   const { toast } = useToast();
@@ -17,8 +18,8 @@ export function ConnectBridgeAccount() {
   const firestore = useFirestore();
   const router = useRouter();
 
-  const userDocRef = useMemoFirebase(() => {
-    if (!user) return null;
+  const userDocRef = useMemo(() => {
+    if (!firestore || !user) return null;
     return doc(firestore, 'users', user.uid);
   }, [firestore, user]);
 

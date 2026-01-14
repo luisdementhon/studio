@@ -16,11 +16,12 @@ import {
 import { SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import { Home, Settings, LogOut } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { useAuth, useDoc, useFirestore, useUser, useMemoFirebase } from '@/firebase';
+import { useAuth, useDoc, useFirestore, useUser } from '@/firebase';
 import { signOut } from 'firebase/auth';
 import { doc } from 'firebase/firestore';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Logo } from '@/components/logo';
+import { useMemo } from 'react';
 
 export function DashboardSidebar() {
   const pathname = usePathname();
@@ -39,8 +40,8 @@ export function DashboardSidebar() {
 
   const isAssociationView = pathname.startsWith('/dashboard/association');
 
-  const profileDocRef = useMemoFirebase(() => {
-    if (!user) return null;
+  const profileDocRef = useMemo(() => {
+    if (!firestore || !user) return null;
     const collectionName = isAssociationView ? 'associations' : 'users';
     return doc(firestore, collectionName, user.uid);
   }, [firestore, user, isAssociationView]);

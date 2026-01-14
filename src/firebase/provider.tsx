@@ -154,30 +154,6 @@ export const useFirebaseApp = (): FirebaseApp => {
   return firebaseApp;
 };
 
-type MemoFirebase <T> = T & {__memo?: boolean};
-
-export function useMemoFirebase<T>(factory: () => T | null, deps: DependencyList): (T | null) & {__memo?: boolean} {
-  const memoized = useMemo(() => {
-    // Check if any dependency is null or undefined
-    if (deps.some(dep => dep === null || dep === undefined)) {
-      return null; // Return null if any dependency is not ready
-    }
-    return factory();
-  }, deps);
-  
-  if(typeof memoized !== 'object' || memoized === null) return memoized;
-
-  // Add a non-enumerable property to mark the object as memoized
-  Object.defineProperty(memoized, '__memo', {
-    value: true,
-    writable: true,
-    enumerable: false,
-    configurable: true,
-  });
-  
-  return memoized;
-}
-
 /**
  * Hook specifically for accessing the authenticated user's state.
  * This provides the User object, loading status, and any auth errors.

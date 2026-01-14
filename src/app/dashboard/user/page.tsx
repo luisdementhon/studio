@@ -25,7 +25,7 @@ import {
   ChartConfig,
 } from '@/components/ui/chart';
 import { BarChart as RechartsBarChart, XAxis, YAxis, Bar, CartesianGrid, ResponsiveContainer } from 'recharts';
-import { useDoc, useFirestore, useUser, useMemoFirebase, useCollection } from '@/firebase';
+import { useDoc, useFirestore, useUser, useCollection } from '@/firebase';
 import { doc, collection, getDocs, query, limit, orderBy } from 'firebase/firestore';
 import { Skeleton } from '@/components/ui/skeleton';
 import { DonationForm } from '@/components/donation-form';
@@ -75,15 +75,15 @@ export default function UserDashboardPage() {
   const isDemoMode = user?.isAnonymous;
 
   // 1. Fetch user profile
-  const userDocRef = useMemoFirebase(() => {
-    if (!user || isDemoMode) return null;
+  const userDocRef = useMemo(() => {
+    if (!firestore || !user || isDemoMode) return null;
     return doc(firestore, 'users', user.uid);
   }, [firestore, user, isDemoMode]);
   const { data: userData, isLoading: isProfileLoading } = useDoc(userDocRef);
 
   // 2. Fetch user's donations from the subcollection
-  const donationsQuery = useMemoFirebase(() => {
-    if (!user || isDemoMode) return null;
+  const donationsQuery = useMemo(() => {
+    if (!firestore || !user || isDemoMode) return null;
     return query(
       collection(firestore, 'users', user.uid, 'donations'),
       orderBy('transactionDate', 'desc')
