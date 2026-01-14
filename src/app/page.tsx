@@ -29,7 +29,7 @@ export default function Home() {
             Dotly arrondit automatiquement vos paiements à l'euro supérieur et transforme ces centimes en dons pour les causes qui vous sont chères.
           </p>
           <div className="mt-4 flex flex-col items-center justify-center gap-4">
-            <Button asChild size="lg" className="text-base font-semibold px-8 py-7 rounded-xl" variant="vibrant">
+            <Button asChild size="lg" className="text-base font-semibold px-8 py-7 rounded-xl from-amber-500 to-yellow-400 text-white hover:brightness-110" variant="vibrant">
               <Link href="/signup">
                 Commencez
                 <ArrowRight className="ml-2 h-4 w-4" />
