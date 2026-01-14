@@ -33,7 +33,9 @@ export interface InternalQuery extends Query<DocumentData> {
     path: {
       canonicalString(): string;
       toString(): string;
-    }
+    },
+    // This property exists on collectionGroup queries
+    allDescendants?: boolean; 
   }
 }
 
@@ -62,7 +64,12 @@ export function useCollection<T = any>(
   const [error, setError] = useState<FirestoreError | Error | null>(null);
 
   useEffect(() => {
-    if (!memoizedTargetRefOrQuery) {
+    // A robust check to ensure the query is not just null, but also valid.
+    // collectionGroup queries without a valid firestore instance will have `memoizedTargetRefOrQuery.firestore` as null
+    // and will default to querying the root, which causes permission errors.
+    const isQueryValid = memoizedTargetRefOrQuery && (memoizedTargetRefOrQuery as Query).firestore;
+    
+    if (!isQueryValid) {
       setIsLoading(false);
       setData(null);
       return;
