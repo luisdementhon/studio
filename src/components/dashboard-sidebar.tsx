@@ -81,7 +81,7 @@ export function DashboardSidebar() {
     <Sidebar>
       <SidebarHeader className="flex flex-col items-start">
         <Link href="/" className="text-primary transition-colors duration-300 hover:text-primary/80">
-          <Logo className="w-36 text-sidebar-primary" />
+          
         </Link>
         <SidebarTrigger className="hidden md:flex" />
       </SidebarHeader>
