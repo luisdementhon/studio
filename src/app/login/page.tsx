@@ -14,7 +14,6 @@ import {
   Card,
   CardContent,
   CardDescription,
-  CardFooter,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
@@ -125,7 +124,7 @@ export default function LoginPage() {
                 </Button>
                 <div className="text-sm text-muted-foreground">
                 Pas encore de compte ?{" "}
-                <Link href="/signup" className="font-medium text-transparent bg-clip-text bg-gradient-to-r from-primary to-red-500 hover:brightness-110 transition-all">
+                <Link href="/signup" className="font-semibold text-transparent bg-clip-text bg-gradient-to-r from-amber-400 to-yellow-300 hover:brightness-110 transition-all">
                     Inscrivez-vous
                 </Link>
                 </div>

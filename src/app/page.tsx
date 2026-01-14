@@ -29,7 +29,7 @@ export default function Home() {
             Dotly arrondit automatiquement vos paiements à l'euro supérieur et transforme ces centimes en dons pour les causes qui vous sont chères.
           </p>
           <div className="mt-4 flex flex-col items-center justify-center gap-4">
-            <Button asChild size="lg" className="text-base font-semibold px-8 py-7 rounded-xl from-amber-500 to-yellow-400 text-white hover:brightness-110" variant="vibrant">
+            <Button asChild size="lg" className="text-base font-semibold px-8 py-7 rounded-xl from-amber-400 to-yellow-300 text-slate-900 hover:brightness-110" variant="vibrant">
               <Link href="/signup">
                 Commencez
                 <ArrowRight className="ml-2 h-4 w-4" />
@@ -37,7 +37,7 @@ export default function Home() {
             </Button>
              <p className="text-base text-muted-foreground">
                 Vous avez déjà un compte ?{' '}
-                <Link href="/login" className="font-semibold text-transparent bg-clip-text bg-gradient-to-r from-amber-500 to-yellow-400 hover:brightness-110 transition-all">
+                <Link href="/login" className="font-semibold text-transparent bg-clip-text bg-gradient-to-r from-amber-400 to-yellow-300 hover:brightness-110 transition-all">
                     Se connecter
                 </Link>
             </p>
@@ -49,7 +49,7 @@ export default function Home() {
         <div className="container mx-auto px-4 md:px-6">
           <div className="flex flex-col items-center space-y-6 text-center">
             <div className="space-y-3">
-              <h2 className="text-3xl font-bold sm:text-4xl font-headline text-transparent bg-clip-text bg-gradient-to-r from-primary to-red-500">Comment ça marche ?</h2>
+              <h2 className="text-3xl font-bold sm:text-4xl font-headline text-transparent bg-clip-text bg-gradient-to-r from-amber-400 to-yellow-300">Comment ça marche ?</h2>
             </div>
           </div>
           <div className="mx-auto max-w-5xl mt-12">
@@ -64,7 +64,7 @@ export default function Home() {
                     <CardHeader>
                       <div className="flex items-center gap-4">
                         <div className="bg-primary/10 text-primary p-3 rounded-lg"><Link2 className="w-6 h-6" /></div>
-                        <CardTitle className="font-semibold tracking-tight text-xl whitespace-nowrap text-transparent bg-clip-text bg-gradient-to-r from-primary to-red-500">Connectez</CardTitle>
+                        <CardTitle className="font-semibold tracking-tight text-xl whitespace-nowrap text-transparent bg-clip-text bg-gradient-to-r from-amber-400 to-yellow-300">Connectez</CardTitle>
                       </div>
                       <CardDescription className="text-muted-foreground pt-4 text-base">Liez votre compte bancaire en quelques clics. Vos données sont chiffrées et protégées.</CardDescription>
                     </CardHeader>
@@ -73,7 +73,7 @@ export default function Home() {
                     <CardHeader>
                       <div className="flex items-center gap-4">
                         <div className="bg-primary/10 text-primary p-3 rounded-lg"><ShoppingCart className="w-6 h-6" /></div>
-                        <CardTitle className="font-semibold tracking-tight text-xl whitespace-nowrap text-transparent bg-clip-text bg-gradient-to-r from-primary to-red-500">Dépensez</CardTitle>
+                        <CardTitle className="font-semibold tracking-tight text-xl whitespace-nowrap text-transparent bg-clip-text bg-gradient-to-r from-amber-400 to-yellow-300">Dépensez</CardTitle>
                       </div>
                       <CardDescription className="text-muted-foreground pt-4 text-base">Nous arrondissons automatiquement chaque paiement à l'euro supérieur, sans que vous ayez à y penser.</CardDescription>
                     </CardHeader>
@@ -82,7 +82,7 @@ export default function Home() {
                     <CardHeader>
                       <div className="flex items-center gap-4">
                         <div className="bg-primary/10 text-primary p-3 rounded-lg"><HeartHandshake className="w-6 h-6" /></div>
-                        <CardTitle className="font-semibold tracking-tight text-xl whitespace-nowrap text-transparent bg-clip-text bg-gradient-to-r from-primary to-red-500">Soutenez</CardTitle>
+                        <CardTitle className="font-semibold tracking-tight text-xl whitespace-nowrap text-transparent bg-clip-text bg-gradient-to-r from-amber-400 to-yellow-300">Soutenez</CardTitle>
                       </div>
                       <CardDescription className="text-muted-foreground pt-4 text-base">La somme de vos arrondis est reversée aux associations que vous avez choisies. Suivez votre impact en temps réel.</CardDescription>
                     </CardHeader>
@@ -95,7 +95,7 @@ export default function Home() {
                     <CardHeader>
                       <div className="flex items-center gap-4">
                         <div className="bg-primary/10 text-primary p-3 rounded-lg"><Building2 className="w-6 h-6" /></div>
-                        <CardTitle className="font-semibold tracking-tight text-xl whitespace-nowrap text-transparent bg-clip-text bg-gradient-to-r from-primary to-red-500">Créez</CardTitle>
+                        <CardTitle className="font-semibold tracking-tight text-xl whitespace-nowrap text-transparent bg-clip-text bg-gradient-to-r from-amber-400 to-yellow-300">Créez</CardTitle>
                       </div>
                       <CardDescription className="text-muted-foreground pt-4 text-base">Créez le profil de votre association en quelques minutes. Présentez votre mission.</CardDescription>
                     </CardHeader>
@@ -104,7 +104,7 @@ export default function Home() {
                     <CardHeader>
                       <div className="flex items-center gap-4">
                         <div className="bg-primary/10 text-primary p-3 rounded-lg"><ShieldCheck className="w-6 h-6" /></div>
-                        <CardTitle className="font-semibold tracking-tight text-xl whitespace-nowrap text-transparent bg-clip-text bg-gradient-to-r from-primary to-red-500">Validez</CardTitle>
+                        <CardTitle className="font-semibold tracking-tight text-xl whitespace-nowrap text-transparent bg-clip-text bg-gradient-to-r from-amber-400 to-yellow-300">Validez</CardTitle>
                       </div>
                       <CardDescription className="text-muted-foreground pt-4 text-base">Notre équipe vérifie vos informations pour garantir la confiance et la transparence de la plateforme.</CardDescription>
                     </CardHeader>
@@ -113,7 +113,7 @@ export default function Home() {
                     <CardHeader>
                       <div className="flex items-center gap-4">
                         <div className="bg-primary/10 text-primary p-3 rounded-lg"><PiggyBank className="w-6 h-6" /></div>
-                        <CardTitle className="font-semibold tracking-tight text-xl whitespace-nowrap text-transparent bg-clip-text bg-gradient-to-r from-primary to-red-500">Recevez</CardTitle>
+                        <CardTitle className="font-semibold tracking-tight text-xl whitespace-nowrap text-transparent bg-clip-text bg-gradient-to-r from-amber-400 to-yellow-300">Recevez</CardTitle>
                       </div>
                       <CardDescription className="text-muted-foreground pt-4 text-base">Recevez un flux de micro-dons régulier et automatique. Suivez vos collectes depuis votre tableau de bord.</CardDescription>
                     </CardHeader>
