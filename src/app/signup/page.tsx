@@ -153,12 +153,12 @@ export default function SignupPage() {
                 />
             </CardContent>
             <CardFooter className="flex flex-col gap-4">
-                <Button type="submit" className="w-full" disabled={isSubmitting} variant="vibrant">
+                <Button type="submit" className="w-full from-amber-400 to-yellow-300 text-slate-900 hover:brightness-110" disabled={isSubmitting} variant="vibrant">
                 {isSubmitting ? "Création..." : "Créer mon compte"}
                 </Button>
                 <div className="text-sm text-muted-foreground">
                 Vous avez déjà un compte ?{" "}
-                <Link href="/login" className="font-medium text-transparent bg-clip-text bg-gradient-to-r from-primary to-red-500 hover:brightness-110 transition-all">
+                <Link href="/login" className="font-medium text-transparent bg-clip-text bg-gradient-to-r from-amber-400 to-yellow-300 hover:brightness-110 transition-all">
                     Connectez-vous
                 </Link>
                 </div>
@@ -171,10 +171,10 @@ export default function SignupPage() {
         <div className="px-6 pb-6">
             <p className="text-center text-sm text-muted-foreground mb-4">Ou explorez nos interfaces en mode démo :</p>
             <div className="flex flex-col gap-3">
-                 <Button variant="vibrant" onClick={() => handleDemoAccess('/dashboard/user')}>
+                 <Button variant="vibrant" onClick={() => handleDemoAccess('/dashboard/user')} className="w-full from-amber-400 to-yellow-300 text-slate-900 hover:brightness-110">
                     Dashboard Donateur (Démo)
                 </Button>
-                <Button variant="vibrant" onClick={() => handleDemoAccess('/dashboard/association')}>
+                <Button variant="vibrant" onClick={() => handleDemoAccess('/dashboard/association')} className="w-full from-amber-400 to-yellow-300 text-slate-900 hover:brightness-110">
                     Dashboard Association (Démo)
                 </Button>
             </div>
