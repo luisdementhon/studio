@@ -174,7 +174,7 @@ export default function AssociationOnboardingPage() {
               />
             </CardContent>
             <CardFooter className="flex-col gap-2">
-              <Button type="submit" disabled={isPending || !user} className="w-full" variant="vibrant">
+              <Button type="submit" disabled={isPending || !user} className="w-full from-amber-400 to-yellow-300 text-slate-900 hover:brightness-110" variant="vibrant">
                 {isPending ? "Vérification..." : "Finaliser l'inscription"}
               </Button>
               <Button asChild variant="ghost" className="w-full">
