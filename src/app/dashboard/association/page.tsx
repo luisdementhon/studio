@@ -73,7 +73,7 @@ export default function AssociationDashboardPage() {
   
   // 2. Fetch donations for this association using a collectionGroup query
   const donationsQuery = useMemoFirebase(() => {
-    if (!user || isDemoMode) return null;
+    if (!firestore || !user || isDemoMode) return null;
     // This query now looks across all 'donations' subcollections
     return query(
       collectionGroup(firestore, 'donations'),
