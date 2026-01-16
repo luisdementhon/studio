@@ -188,7 +188,7 @@
           "schema": {
             "$ref": "#/backend/entities/Donation"
           },
-          "description": "Stores donation records.  Includes denormalized `associationId` for authorization independence.",
+          "description": "Stores the primary, private donation records for a user.",
           "params": [
             {
               "name": "userId",
@@ -200,8 +200,28 @@
             }
           ]
         }
+      },
+      {
+        "path": "/associations/{associationId}/donations/{donationId}",
+        "definition": {
+          "entityName": "Donation",
+          "schema": {
+            "$ref": "#/backend/entities/Donation"
+          },
+          "description": "Stores a duplicated record of a donation for easy and secure querying by the recipient association.",
+          "params": [
+            {
+              "name": "associationId",
+              "description": "The unique identifier of the association."
+            },
+            {
+              "name": "donationId",
+              "description": "The unique identifier of the donation."
+            }
+          ]
+        }
       }
     ],
-    "reasoning": "The Firestore data structure is designed to support Dotly's core features: user and association onboarding, donation customization, rounded-up transaction processing, and dashboards. The structure prioritizes Authorization Independence and QAPs by denormalizing authorization data and segregating data based on access needs.\n\n1.  **Users Collection:** Stores user profiles, including donation preferences (multiplier, ceiling). Path-based ownership (`/users/{userId}`) ensures only the user can access their data.\n2.  **Associations Collection:** Stores association profiles. Publicly readable for discovery, but write access is restricted.\n3.  **Donations Collection:**  Stores donation records. Uses a subcollection structure (`/users/{userId}/donations/{donationId}`) to clearly associate donations with users. The `associationId` is denormalized into this document to eliminate the need for `get()` calls to authorize listing donations for a specific association on a specific user. This also makes reporting easier. Rules ensure that only the user can create a donation document under their path, and associations can only view donations associated with their ID.\n\nThis design ensures Authorization Independence by avoiding hierarchical dependencies. Security rules can operate on individual documents without needing to fetch parent document data. It supports QAPs by segregating data based on ownership and using membership maps where needed. The structure also facilitates the enforcement of invariants, such as ensuring only the owner can modify their data and maintaining consistent timestamps."
+    "reasoning": "The Firestore data structure is designed to support Dotly's core features: user and association onboarding, donation customization, rounded-up transaction processing, and dashboards. The structure prioritizes Authorization Independence and QAPs by denormalizing authorization data and segregating data based on access needs.\n\n1.  **Users Collection:** Stores user profiles, including donation preferences (multiplier, ceiling). Path-based ownership (`/users/{userId}`) ensures only the user can access their data.\n2.  **Associations Collection:** Stores association profiles. Publicly readable for discovery, but write access is restricted.\n3.  **User Donations Subcollection:** Stores primary donation records under `/users/{userId}/donations/{donationId}`. This path is private and only accessible by the user.\n4.  **Association Donations Subcollection:** To allow associations to securely query their donations, donation records are duplicated under `/associations/{associationId}/donations/{donationId}`. This avoids insecure collection group queries and allows for a simple, scalable security rule where an association can only read from its own subcollection. This denormalization is critical for secure-by-design dashboard functionality.\n\nThis design ensures Authorization Independence by avoiding hierarchical dependencies and complex queries that are difficult to secure. Security rules can operate on individual documents or simple collection queries without needing to inspect data from other documents during a list operation."
   }
 }

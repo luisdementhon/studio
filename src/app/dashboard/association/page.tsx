@@ -26,7 +26,7 @@ import {
 } from '@/components/ui/chart';
 import { AreaChart, XAxis, YAxis, Area, CartesianGrid, ResponsiveContainer } from 'recharts';
 import { useUser, useFirestore, useDoc, useCollection } from '@/firebase';
-import { doc, collectionGroup, query, where, orderBy, limit } from 'firebase/firestore';
+import { doc, collection, query, where, orderBy, limit } from 'firebase/firestore';
 import { useEffect, useMemo, useState } from 'react';
 import { subDays, format } from 'date-fns';
 import { fr } from 'date-fns/locale';
@@ -71,12 +71,12 @@ export default function AssociationDashboardPage() {
   }, [firestore, user, isDemoMode]);
   const { data: associationData, isLoading: isAssociationLoading } = useDoc(associationDocRef);
   
-  // 2. Fetch donations for this association using a collectionGroup query
+  // 2. Fetch donations for this association
   const donationsQuery = useMemo(() => {
     if (!firestore || !user || isDemoMode) return null;
+    // Query the duplicated donations subcollection under the association's document
     return query(
-      collectionGroup(firestore, 'donations'),
-      where('associationId', '==', user.uid),
+      collection(firestore, 'associations', user.uid, 'donations'),
       orderBy('transactionDate', 'desc'),
       limit(50)
     );

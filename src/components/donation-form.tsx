@@ -28,15 +28,17 @@ import {
 import { STRIPE_PUBLISHABLE_KEY } from '@/lib/stripe';
 import type { Association } from '@/lib/schemas';
 import { Skeleton } from './ui/skeleton';
-import { useUser, useFirestore, addDocumentNonBlocking } from '@/firebase';
-import { collection, serverTimestamp } from 'firebase/firestore';
+import { useUser, useFirestore } from '@/firebase';
+import { collection, serverTimestamp, addDoc, doc, setDoc } from 'firebase/firestore';
 
 
 const stripePromise = loadStripe(STRIPE_PUBLISHABLE_KEY);
 
-interface DonationFormProps {
-  associations: Association[];
-  isLoading: boolean;
+interface CheckoutFormProps {
+  amount: number;
+  selectedAssociation: Association | undefined;
+  setProcessing: (isProcessing: boolean) => void;
+  onSuccessfulPayment: () => Promise<void>;
 }
 
 function CheckoutForm({
@@ -44,12 +46,7 @@ function CheckoutForm({
   selectedAssociation,
   setProcessing,
   onSuccessfulPayment,
-}: {
-  amount: number;
-  selectedAssociation: Association | undefined;
-  setProcessing: (isProcessing: boolean) => void;
-  onSuccessfulPayment: () => void;
-}) {
+}: CheckoutFormProps) {
   const stripe = useStripe();
   const elements = useElements();
   const { toast } = useToast();
@@ -74,11 +71,9 @@ function CheckoutForm({
       return;
     }
 
-    // Le `paymentIntent` est déjà créé à l'étape précédente,
-    // il suffit de le confirmer ici.
     const { error, paymentIntent } = await stripe.confirmPayment({
       elements,
-      redirect: 'if_required', // Ne redirige que si nécessaire (ex: 3D Secure)
+      redirect: 'if_required',
     });
 
     if (error) {
@@ -89,13 +84,8 @@ function CheckoutForm({
       });
       setProcessing(false);
     } else if (paymentIntent && paymentIntent.status === 'succeeded') {
-        onSuccessfulPayment(); // Appeler la fonction de callback ici
-        toast({
-            title: "Paiement réussi !",
-            description: "Votre don a bien été enregistré. Merci !",
-        });
+        await onSuccessfulPayment();
     } else {
-        // Gérer d'autres statuts si nécessaire
         setProcessing(false);
     }
   };
@@ -132,9 +122,9 @@ export function DonationForm({ associations, isLoading }: DonationFormProps) {
   };
 
   const handleCreateDonation = async () => {
-    if (!amount || !selectedAssoId || !user) {
-      // This should not happen if the logic is correct, but it's a safe guard.
-      console.error("Missing data to create donation record");
+    if (!amount || !selectedAssoId || !user || !firestore) {
+      toast({ variant: 'destructive', title: 'Erreur interne', description: 'Données manquantes pour l\'enregistrement.' });
+      setProcessing(false);
       return;
     }
 
@@ -143,18 +133,36 @@ export function DonationForm({ associations, isLoading }: DonationFormProps) {
         associationId: selectedAssoId,
         amount: amount,
         transactionDate: serverTimestamp(),
-        isRecurring: false, // For single donations
+        isRecurring: false,
     };
 
-    // Donations are now in a subcollection of the user
-    const donationsRef = collection(firestore, 'users', user.uid, 'donations');
-    addDocumentNonBlocking(donationsRef, donationData);
-    
-    // Reset form state after successful donation
-    setClientSecret(null);
-    setAmount(undefined);
-    setSelectedAssoId(undefined);
-    setProcessing(false);
+    try {
+      // 1. Write to user's private subcollection
+      const userDonationsRef = collection(firestore, 'users', user.uid, 'donations');
+      const newDocRef = await addDoc(userDonationsRef, donationData);
+      
+      // 2. Write a copy to the association's public subcollection using the same ID
+      const associationDonationsRef = doc(firestore, 'associations', selectedAssoId, 'donations', newDocRef.id);
+      await setDoc(associationDonationsRef, donationData);
+
+      toast({
+          title: "Paiement réussi !",
+          description: "Votre don a bien été enregistré. Merci !",
+      });
+      // Reset form state after successful donation
+      setClientSecret(null);
+      setAmount(undefined);
+      setSelectedAssoId(undefined);
+    } catch (error) {
+      console.error("Failed to save donation record:", error);
+      toast({
+          variant: 'destructive',
+          title: 'Erreur d\'enregistrement',
+          description: 'Votre don a été traité mais nous n\'avons pas pu l\'enregistrer. Veuillez contacter le support.',
+      });
+    } finally {
+      setProcessing(false);
+    }
   };
 
   const handleDonationClick = async () => {
@@ -191,7 +199,6 @@ export function DonationForm({ associations, isLoading }: DonationFormProps) {
     } else {
       setClientSecret(clientSecret);
     }
-    // Processing state will be reset inside CheckoutForm
   };
 
   const selectedAssociation = associations.find((a) => a.id === selectedAssoId);
