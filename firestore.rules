@@ -124,16 +124,19 @@ service cloud.firestore {
     // -------------------------------------------------------------------------
 
     /**
-     * @description Manages access to donation records, which are stored in a subcollection
-     *   under the user who created them.
+     * @description Manages access to donation records.
      * @path /users/{userId}/donations/{donationId}
-     * @allow (create) User 'user123' creating a donation at '/users/user123/donations/don456'.
-     * @allow (list) User 'user123' listing their own donations at '/users/user123/donations'.
-     * @deny (get) User 'user456' trying to read a donation at '/users/user123/donations/don456'.
-     * @principle Enforces document ownership for all operations based on the URL path.
+     * @allow (read) User 'user123' reading their own donation.
+     * @allow (read) Association 'asso456' reading a donation where donation.associationId == 'asso456'.
+     * @deny (read) User 'user456' reading a donation from 'user123'.
+     * @principle Enforces document ownership for writes and allows reads for owners or relevant associations.
      */
     match /users/{userId}/donations/{donationId} {
-      allow get, list: if isOwner(userId);
+      // A user can read their own donations.
+      // An association can read donations made to it (e.g., via a collection group query).
+      allow read: if isOwner(userId) || (isSignedIn() && request.auth.uid == resource.data.associationId);
+
+      // Only the user can create, update, or delete their own donation records.
       allow create: if isOwner(userId) && hasCorrectDonationOwner(userId);
       allow update: if isExistingOwner(userId) && isDonationOwnerImmutable();
       allow delete: if isExistingOwner(userId);
