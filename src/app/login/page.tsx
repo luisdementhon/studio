@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useForm } from "react-hook-form";
@@ -6,7 +5,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import type { z } from "zod";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { signInWithEmailAndPassword } from "firebase/auth";
+import { signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup } from "firebase/auth";
 
 import { LoginSchema } from "@/lib/schemas";
 import { Button } from "@/components/ui/button";
@@ -30,6 +29,8 @@ import { Input } from "@/components/ui/input";
 import { useAuth } from "@/firebase";
 import { useToast } from "@/hooks/use-toast";
 import { BrandPattern } from "@/components/brand-pattern";
+import { GoogleIcon } from "@/components/google-icon";
+import { Separator } from "@/components/ui/separator";
 
 export default function LoginPage() {
   const auth = useAuth();
@@ -54,6 +55,21 @@ export default function LoginPage() {
         variant: "destructive",
         title: "Erreur de connexion",
         description: "L'adresse e-mail ou le mot de passe est incorrect.",
+      });
+    }
+  };
+
+  const handleGoogleSignIn = async () => {
+    if (!auth) return;
+    try {
+      const provider = new GoogleAuthProvider();
+      await signInWithPopup(auth, provider);
+      router.push('/auth/loading');
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Erreur de connexion Google",
+        description: "Impossible de se connecter avec Google. Veuillez réessayer.",
       });
     }
   };
@@ -122,6 +138,20 @@ export default function LoginPage() {
             <CardFooter className="flex flex-col gap-4">
                 <Button type="submit" className="w-full" disabled={isSubmitting} variant="vibrant">
                 {isSubmitting ? "Connexion..." : "Se connecter"}
+                </Button>
+                <div className="relative w-full">
+                    <div className="absolute inset-0 flex items-center">
+                        <span className="w-full border-t" />
+                    </div>
+                    <div className="relative flex justify-center text-xs uppercase">
+                        <span className="bg-background px-2 text-muted-foreground">
+                            Ou
+                        </span>
+                    </div>
+                </div>
+                <Button variant="outline" className="w-full" onClick={handleGoogleSignIn} disabled={isSubmitting}>
+                    <GoogleIcon className="mr-2 h-4 w-4" />
+                    Continuer avec Google
                 </Button>
                 <div className="text-sm text-muted-foreground">
                 Pas encore de compte ?{" "}
