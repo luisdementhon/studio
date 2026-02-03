@@ -6,6 +6,7 @@ import type { z } from "zod";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createUserWithEmailAndPassword, signInAnonymously, GoogleAuthProvider, signInWithPopup } from "firebase/auth";
+import { useEffect, useState } from "react";
 
 import { SignupSchema } from "@/lib/schemas";
 import { Button } from "@/components/ui/button";
@@ -36,6 +37,13 @@ export default function SignupPage() {
   const auth = useAuth();
   const router = useRouter();
   const { toast } = useToast();
+  const [isAuthReady, setIsAuthReady] = useState(false);
+
+  useEffect(() => {
+    if (auth) {
+      setIsAuthReady(true);
+    }
+  }, [auth]);
 
   const form = useForm<z.infer<typeof SignupSchema>>({
     resolver: zodResolver(SignupSchema),
@@ -62,14 +70,21 @@ export default function SignupPage() {
         toast({
           variant: "destructive",
           title: "Erreur d'inscription",
-          description: "Une erreur est survenue. Veuillez réessayer.",
+          description: error.message || "Une erreur est survenue. Veuillez réessayer.",
         });
       }
     }
   };
 
   const handleGoogleSignIn = async () => {
-    if (!auth) return;
+    if (!isAuthReady || !auth) {
+      toast({
+        variant: "destructive",
+        title: "Initialisation en cours",
+        description: "L'authentification n'est pas encore prête, veuillez réessayer dans un instant.",
+      });
+      return;
+    }
     try {
       const provider = new GoogleAuthProvider();
       await signInWithPopup(auth, provider);
@@ -182,7 +197,7 @@ export default function SignupPage() {
                         </span>
                     </div>
                 </div>
-                <Button variant="outline" className="w-full" onClick={handleGoogleSignIn} disabled={isSubmitting}>
+                <Button variant="outline" className="w-full" onClick={handleGoogleSignIn} disabled={isSubmitting || !isAuthReady}>
                     <GoogleIcon className="mr-2 h-4 w-4" />
                     S'inscrire avec Google
                 </Button>

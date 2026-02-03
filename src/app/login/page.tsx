@@ -6,6 +6,7 @@ import type { z } from "zod";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup } from "firebase/auth";
+import { useEffect, useState } from "react";
 
 import { LoginSchema } from "@/lib/schemas";
 import { Button } from "@/components/ui/button";
@@ -36,6 +37,13 @@ export default function LoginPage() {
   const auth = useAuth();
   const router = useRouter();
   const { toast } = useToast();
+  const [isAuthReady, setIsAuthReady] = useState(false);
+
+  useEffect(() => {
+    if (auth) {
+      setIsAuthReady(true);
+    }
+  }, [auth]);
 
   const form = useForm<z.infer<typeof LoginSchema>>({
     resolver: zodResolver(LoginSchema),
@@ -60,7 +68,14 @@ export default function LoginPage() {
   };
 
   const handleGoogleSignIn = async () => {
-    if (!auth) return;
+    if (!isAuthReady || !auth) {
+      toast({
+        variant: "destructive",
+        title: "Initialisation en cours",
+        description: "L'authentification n'est pas encore prête, veuillez réessayer dans un instant.",
+      });
+      return;
+    }
     try {
       const provider = new GoogleAuthProvider();
       await signInWithPopup(auth, provider);
@@ -150,7 +165,7 @@ export default function LoginPage() {
                         </span>
                     </div>
                 </div>
-                <Button variant="outline" className="w-full" onClick={handleGoogleSignIn} disabled={isSubmitting}>
+                <Button variant="outline" className="w-full" onClick={handleGoogleSignIn} disabled={isSubmitting || !isAuthReady}>
                     <GoogleIcon className="mr-2 h-4 w-4" />
                     Continuer avec Google
                 </Button>
