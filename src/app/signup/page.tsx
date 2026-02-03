@@ -74,11 +74,12 @@ export default function SignupPage() {
       const provider = new GoogleAuthProvider();
       await signInWithPopup(auth, provider);
       router.push('/auth/loading');
-    } catch (error) {
+    } catch (error: any) {
+      console.error("Google Sign-In Error:", error);
       toast({
         variant: "destructive",
         title: "Erreur d'inscription Google",
-        description: "Impossible de s'inscrire avec Google. Veuillez réessayer.",
+        description: error.message || "Une erreur inconnue est survenue. Veuillez réessayer.",
       });
     }
   };

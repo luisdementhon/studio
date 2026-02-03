@@ -65,11 +65,12 @@ export default function LoginPage() {
       const provider = new GoogleAuthProvider();
       await signInWithPopup(auth, provider);
       router.push('/auth/loading');
-    } catch (error) {
+    } catch (error: any) {
+      console.error("Google Sign-In Error:", error);
       toast({
         variant: "destructive",
         title: "Erreur de connexion Google",
-        description: "Impossible de se connecter avec Google. Veuillez réessayer.",
+        description: error.message || "Une erreur inconnue est survenue. Veuillez réessayer.",
       });
     }
   };
