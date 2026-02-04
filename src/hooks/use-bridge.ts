@@ -77,7 +77,8 @@ export function useBridge({ onSuccess, onError, onClose }: BridgeConfig) {
     });
   };
   
-  const isReady = isSdkReady && !!BRIDGE_CLIENT_ID;
+  const isClientIdSet = !!BRIDGE_CLIENT_ID;
+  const isReady = isSdkReady && isClientIdSet;
 
-  return { open, isReady, isConnecting };
+  return { open, isReady, isConnecting, isClientIdSet };
 }

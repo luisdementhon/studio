@@ -60,7 +60,7 @@ export function ConnectBridgeAccount() {
     });
   };
 
-  const { open, isReady, isConnecting } = useBridge({
+  const { open, isReady, isConnecting, isClientIdSet } = useBridge({
     onSuccess: handleSuccess,
     onError: handleError,
     onClose: handleClose,
@@ -115,6 +115,11 @@ export function ConnectBridgeAccount() {
                 {isConnecting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Link2 className="mr-2 h-4 w-4" />}
                 {isConnecting ? "Connexion..." : "Connecter ma banque"}
             </Button>
+            {!isClientIdSet && (
+              <p className="text-xs text-destructive text-center px-4 mt-2">
+                La clé client Bridge n'est pas configurée. Si vous venez de l'ajouter dans <code>.env.local</code>, veuillez redémarrer le serveur de développement.
+              </p>
+            )}
         </CardContent>
     </Card>
   );
