@@ -48,7 +48,7 @@ export function useBridge({ onSuccess, onError, onClose }: BridgeConfig) {
     
     window.Bridge.connect({
       client_id: BRIDGE_CLIENT_ID,
-      env: 'sandbox', // Use 'production' for real data
+      env: 'production', // Use 'production' for real data
       countries: ['FR'], // Limit to French banks for now
       capabilities: ['transactions'],
       onSuccess: (itemId: string, metadata: any) => {
