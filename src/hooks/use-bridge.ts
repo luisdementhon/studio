@@ -17,19 +17,19 @@ interface BridgeConfig {
 }
 
 export function useBridge({ onSuccess, onError, onClose }: BridgeConfig) {
-  const [isReady, setIsReady] = useState(false);
+  const [isSdkReady, setIsSdkReady] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
 
   useEffect(() => {
     // The Bridge SDK is loaded globally via a <script> tag in layout.tsx.
     // We just need to check when it's available.
     if (window.Bridge) {
-      setIsReady(true);
+      setIsSdkReady(true);
     } else {
       // Poll to see if the script has loaded
       const interval = setInterval(() => {
         if (window.Bridge) {
-          setIsReady(true);
+          setIsSdkReady(true);
           clearInterval(interval);
         }
       }, 100);
@@ -38,10 +38,16 @@ export function useBridge({ onSuccess, onError, onClose }: BridgeConfig) {
   }, []);
 
   const open = () => {
-    if (!isReady || !window.Bridge) {
+    if (!isSdkReady || !window.Bridge) {
       console.error("Bridge is not ready or available.");
       onError(new Error("Bridge SDK not loaded."));
       return;
+    }
+    
+    if (!BRIDGE_CLIENT_ID) {
+        console.error("Bridge Client ID is not configured. Please set NEXT_PUBLIC_BRIDGE_CLIENT_ID in your .env.local file.");
+        onError(new Error("Bridge Client ID is not configured."));
+        return;
     }
 
     setIsConnecting(true);
@@ -70,6 +76,8 @@ export function useBridge({ onSuccess, onError, onClose }: BridgeConfig) {
       },
     });
   };
+  
+  const isReady = isSdkReady && !!BRIDGE_CLIENT_ID;
 
   return { open, isReady, isConnecting };
 }
