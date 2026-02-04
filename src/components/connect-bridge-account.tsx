@@ -60,7 +60,7 @@ export function ConnectBridgeAccount() {
     });
   };
 
-  const { open, isConnecting, isClientIdSet, isSdkReady } = useBridge({
+  const { open, isConnecting, isClientIdSet, isSdkReady, sdkError } = useBridge({
     onSuccess: handleSuccess,
     onError: handleError,
     onClose: handleClose,
@@ -71,6 +71,9 @@ export function ConnectBridgeAccount() {
   const bankName = userData?.bankName;
 
   const getButtonState = () => {
+    if (sdkError) {
+      return { text: "Erreur de chargement", disabled: true, icon: <XCircle /> };
+    }
     if (!isClientIdSet) {
       return { text: "Configuration requise", disabled: true, icon: <XCircle /> };
     }
@@ -133,9 +136,9 @@ export function ConnectBridgeAccount() {
                 {buttonState.icon}
                 {buttonState.text}
             </Button>
-            {!isClientIdSet && (
+            {(sdkError || !isClientIdSet) && (
               <p className="text-xs text-destructive text-center px-4 mt-2">
-                La clé client Bridge n'est pas configurée. Si vous venez de l'ajouter dans <code>.env.local</code>, veuillez redémarrer le serveur de développement.
+                {sdkError ? sdkError.message : "La clé client Bridge n'est pas configurée. Si vous venez de l'ajouter dans `.env.local`, veuillez redémarrer le serveur de développement."}
               </p>
             )}
         </CardContent>

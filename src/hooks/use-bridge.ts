@@ -19,22 +19,36 @@ interface BridgeConfig {
 export function useBridge({ onSuccess, onError, onClose }: BridgeConfig) {
   const [isSdkReady, setIsSdkReady] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
+  const [sdkError, setSdkError] = useState<Error | null>(null);
 
   useEffect(() => {
-    // The Bridge SDK is loaded globally via a <script> tag in layout.tsx.
-    // We just need to check when it's available.
+    // If already ready or if there's an error, do nothing.
     if (window.Bridge) {
       setIsSdkReady(true);
-    } else {
-      // Poll to see if the script has loaded
-      const interval = setInterval(() => {
-        if (window.Bridge) {
-          setIsSdkReady(true);
-          clearInterval(interval);
-        }
-      }, 100);
-      return () => clearInterval(interval);
+      return;
     }
+
+    // Set a timeout to detect if the script fails to load.
+    const loadTimeout = setTimeout(() => {
+        if (!window.Bridge) {
+            setSdkError(new Error("Le script de connexion bancaire n'a pas pu être chargé. Veuillez vérifier votre connexion ou votre bloqueur de publicités."));
+            setIsSdkReady(false);
+        }
+    }, 10000); // 10 second timeout
+
+    // Poll to see if the script has loaded
+    const pollInterval = setInterval(() => {
+      if (window.Bridge) {
+        setIsSdkReady(true);
+        clearInterval(pollInterval);
+        clearTimeout(loadTimeout); // Clear the timeout if SDK is found
+      }
+    }, 100);
+
+    return () => {
+      clearInterval(pollInterval);
+      clearTimeout(loadTimeout);
+    };
   }, []);
 
   const open = () => {
@@ -80,5 +94,5 @@ export function useBridge({ onSuccess, onError, onClose }: BridgeConfig) {
   const isClientIdSet = !!BRIDGE_CLIENT_ID;
   const isReady = isSdkReady && isClientIdSet;
 
-  return { open, isReady, isConnecting, isClientIdSet, isSdkReady };
+  return { open, isReady, isConnecting, isClientIdSet, isSdkReady, sdkError };
 }
