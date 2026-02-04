@@ -28,7 +28,8 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Slider } from "@/components/ui/slider";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Separator } from "@/components/ui/separator";
-import { ConnectBridgeAccount } from "@/components/connect-bridge-account";
+import { Link2 } from "lucide-react";
+
 
 const causes = [
   { id: "environnement", label: "Environnement" },
@@ -237,12 +238,17 @@ export default function UserOnboardingPage() {
       
       <Separator />
 
-      <div className="space-y-4">
+      <div className="space-y-4 text-center">
           <h3 className="text-base font-semibold">Étape suivante : Connexion bancaire (optionnel)</h3>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-sm text-muted-foreground max-w-md mx-auto">
             Connectez votre compte bancaire pour activer l'arrondi automatique à chaque transaction. C'est sécurisé et vous gardez le contrôle.
           </p>
-          <ConnectBridgeAccount />
+          <Button asChild>
+            <Link href="https://connect.bridgeapi.io/authorize?client_id=sandbox_id_eb1eb747f61541d68c1f7775ed91278b&redirect_uri=https://studio--studio-6613366678-b4207.us-central1.hosted.app/auth/bridge/callback">
+              <Link2 className="mr-2 h-4 w-4" />
+              Connecter ma banque
+            </Link>
+          </Button>
       </div>
 
     </div>

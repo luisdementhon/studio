@@ -25,7 +25,8 @@ import { useUser, useFirestore, useDoc } from "@/firebase";
 import { doc } from "firebase/firestore";
 import { setDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ConnectBridgeAccount } from "@/components/connect-bridge-account";
+import Link from 'next/link';
+import { Banknote, CheckCircle2, Link2 } from "lucide-react";
 
 const causes = [
   { id: "environnement", label: "Environnement" },
@@ -238,7 +239,34 @@ export default function UserProfilePage() {
                   <CardDescription>Connectez vos comptes pour activer l'arrondi automatique.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                    <ConnectBridgeAccount />
+                  {userData?.bankConnected ? (
+                    <Card className="bg-green-50 border-green-200">
+                        <CardHeader>
+                            <div className="flex items-center gap-3">
+                                <CheckCircle2 className="h-6 w-6 text-green-600" />
+                                <CardTitle className="text-base text-green-800">Compte connecté !</CardTitle>
+                            </div>
+                        </CardHeader>
+                        <CardContent>
+                            <p className="text-sm text-green-700">
+                                Votre compte bancaire <span className="font-semibold">{userData.bankName}</span> est connecté à Dotly.
+                            </p>
+                        </CardContent>
+                    </Card>
+                  ) : (
+                    <div className="flex flex-col items-center gap-4 text-center p-4 bg-muted/50 rounded-lg">
+                        <Banknote className="h-12 w-12 text-primary" />
+                        <p className="text-sm text-muted-foreground">
+                            Activez l'arrondi automatique en connectant votre compte bancaire en toute sécurité.
+                        </p>
+                        <Button asChild>
+                            <Link href="https://connect.bridgeapi.io/authorize?client_id=sandbox_id_eb1eb747f61541d68c1f7775ed91278b&redirect_uri=https://studio--studio-6613366678-b4207.us-central1.hosted.app/auth/bridge/callback">
+                                <Link2 className="mr-2 h-4 w-4" />
+                                Connecter ma banque
+                            </Link>
+                        </Button>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             </TabsContent>
