@@ -80,5 +80,5 @@ export function useBridge({ onSuccess, onError, onClose }: BridgeConfig) {
   const isClientIdSet = !!BRIDGE_CLIENT_ID;
   const isReady = isSdkReady && isClientIdSet;
 
-  return { open, isReady, isConnecting, isClientIdSet };
+  return { open, isReady, isConnecting, isClientIdSet, isSdkReady };
 }

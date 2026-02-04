@@ -60,7 +60,7 @@ export function ConnectBridgeAccount() {
     });
   };
 
-  const { open, isReady, isConnecting, isClientIdSet } = useBridge({
+  const { open, isConnecting, isClientIdSet, isSdkReady } = useBridge({
     onSuccess: handleSuccess,
     onError: handleError,
     onClose: handleClose,
@@ -69,6 +69,24 @@ export function ConnectBridgeAccount() {
   const isLoading = isUserLoading || isProfileLoading;
   const bankConnected = userData?.bankConnected;
   const bankName = userData?.bankName;
+
+  const getButtonState = () => {
+    if (!isClientIdSet) {
+      return { text: "Configuration requise", disabled: true, icon: <XCircle /> };
+    }
+    if (!isSdkReady) {
+        return { text: "Chargement...", disabled: true, icon: <Loader2 className="animate-spin"/> };
+    }
+    if (isConnecting) {
+      return { text: "Connexion...", disabled: true, icon: <Loader2 className="animate-spin" /> };
+    }
+    if (!user) {
+        return { text: "Connecter ma banque", disabled: true, icon: <Link2 /> };
+    }
+    return { text: "Connecter ma banque", disabled: false, icon: <Link2 /> };
+  };
+
+  const buttonState = getButtonState();
 
   if (isLoading && !user) {
     return (
@@ -111,9 +129,9 @@ export function ConnectBridgeAccount() {
             <p className="text-sm text-muted-foreground">
                 Activez l'arrondi automatique en connectant votre compte bancaire en toute sécurité.
             </p>
-            <Button onClick={open} disabled={!isReady || isConnecting || !user}>
-                {isConnecting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Link2 className="mr-2 h-4 w-4" />}
-                {isConnecting ? "Connexion..." : "Connecter ma banque"}
+            <Button onClick={open} disabled={buttonState.disabled}>
+                {buttonState.icon}
+                {buttonState.text}
             </Button>
             {!isClientIdSet && (
               <p className="text-xs text-destructive text-center px-4 mt-2">
