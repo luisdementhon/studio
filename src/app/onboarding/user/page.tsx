@@ -244,10 +244,14 @@ export default function UserOnboardingPage() {
             Connectez votre compte bancaire pour activer l'arrondi automatique à chaque transaction. C'est sécurisé et vous gardez le contrôle.
           </p>
           <Button asChild>
-            <Link href="https://connect.bridgeapi.io/authorize?client_id=sandbox_id_eb1eb747f61541d68c1f7775ed91278b&redirect_uri=https://studio--studio-6613366678-b4207.us-central1.hosted.app/auth/bridge/callback">
+            <a 
+              href="https://connect.bridgeapi.io/authorize?client_id=sandbox_id_eb1eb747f61541d68c1f7775ed91278b&redirect_uri=https://studio--studio-6613366678-b4207.us-central1.hosted.app/auth/bridge/callback"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
               <Link2 className="mr-2 h-4 w-4" />
               Connecter ma banque
-            </Link>
+            </a>
           </Button>
       </div>
 
