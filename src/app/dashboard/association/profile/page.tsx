@@ -199,7 +199,7 @@ export default function AssociationProfilePage() {
               </div>
             </CardContent>
             <CardFooter className="flex justify-end">
-                <Button type="submit" disabled={isPending} variant="vibrant">
+                <Button type="submit" disabled={isPending} className="from-amber-400 to-yellow-300 text-slate-900 hover:brightness-110 shadow-lg shadow-amber-400/20 px-8" variant="vibrant">
                 {isPending ? "Sauvegarde..." : "Mettre à jour le profil"}
               </Button>
             </CardFooter>

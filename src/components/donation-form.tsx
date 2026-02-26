@@ -94,7 +94,7 @@ function CheckoutForm({
     <form onSubmit={handleSubmit}>
       <PaymentElement />
       <Button
-        className="w-full mt-4"
+        className="w-full mt-4 from-amber-400 to-yellow-300 text-slate-900 hover:brightness-110 shadow-lg shadow-amber-400/20"
         variant="vibrant"
         disabled={!stripe || !elements}
         type="submit"
@@ -105,7 +105,7 @@ function CheckoutForm({
   );
 }
 
-export function DonationForm({ associations, isLoading }: DonationFormProps) {
+export function DonationForm({ associations, isLoading }: { associations: Association[], isLoading: boolean }) {
   const { toast } = useToast();
   const { user } = useUser();
   const firestore = useFirestore();
@@ -247,7 +247,7 @@ export function DonationForm({ associations, isLoading }: DonationFormProps) {
               min="1"
             />
             <Button
-              className="w-full"
+              className="w-full from-amber-400 to-yellow-300 text-slate-900 hover:brightness-110 shadow-lg shadow-amber-400/20"
               variant="vibrant"
               onClick={handleDonationClick}
               disabled={isProcessing || isLoading || !user}
