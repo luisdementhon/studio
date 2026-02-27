@@ -1,15 +1,43 @@
+"use client";
 
+import { useState } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { BrandPattern } from '@/components/brand-pattern';
-import { Badge } from '@/components/ui/badge';
-import { ArrowRight, Zap, ShieldCheck, HandHeart, Sparkles, ShoppingCart, Link2, Building2, PiggyBank, HeartHandshake } from 'lucide-react';
+import { ArrowRight, Link2, ShoppingCart, HeartHandshake, Building2, ShieldCheck, PiggyBank } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { DotlyLogo } from '@/components/dotly-logo';
-
+import { useToast } from "@/hooks/use-toast";
 
 export default function Home() {
+  const [isLoading, setIsLoading] = useState(false);
+  const { toast } = useToast();
+
+  const handleConnectBank = async () => {
+    setIsLoading(true);
+    try {
+      const response = await fetch('/api/bridge/connect', {
+        method: 'POST',
+      });
+
+      const data = await response.json();
+
+      if (data.redirect_url) {
+        window.location.href = data.redirect_url;
+      } else {
+        throw new Error(data.error || "Impossible de générer l'URL de connexion.");
+      }
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Erreur",
+        description: error.message,
+      });
+      setIsLoading(false);
+    }
+  };
+
   return (
     <div className="relative flex flex-col bg-background">
       <BrandPattern />
@@ -29,11 +57,15 @@ export default function Home() {
             Dotly arrondit automatiquement vos paiements à l'euro supérieur et transforme ces centimes en dons pour les causes qui vous sont chères.
           </p>
           <div className="mt-4 flex flex-col items-center justify-center gap-4">
-            <Button asChild size="lg" className="text-base font-semibold px-8 py-7 rounded-xl from-amber-400 to-yellow-300 text-slate-900 hover:brightness-110" variant="vibrant">
-              <Link href="/signup">
-                Commencez
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </Link>
+            <Button 
+              onClick={handleConnectBank}
+              disabled={isLoading}
+              size="lg" 
+              className="text-base font-semibold px-8 py-7 rounded-xl from-amber-400 to-yellow-300 text-slate-900 hover:brightness-110" 
+              variant="vibrant"
+            >
+              {isLoading ? "Connexion en cours..." : "Connecter ma banque"}
+              {!isLoading && <ArrowRight className="ml-2 h-4 w-4" />}
             </Button>
              <p className="text-base text-muted-foreground">
                 Vous avez déjà un compte ?{' '}
