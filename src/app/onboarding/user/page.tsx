@@ -3,7 +3,7 @@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import type { z } from "zod";
-import { useTransition } from "react";
+import { useTransition, useState } from "react";
 import { useRouter } from "next/navigation";
 import { doc } from "firebase/firestore";
 import Link from "next/link";
@@ -12,7 +12,6 @@ import { useToast } from "@/hooks/use-toast";
 import { UserOnboardingSchema } from "@/lib/schemas";
 import { useFirestore, useUser } from "@/firebase";
 import { setDocumentNonBlocking } from "@/firebase/non-blocking-updates";
-import { getBridgeAuthUrl } from "@/lib/bridge";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -42,6 +41,7 @@ const causes = [
 
 export default function UserOnboardingPage() {
   const [isPending, startTransition] = useTransition();
+  const [isConnecting, setIsConnecting] = useState(false);
   const { toast } = useToast();
   const router = useRouter();
   const firestore = useFirestore();
@@ -87,6 +87,30 @@ export default function UserOnboardingPage() {
       router.push("/dashboard/user");
     });
   }
+
+  const handleConnectBank = async () => {
+    setIsConnecting(true);
+    try {
+      const response = await fetch('/api/bridge/connect', {
+        method: 'POST',
+      });
+
+      const data = await response.json();
+
+      if (data.redirect_url) {
+        window.location.href = data.redirect_url;
+      } else {
+        throw new Error(data.error || "Impossible de générer l'URL de connexion.");
+      }
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Erreur",
+        description: error.message,
+      });
+      setIsConnecting(false);
+    }
+  };
 
   return (
     <div className="mx-auto max-w-2xl space-y-8">
@@ -158,7 +182,8 @@ export default function UserOnboardingPage() {
                           );
                         }}
                       />
-                    ))}
+                    );
+                  })}
                     </div>
                     <FormMessage />
                   </FormItem>
@@ -244,15 +269,14 @@ export default function UserOnboardingPage() {
           <p className="text-sm text-muted-foreground max-w-md mx-auto">
             Connectez votre compte bancaire pour activer l'arrondi automatique à chaque transaction. C'est sécurisé et vous gardez le contrôle.
           </p>
-          <Button asChild>
-            <a 
-              href={getBridgeAuthUrl()}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              <Link2 className="mr-2 h-4 w-4" />
-              Connecter ma banque
-            </a>
+          <Button 
+            onClick={handleConnectBank}
+            disabled={isConnecting}
+            className="from-amber-400 to-yellow-300 text-slate-900 hover:brightness-110" 
+            variant="vibrant"
+          >
+            <Link2 className="mr-2 h-4 w-4" />
+            {isConnecting ? "Connexion en cours..." : "Connecter ma banque"}
           </Button>
       </div>
 
