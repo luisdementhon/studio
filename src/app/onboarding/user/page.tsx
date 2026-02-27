@@ -10,8 +10,7 @@ import Link from "next/link";
 
 import { useToast } from "@/hooks/use-toast";
 import { UserOnboardingSchema } from "@/lib/schemas";
-import { useFirestore, useUser } from "@/firebase";
-import { setDocumentNonBlocking } from "@/firebase/non-blocking-updates";
+import { useFirestore, useUser, setDocumentNonBlocking } from "@/firebase";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -29,7 +28,6 @@ import { Slider } from "@/components/ui/slider";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Separator } from "@/components/ui/separator";
 import { Link2 } from "lucide-react";
-
 
 const causes = [
   { id: "environnement", label: "Horizons Durables" },
@@ -69,7 +67,7 @@ export default function UserOnboardingPage() {
 
     startTransition(() => {
       const { fullName, ...preferences } = values;
-      const [firstName, ...lastNameParts] = fullName.split(' ');
+      const [firstName, ...lastNameParts] = (fullName || '').split(' ');
       const lastName = lastNameParts.join(' ');
 
       const userProfile = {
@@ -95,10 +93,12 @@ export default function UserOnboardingPage() {
         method: 'POST',
       });
 
+      if (!response.ok) throw new Error("Erreur de connexion à l'API");
+
       const data = await response.json();
 
       if (data.redirect_url) {
-        window.location.assign(data.redirect_url);
+        window.location.href = data.redirect_url;
       } else {
         throw new Error(data.error || "Impossible de générer l'URL de connexion.");
       }
@@ -108,6 +108,7 @@ export default function UserOnboardingPage() {
         title: "Erreur",
         description: error.message,
       });
+    } finally {
       setIsConnecting(false);
     }
   };
@@ -150,7 +151,7 @@ export default function UserOnboardingPage() {
                       </FormDescription>
                     </div>
                     <div className="grid grid-cols-2 gap-4">
-                    {[...causes, { id: 'autre', label: 'Autre' }].map((item) => (
+                    {causes.map((item) => (
                       <FormField
                         key={item.id}
                         control={form.control}
@@ -180,6 +181,34 @@ export default function UserOnboardingPage() {
                         )}
                       />
                     ))}
+                    <FormField
+                        key="autre"
+                        control={form.control}
+                        name="causes"
+                        render={({ field }) => (
+                          <FormItem
+                            className="flex flex-row items-start space-x-3 space-y-0"
+                          >
+                            <FormControl>
+                              <Checkbox
+                                checked={field.value?.includes("autre")}
+                                onCheckedChange={(checked) => {
+                                  return checked
+                                    ? field.onChange([...(field.value ?? []), "autre"])
+                                    : field.onChange(
+                                        field.value?.filter(
+                                          (value) => value !== "autre"
+                                        )
+                                      );
+                                }}
+                              />
+                            </FormControl>
+                            <FormLabel className="font-normal">
+                              Autre
+                            </FormLabel>
+                          </FormItem>
+                        )}
+                      />
                     </div>
                     <FormMessage />
                   </FormItem>
@@ -210,7 +239,7 @@ export default function UserOnboardingPage() {
                     <FormLabel>Plafond de don mensuel : {field.value}€</FormLabel>
                     <FormControl>
                       <Slider
-                        defaultValue={[50]}
+                        value={[field.value ?? 50]}
                         max={200}
                         step={5}
                         onValueChange={(value) => field.onChange(value[0])}
@@ -232,7 +261,7 @@ export default function UserOnboardingPage() {
                     <FormLabel>Multiplicateur d'arrondi : x{field.value}</FormLabel>
                     <FormControl>
                        <Slider
-                        defaultValue={[1]}
+                        value={[field.value ?? 1]}
                         max={10}
                         step={1}
                         onValueChange={(value) => field.onChange(value[0])}
@@ -246,11 +275,11 @@ export default function UserOnboardingPage() {
                 )}
               />
             </CardContent>
-            <CardFooter className="flex-col gap-2">
+            <CardFooter className="flex flex-col gap-2">
               <Button type="submit" disabled={isPending || !user} className="w-full from-amber-400 to-yellow-300 text-slate-900 hover:brightness-110" variant="vibrant">
                 {isPending ? "Finalisation..." : "Terminer et accéder à mon espace"}
               </Button>
-              <Button asChild variant="ghost" className="w-full">
+              <Button asChild variant="ghost" className="w-full text-center">
                 <Link href="/dashboard/user">Passer et aller au tableau de bord</Link>
               </Button>
             </CardFooter>
