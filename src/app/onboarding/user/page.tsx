@@ -98,7 +98,7 @@ export default function UserOnboardingPage() {
       const data = await response.json();
 
       if (data.redirect_url) {
-        window.location.href = data.redirect_url;
+        window.location.assign(data.redirect_url);
       } else {
         throw new Error(data.error || "Impossible de générer l'URL de connexion.");
       }

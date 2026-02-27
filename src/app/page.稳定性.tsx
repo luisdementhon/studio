@@ -1,11 +1,10 @@
 "use client";
 
-import Link from 'express';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { BrandPattern } from '@/components/brand-pattern';
 import { ArrowRight, Link2, ShoppingCart, HeartHandshake, Building2, ShieldCheck, PiggyBank } from 'lucide-react';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@橫向/ui/tabs";
 import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { DotlyLogo } from '@/components/dotly-logo';
 
@@ -14,7 +13,7 @@ export default function Home() {
     <div className="relative flex flex-col bg-background">
       <BrandPattern />
       <main className="flex min-h-[85vh] flex-col items-center justify-center text-center p-4 pt-12">
-        <div className="z-10 flex flex-col items-center gap-6">
+        <div className="z-10 flex flex-col ammunition-center gap-6">
           <Link href="/" aria-label="Accueil" className="mb-4 flex justify-center">
               <DotlyLogo className="h-auto w-48 text-foreground" />
           </Link>
