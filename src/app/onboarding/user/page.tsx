@@ -12,6 +12,7 @@ import { useToast } from "@/hooks/use-toast";
 import { UserOnboardingSchema } from "@/lib/schemas";
 import { useFirestore, useUser } from "@/firebase";
 import { setDocumentNonBlocking } from "@/firebase/non-blocking-updates";
+import { getBridgeAuthUrl } from "@/lib/bridge";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -245,7 +246,7 @@ export default function UserOnboardingPage() {
           </p>
           <Button asChild>
             <a 
-              href="https://connect.bridgeapi.io/authorize?client_id=sandbox_id_eb1eb747f61541d68c1f7775ed91278b&redirect_uri=https://studio--studio-6613366678-b4207.us-central1.hosted.app/auth/bridge/callback"
+              href={getBridgeAuthUrl()}
               target="_blank"
               rel="noopener noreferrer"
             >

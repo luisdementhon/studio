@@ -9,16 +9,15 @@ import { useToast } from '@/hooks/use-toast';
 import { Loader2, CheckCircle, XCircle } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 
-function BridgeCallback() {
+function BridgeCallbackContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { toast } = useToast();
-
   const { user, isUserLoading } = useUser();
   const firestore = useFirestore();
 
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
-  const [message, setMessage] = useState('Traitement de la connexion en cours...');
+  const [message, setMessage] = useState('Finalisation de la connexion avec votre banque...');
 
   useEffect(() => {
     const code = searchParams.get('code');
@@ -26,39 +25,25 @@ function BridgeCallback() {
 
     if (error) {
       setStatus('error');
-      setMessage(`Erreur de connexion bancaire : ${error}`);
-      toast({
-        variant: 'destructive',
-        title: 'Erreur de connexion',
-        description: 'Le fournisseur de services bancaires a renvoyé une erreur.',
-      });
+      setMessage(`Erreur : ${error}`);
       return;
     }
 
     if (!code) {
       setStatus('error');
-      setMessage("Aucun code d'autorisation trouvé. Redirection...");
-      setTimeout(() => router.replace('/dashboard/user/profile'), 3000);
+      setMessage("Impossible de récupérer le code d'autorisation.");
       return;
     }
 
-    if (isUserLoading) {
-      return; // Wait for user to be loaded
-    }
+    if (isUserLoading) return;
 
     if (!user) {
       setStatus('error');
-      setMessage("Utilisateur non authentifié. Veuillez vous connecter et réessayer.");
-      toast({
-        variant: 'destructive',
-        title: 'Utilisateur non connecté',
-        description: "Vous devez être connecté pour lier un compte bancaire.",
-      });
-      setTimeout(() => router.replace('/login'), 3000);
+      setMessage("Veuillez vous connecter pour lier votre compte.");
       return;
     }
 
-    const exchangeCodeForToken = async () => {
+    const processConnection = async () => {
       try {
         const response = await fetch('/api/bridge/exchange-token', {
           method: 'POST',
@@ -66,82 +51,61 @@ function BridgeCallback() {
           body: JSON.stringify({ code }),
         });
 
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.error || 'Échec de l\'échange du code.');
-        }
+        const result = await response.json();
 
-        const { item_id, bank_name } = await response.json();
+        if (!response.ok) throw new Error(result.error);
 
-        // Save the item ID to Firestore
+        // Enregistrer les infos dans Firestore
         const userDocRef = doc(firestore, 'users', user.uid);
         setDocumentNonBlocking(userDocRef, {
-          bridgeItemId: item_id,
+          bridgeItemId: result.itemId,
           bankConnected: true,
-          bankName: bank_name,
+          bankName: result.bankName,
           connectedAt: serverTimestamp(),
         }, { merge: true });
 
         setStatus('success');
-        setMessage('Votre compte bancaire a été connecté avec succès ! Vous allez être redirigé.');
+        setMessage(`Succès ! Votre compte ${result.bankName} est connecté.`);
+        
         toast({
-          title: 'Connexion réussie !',
-          description: `Votre compte ${bank_name} est maintenant connecté.`,
+          title: "Banque connectée",
+          description: `Votre compte ${result.bankName} a été lié avec succès.`
         });
 
-        setTimeout(() => router.replace('/dashboard/user/profile'), 2000);
+        // Redirection après 2 secondes
+        setTimeout(() => router.push('/dashboard/user'), 2000);
 
       } catch (err: any) {
         setStatus('error');
-        setMessage(err.message);
-        toast({
-          variant: 'destructive',
-          title: 'Erreur',
-          description: err.message,
-        });
+        setMessage(err.message || "Une erreur est survenue lors de la connexion.");
       }
     };
 
-    exchangeCodeForToken();
-
-  }, [searchParams, router, toast, user, isUserLoading, firestore]);
-
-  const renderIcon = () => {
-    switch (status) {
-      case 'loading':
-        return <Loader2 className="h-12 w-12 animate-spin text-primary" />;
-      case 'success':
-        return <CheckCircle className="h-12 w-12 text-green-500" />;
-      case 'error':
-        return <XCircle className="h-12 w-12 text-destructive" />;
-    }
-  };
+    processConnection();
+  }, [searchParams, user, isUserLoading, firestore, router, toast]);
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background p-4">
-        <Card className="w-full max-w-md z-10">
-            <CardHeader>
-            <CardTitle>Connexion Bancaire</CardTitle>
-            <CardDescription>Finalisation de la connexion avec votre banque.</CardDescription>
-            </CardHeader>
-            <CardContent className="flex flex-col items-center justify-center space-y-4">
-            {renderIcon()}
-            <p className="text-center text-muted-foreground">{message}</p>
-            </CardContent>
-        </Card>
-    </div>
+    <Card className="w-full max-w-md">
+      <CardHeader className="text-center">
+        <CardTitle>Connexion Bancaire</CardTitle>
+        <CardDescription>Sécurisé par Bridge</CardDescription>
+      </CardHeader>
+      <CardContent className="flex flex-col items-center gap-4 py-6">
+        {status === 'loading' && <Loader2 className="h-10 w-10 animate-spin text-primary" />}
+        {status === 'success' && <CheckCircle className="h-10 w-10 text-green-500" />}
+        {status === 'error' && <XCircle className="h-10 w-10 text-destructive" />}
+        <p className="text-center font-medium">{message}</p>
+      </CardContent>
+    </Card>
   );
 }
 
-
 export default function BridgeCallbackPage() {
-    return (
-        <Suspense fallback={
-            <div className="flex min-h-screen items-center justify-center">
-                <Loader2 className="h-12 w-12 animate-spin text-primary" />
-            </div>
-        }>
-            <BridgeCallback />
-        </Suspense>
-    )
+  return (
+    <div className="min-h-screen flex items-center justify-center p-4 bg-slate-50">
+      <Suspense fallback={<Loader2 className="h-10 w-10 animate-spin" />}>
+        <BridgeCallbackContent />
+      </Suspense>
+    </div>
+  );
 }

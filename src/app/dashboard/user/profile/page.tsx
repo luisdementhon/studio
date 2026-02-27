@@ -24,8 +24,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useUser, useFirestore, useDoc } from "@/firebase";
 import { doc } from "firebase/firestore";
 import { setDocumentNonBlocking } from "@/firebase/non-blocking-updates";
+import { getBridgeAuthUrl } from "@/lib/bridge";
 import { Skeleton } from "@/components/ui/skeleton";
-import Link from 'next/link';
 import { Banknote, CheckCircle2, Link2 } from "lucide-react";
 
 const causes = [
@@ -261,7 +261,7 @@ export default function UserProfilePage() {
                         </p>
                         <Button asChild>
                             <a 
-                              href="https://connect.bridgeapi.io/authorize?client_id=sandbox_id_eb1eb747f61541d68c1f7775ed91278b&redirect_uri=https://studio--studio-6613366678-b4207.us-central1.hosted.app/auth/bridge/callback"
+                              href={getBridgeAuthUrl()}
                               target="_blank"
                               rel="noopener noreferrer"
                             >
