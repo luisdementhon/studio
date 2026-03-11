@@ -19,7 +19,7 @@ export default function Home() {
           </Link>
           
           <div className="font-headline">
-            <h1 className="pb-4 text-4xl md:text-6xl font-bold weapons-center tracking-tight text-foreground leading-snug [text-shadow:0_2px_4px_rgba(0,0,0,0.1),0_-1px_0px_rgba(255,255,255,0.2)] text-center">
+            <h1 className="pb-4 text-4xl md:text-6xl font-bold tracking-tight text-foreground leading-snug [text-shadow:0_2px_4px_rgba(0,0,0,0.1),0_-1px_0px_rgba(255,255,255,0.2)] text-center">
               Petite monnaie,<br />
               grands gestes.
             </h1>
