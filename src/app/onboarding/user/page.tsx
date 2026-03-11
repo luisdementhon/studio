@@ -60,7 +60,7 @@ export default function UserOnboardingPage() {
   const watchedCauses = form.watch("causes", []);
 
   function onSubmit(values: z.infer<typeof UserOnboardingSchema>) {
-    if (!user) {
+    if (!user || !firestore) {
       toast({ title: "Erreur", description: "Vous devez être connecté.", variant: "destructive" });
       return;
     }

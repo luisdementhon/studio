@@ -1,4 +1,4 @@
-import { NextResponse } from 'node:server';
+import { NextResponse } from 'next/server';
 import { BRIDGE_CONFIG } from '@/lib/bridge';
 
 // Le Client Secret ne doit être utilisé QUE côté serveur
