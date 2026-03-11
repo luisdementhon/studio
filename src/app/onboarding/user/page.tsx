@@ -93,14 +93,17 @@ export default function UserOnboardingPage() {
         method: 'POST',
       });
 
-      if (!response.ok) throw new Error("Erreur de connexion à l'API");
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Erreur de connexion à l'API");
+      }
 
       const data = await response.json();
 
       if (data.redirect_url) {
         window.location.href = data.redirect_url;
       } else {
-        throw new Error(data.error || "Impossible de générer l'URL de connexion.");
+        throw new Error("Impossible de générer l'URL de connexion.");
       }
     } catch (error: any) {
       toast({
