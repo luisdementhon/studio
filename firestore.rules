@@ -17,25 +17,6 @@
  *   which are publicly readable to facilitate discovery within the app.
  * - /associations/{associationId}/donations/{donationId}: A duplicated record of a
  *   donation, queryable by the association.
- *
- * Key Security Decisions:
- * - Strict User Data Segregation: A user can ONLY access documents within their
- *   own data tree (e.g., /users/their-own-id/...).
- * - No User Listing: To protect user privacy, it is impossible for any client
- *   to list the documents in the top-level `/users` collection.
- * - Public Read-Only for Associations: Association data is public for any client
- *   to read, but all write operations are disabled by default until a secure
- *   ownership or admin model is defined in the application's data schema.
- * - Denormalization for Authorization: Donation data is duplicated into a subcollection
- *   under the relevant association. This allows associations to securely and
- *   efficiently query their own donations without needing insecure collection group queries.
- *
- * Prototyping Mode:
- * These rules enforce strict authorization (who can access what) but remain
- * flexible on data shapes. They do not validate specific fields or data types,
- * allowing for rapid front-end development and iteration. The only data
- * validation performed is on fields critical for maintaining relational integrity,
- * such as ensuring a document's internal owner ID matches the ID in its path.
  */
 rules_version = '2';
 service cloud.firestore {
@@ -54,7 +35,6 @@ service cloud.firestore {
 
     /**
      * Checks if the currently authenticated user's ID matches the provided userId.
-     * This is the primary function for enforcing data ownership.
      */
     function isOwner(userId) {
       return isSignedIn() && request.auth.uid == userId;
@@ -62,124 +42,53 @@ service cloud.firestore {
 
     /**
      * Checks if the document exists AND the authenticated user is the owner.
-     * Used for safe update and delete operations to prevent modifying non-existent data.
      */
     function isExistingOwner(userId) {
       return isOwner(userId) && resource != null;
     }
 
-    /**
-     * On create, validates that the user is setting their own UID as the document's ID.
-     * This establishes the ownership link and maintains data consistency.
-     */
-    function isCreatingOwnUserDocument(userId) {
-      return request.resource.data.id == userId;
-    }
-
-    /**
-     * On update, ensures the document's unique ID (which links to the user) cannot be changed.
-     */
-    function isUserIdImmutable() {
-      return request.resource.data.id == resource.data.id;
-    }
-
-    /**
-     * On create, validates that the donation's internal userId matches the user's path.
-     * This ensures donations are correctly associated with the creator.
-     */
-    function hasCorrectDonationOwner(userId) {
-      return request.resource.data.userId == userId;
-    }
-
-    /**
-     * On update, ensures the donation's owner link (userId) cannot be changed.
-     */
-    function isDonationOwnerImmutable() {
-      return request.resource.data.userId == resource.data.userId;
-    }
-
-
     // -------------------------------------------------------------------------
     // User Profiles (/users/{userId})
     // -------------------------------------------------------------------------
-
-    /**
-     * @description Controls access to user profile documents. A user can create, read,
-     *   update, and delete their own profile, but cannot see or list others.
-     * @path /users/{userId}
-     * @allow (get) A logged-in user with uid 'user123' retrieving '/users/user123'.
-     * @deny (get) A logged-in user with uid 'user456' retrieving '/users/user123'.
-     * @deny (list) Any user attempting to list the '/users' collection.
-     * @principle Restricts access to a user's own data tree, preventing data leakage.
-     */
     match /users/{userId} {
       allow get: if isOwner(userId);
       allow list: if false;
-      allow create: if isOwner(userId) && isCreatingOwnUserDocument(userId);
-      allow update: if isExistingOwner(userId) && isUserIdImmutable();
+      allow create: if isOwner(userId) && request.resource.data.id == userId;
+      allow update: if isExistingOwner(userId) && request.resource.data.id == resource.data.id;
       allow delete: if isExistingOwner(userId);
     }
-
 
     // -------------------------------------------------------------------------
     // User Donations (/users/{userId}/donations/{donationId})
     // -------------------------------------------------------------------------
-
-    /**
-     * @description Manages access to the primary donation records, private to each user.
-     * @path /users/{userId}/donations/{donationId}
-     * @allow (read, write) User 'user123' accessing their own donation records.
-     * @deny Any other user trying to access these records.
-     * @principle Strict ownership for the user's private donation log.
-     */
     match /users/{userId}/donations/{donationId} {
-      // Only the user can create, read, update, or delete their own donation records.
       allow read, write: if isOwner(userId);
     }
-
 
     // -------------------------------------------------------------------------
     // Associations (/associations/{associationId})
     // -------------------------------------------------------------------------
-
-    /**
-     * @description Manages public profiles for associations. This data is intended
-     *   for public discovery, so all reads are permitted. Writes are disabled.
-     * @path /associations/{associationId}
-     * @allow (get, list) Any user, signed in or not, reading association data.
-     * @deny (create, update, delete) Any user attempting to modify association data.
-     * @principle Provides public read access while defaulting to a secure "deny all"
-     *   posture for writes until a proper admin/ownership model is implemented.
-     */
     match /associations/{associationId} {
+      // Les profils sont lisibles par tout le monde pour permettre la découverte.
       allow get, list: if true;
-      // CRITICAL: Cannot implement owner-only writes. The 'Association' entity is missing an 'ownerId' or 'creatorId' field.
-      // Writes are disabled for security. Update schema and rules to enable.
-      allow create: if false; // TODO: Add owner validation once the schema is updated with an ownership field.
-      allow update: if false; // TODO: Add owner validation once the schema is updated with an ownership field.
-      allow delete: if false; // TODO: Add owner validation once the schema is updated with an ownership field.
+      
+      // Une association peut créer et modifier son propre profil.
+      // L'identifiant du document doit correspondre à l'UID de l'utilisateur.
+      allow create: if isOwner(associationId);
+      allow update: if isOwner(associationId);
+      allow delete: if isOwner(associationId);
     }
     
     // -------------------------------------------------------------------------
     // Association Donations (/associations/{associationId}/donations/{donationId})
     // -------------------------------------------------------------------------
-    /**
-     * @description Manages access to the duplicated donation records for associations.
-     * @path /associations/{associationId}/donations/{donationId}
-     * @allow (read) Association 'asso456' reading donations from its own subcollection.
-     * @allow (create) User 'user123' creating a duplicate record when they make a donation.
-     * @deny All other access.
-     * @principle Allows associations to securely read their donations, and allows the original donor to create the record.
-     */
     match /associations/{associationId}/donations/{donationId} {
-      // An association can read donations made to them from their own subcollection.
-      allow read: if isSignedIn() && request.auth.uid == associationId;
+      // Une association peut lire les dons qui lui sont destinés.
+      allow read: if isOwner(associationId);
       
-      // Allow a user to create the duplicated donation document.
-      // The user creating this must be the same as the userId in the donation data.
+      // Un donateur peut créer l'enregistrement du don pour l'association.
       allow create: if isSignedIn() && request.auth.uid == request.resource.data.userId;
 
-      // No updates or deletes from the client.
       allow update, delete: if false;
     }
   }
