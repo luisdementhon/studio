@@ -36,6 +36,7 @@ export const AssociationOnboardingSchema = z.object({
   description: z.string().min(10, "Veuillez fournir une brève description."),
   fundraisingGoal: z.coerce.number().positive("L'objectif doit être un nombre positif."),
   currentMissions: z.string().optional(),
+  stripeAccountId: z.string().optional(),
 });
 
 export type Association = z.infer<typeof AssociationOnboardingSchema> & { id: string };
