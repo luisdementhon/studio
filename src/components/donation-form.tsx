@@ -30,6 +30,7 @@ import type { Association } from '@/lib/schemas';
 import { Skeleton } from './ui/skeleton';
 import { useUser, useFirestore, setDocumentNonBlocking } from '@/firebase';
 import { collection, serverTimestamp, doc } from 'firebase/firestore';
+import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 
 const stripePromise = loadStripe(STRIPE_PUBLISHABLE_KEY);
 
@@ -98,7 +99,7 @@ function CheckoutForm({
         disabled={!stripe || !elements}
         type="submit"
       >
-        Confirmer le don de {amount} €
+        Confirmer le don de {amount} € à {selectedAssociation?.associationName}
       </Button>
     </form>
   );
@@ -127,7 +128,6 @@ export function DonationForm({ associations, isLoading }: { associations: Associ
       return;
     }
 
-    // On génère une référence de document pour avoir un ID partagé
     const userDonationRef = doc(collection(firestore, 'users', user.uid, 'donations'));
     const donationId = userDonationRef.id;
 
@@ -140,10 +140,8 @@ export function DonationForm({ associations, isLoading }: { associations: Associ
         isRecurring: false,
     };
 
-    // 1. Enregistrement chez le donateur (privé)
     setDocumentNonBlocking(userDonationRef, donationData, { merge: true });
     
-    // 2. Enregistrement chez l'association (pour son dashboard)
     const associationDonationRef = doc(firestore, 'associations', selectedAssoId, 'donations', donationId);
     setDocumentNonBlocking(associationDonationRef, donationData, { merge: true });
 
@@ -152,7 +150,6 @@ export function DonationForm({ associations, isLoading }: { associations: Associ
         description: "Votre don a bien été enregistré. Merci pour votre générosité !",
     });
 
-    // Reset du formulaire
     setClientSecret(null);
     setAmount(undefined);
     setSelectedAssoId(undefined);
@@ -169,30 +166,27 @@ export function DonationForm({ associations, isLoading }: { associations: Associ
       return;
     }
     setProcessing(true);
-    const selectedAssociation = associations.find(
-      (a) => a.id === selectedAssoId
-    );
     
     try {
-      const res = await fetch('/api/stripe/create-payment-intent', {
+      const res = await fetch('/api/create-payment-intent', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           amount,
-          associationName: selectedAssociation?.associationName,
+          associationId: selectedAssoId,
         }),
       });
 
       const data = await res.json();
-      if (data.error) {
-        throw new Error(data.error);
+      if (!res.ok) {
+        throw new Error(data.error || "Impossible d'initialiser le paiement.");
       }
       setClientSecret(data.clientSecret);
     } catch (err: any) {
       toast({
         variant: 'destructive',
-        title: 'Erreur serveur',
-        description: err.message || "Impossible d'initialiser le paiement.",
+        title: 'Erreur de paiement',
+        description: err.message,
       });
     } finally {
       setProcessing(false);
@@ -207,7 +201,7 @@ export function DonationForm({ associations, isLoading }: { associations: Associ
         <CardTitle className="text-xl font-bold flex items-center gap-2">
           Faire un don unique
         </CardTitle>
-        <CardDescription>Soutenez une association instantanément via Stripe.</CardDescription>
+        <CardDescription>Soutenez une association instantanément via Stripe Connect.</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         {clientSecret ? (
@@ -245,7 +239,13 @@ export function DonationForm({ associations, isLoading }: { associations: Associ
                   {associations.length > 0 ? (
                     associations.map((asso) => (
                       <SelectItem key={asso.id} value={asso.id}>
-                        {asso.associationName}
+                        <div className="flex items-center gap-2">
+                          <Avatar className="h-6 w-6">
+                            <AvatarImage src={asso.logoUrl || `https://picsum.photos/seed/${asso.id}/32/32`} alt={asso.associationName} data-ai-hint="charity logo"/>
+                            <AvatarFallback>{asso.associationName.charAt(0)}</AvatarFallback>
+                          </Avatar>
+                          <span>{asso.associationName}</span>
+                        </div>
                       </SelectItem>
                     ))
                   ) : (
