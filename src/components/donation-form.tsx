@@ -28,9 +28,8 @@ import {
 import { STRIPE_PUBLISHABLE_KEY } from '@/lib/stripe';
 import type { Association } from '@/lib/schemas';
 import { Skeleton } from './ui/skeleton';
-import { useUser, useFirestore } from '@/firebase';
-import { collection, serverTimestamp, addDoc, doc, setDoc } from 'firebase/firestore';
-
+import { useUser, useFirestore, setDocumentNonBlocking } from '@/firebase';
+import { collection, serverTimestamp, doc } from 'firebase/firestore';
 
 const stripePromise = loadStripe(STRIPE_PUBLISHABLE_KEY);
 
@@ -38,7 +37,7 @@ interface CheckoutFormProps {
   amount: number;
   selectedAssociation: Association | undefined;
   setProcessing: (isProcessing: boolean) => void;
-  onSuccessfulPayment: () => Promise<void>;
+  onSuccessfulPayment: () => void;
 }
 
 function CheckoutForm({
@@ -84,22 +83,22 @@ function CheckoutForm({
       });
       setProcessing(false);
     } else if (paymentIntent && paymentIntent.status === 'succeeded') {
-        await onSuccessfulPayment();
+        onSuccessfulPayment();
     } else {
         setProcessing(false);
     }
   };
 
   return (
-    <form onSubmit={handleSubmit}>
+    <form onSubmit={handleSubmit} className="space-y-4">
       <PaymentElement />
       <Button
-        className="w-full mt-4 from-amber-400 to-yellow-300 text-slate-900 hover:brightness-110 shadow-lg shadow-amber-400/20"
+        className="w-full from-amber-400 to-yellow-300 text-slate-900 hover:brightness-110 shadow-lg shadow-amber-400/20 font-bold"
         variant="vibrant"
         disabled={!stripe || !elements}
         type="submit"
       >
-        Payer {amount} €
+        Confirmer le don de {amount} €
       </Button>
     </form>
   );
@@ -121,14 +120,19 @@ export function DonationForm({ associations, isLoading }: { associations: Associ
     setAmount(value === '' ? undefined : (isNaN(numberValue) ? amount : numberValue));
   };
 
-  const handleCreateDonation = async () => {
+  const handleCreateDonation = () => {
     if (!amount || !selectedAssoId || !user || !firestore) {
       toast({ variant: 'destructive', title: 'Erreur interne', description: 'Données manquantes pour l\'enregistrement.' });
       setProcessing(false);
       return;
     }
 
+    // On génère une référence de document pour avoir un ID partagé
+    const userDonationRef = doc(collection(firestore, 'users', user.uid, 'donations'));
+    const donationId = userDonationRef.id;
+
     const donationData = {
+        id: donationId,
         userId: user.uid,
         associationId: selectedAssoId,
         amount: amount,
@@ -136,33 +140,23 @@ export function DonationForm({ associations, isLoading }: { associations: Associ
         isRecurring: false,
     };
 
-    try {
-      // 1. Write to user's private subcollection
-      const userDonationsRef = collection(firestore, 'users', user.uid, 'donations');
-      const newDocRef = await addDoc(userDonationsRef, donationData);
-      
-      // 2. Write a copy to the association's public subcollection using the same ID
-      const associationDonationsRef = doc(firestore, 'associations', selectedAssoId, 'donations', newDocRef.id);
-      await setDoc(associationDonationsRef, donationData);
+    // 1. Enregistrement chez le donateur (privé)
+    setDocumentNonBlocking(userDonationRef, donationData, { merge: true });
+    
+    // 2. Enregistrement chez l'association (pour son dashboard)
+    const associationDonationRef = doc(firestore, 'associations', selectedAssoId, 'donations', donationId);
+    setDocumentNonBlocking(associationDonationRef, donationData, { merge: true });
 
-      toast({
-          title: "Paiement réussi !",
-          description: "Votre don a bien été enregistré. Merci !",
-      });
-      // Reset form state after successful donation
-      setClientSecret(null);
-      setAmount(undefined);
-      setSelectedAssoId(undefined);
-    } catch (error) {
-      console.error("Failed to save donation record:", error);
-      toast({
-          variant: 'destructive',
-          title: 'Erreur d\'enregistrement',
-          description: 'Votre don a été traité mais nous n\'avons pas pu l\'enregistrer. Veuillez contacter le support.',
-      });
-    } finally {
-      setProcessing(false);
-    }
+    toast({
+        title: "Paiement réussi !",
+        description: "Votre don a bien été enregistré. Merci pour votre générosité !",
+    });
+
+    // Reset du formulaire
+    setClientSecret(null);
+    setAmount(undefined);
+    setSelectedAssoId(undefined);
+    setProcessing(false);
   };
 
   const handleDonationClick = async () => {
@@ -170,8 +164,7 @@ export function DonationForm({ associations, isLoading }: { associations: Associ
       toast({
         variant: 'destructive',
         title: 'Champs manquants',
-        description:
-          'Veuillez choisir une association et entrer un montant.',
+        description: 'Veuillez choisir une association et entrer un montant.',
       });
       return;
     }
@@ -179,45 +172,60 @@ export function DonationForm({ associations, isLoading }: { associations: Associ
     const selectedAssociation = associations.find(
       (a) => a.id === selectedAssoId
     );
-    const res = await fetch('/api/stripe/create-payment-intent', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        amount,
-        associationName: selectedAssociation?.associationName,
-      }),
-    });
+    
+    try {
+      const res = await fetch('/api/stripe/create-payment-intent', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          amount,
+          associationName: selectedAssociation?.associationName,
+        }),
+      });
 
-    const { clientSecret, error } = await res.json();
-    if (error) {
+      const data = await res.json();
+      if (data.error) {
+        throw new Error(data.error);
+      }
+      setClientSecret(data.clientSecret);
+    } catch (err: any) {
       toast({
         variant: 'destructive',
         title: 'Erreur serveur',
-        description: error,
+        description: err.message || "Impossible d'initialiser le paiement.",
       });
+    } finally {
       setProcessing(false);
-    } else {
-      setClientSecret(clientSecret);
     }
   };
 
   const selectedAssociation = associations.find((a) => a.id === selectedAssoId);
 
   return (
-    <Card>
+    <Card className="border-2 border-primary/10 shadow-xl">
       <CardHeader>
-        <CardTitle>Faire un don unique</CardTitle>
-        <CardDescription>Soutenez une association instantanément.</CardDescription>
+        <CardTitle className="text-xl font-bold flex items-center gap-2">
+          Faire un don unique
+        </CardTitle>
+        <CardDescription>Soutenez une association instantanément via Stripe.</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         {clientSecret ? (
-          <Elements options={{ clientSecret }} stripe={stripePromise}>
+          <Elements options={{ clientSecret, appearance: { theme: 'stripe' } }} stripe={stripePromise}>
             <CheckoutForm
               amount={amount!}
               selectedAssociation={selectedAssociation}
               setProcessing={setProcessing}
               onSuccessfulPayment={handleCreateDonation}
             />
+            <Button 
+              variant="ghost" 
+              className="w-full mt-2 text-muted-foreground" 
+              onClick={() => setClientSecret(null)}
+              disabled={isProcessing}
+            >
+              Annuler
+            </Button>
           </Elements>
         ) : isLoading ? (
           <div className='space-y-4'>
@@ -227,32 +235,43 @@ export function DonationForm({ associations, isLoading }: { associations: Associ
           </div>
         ) : (
           <>
-            <Select onValueChange={setSelectedAssoId} value={selectedAssoId}>
-              <SelectTrigger>
-                <SelectValue placeholder="Choisir une association" />
-              </SelectTrigger>
-              <SelectContent>
-                {associations.map((asso) => (
-                  <SelectItem key={asso.id} value={asso.id}>
-                    {asso.associationName}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Input
-              type="number"
-              placeholder="Montant en €"
-              value={amount === undefined ? '' : amount}
-              onChange={handleAmountChange}
-              min="1"
-            />
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Association bénéficiaire</label>
+              <Select onValueChange={setSelectedAssoId} value={selectedAssoId}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Choisir une association" />
+                </SelectTrigger>
+                <SelectContent>
+                  {associations.length > 0 ? (
+                    associations.map((asso) => (
+                      <SelectItem key={asso.id} value={asso.id}>
+                        {asso.associationName}
+                      </SelectItem>
+                    ))
+                  ) : (
+                    <div className="p-2 text-sm text-muted-foreground">Aucune association disponible</div>
+                  )}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Montant du don (€)</label>
+              <Input
+                type="number"
+                placeholder="Ex: 10"
+                value={amount === undefined ? '' : amount}
+                onChange={handleAmountChange}
+                min="1"
+                className="text-lg font-semibold"
+              />
+            </div>
             <Button
-              className="w-full from-amber-400 to-yellow-300 text-slate-900 hover:brightness-110 shadow-lg shadow-amber-400/20"
+              className="w-full from-amber-400 to-yellow-300 text-slate-900 hover:brightness-110 shadow-lg shadow-amber-400/20 font-bold h-12"
               variant="vibrant"
               onClick={handleDonationClick}
-              disabled={isProcessing || isLoading || !user}
+              disabled={isProcessing || isLoading || !user || !amount || !selectedAssoId}
             >
-              {isProcessing ? 'Chargement...' : 'Faire un don'}
+              {isProcessing ? 'Chargement...' : 'Passer au paiement'}
             </Button>
           </>
         )}
