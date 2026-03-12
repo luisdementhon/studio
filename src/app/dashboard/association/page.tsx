@@ -1,7 +1,7 @@
 
 "use client";
 
-import { Users, PiggyBank, Target, Calendar, CreditCard, CheckCircle2, ArrowRight, Loader2 } from 'lucide-react';
+import { Users, PiggyBank, Target, Calendar, CreditCard, CheckCircle2, ArrowRight, Loader2, AlertCircle } from 'lucide-react';
 import {
   Card,
   CardContent,
@@ -19,7 +19,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Progress } from "@/components/ui/progress";
-import { Badge } from "@/components/ui/badge";
+import { Badge } from "@/badge";
 import { Button } from "@/components/ui/button";
 import {
   ChartContainer,
@@ -35,6 +35,7 @@ import { subDays, format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
+import { setDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 
 const chartConfig = {
   total: {
@@ -67,6 +68,7 @@ export default function AssociationDashboardPage() {
   const { toast } = useToast();
   const [nextPayout, setNextPayout] = useState({ date: '', amount: '' });
   const [isOnboardingStripe, setIsOnboardingStripe] = useState(false);
+  const [isInitializing, setIsInitializing] = useState(false);
   
   const isDemoMode = user?.isAnonymous;
 
@@ -75,12 +77,12 @@ export default function AssociationDashboardPage() {
     if (!firestore || !user || isDemoMode) return null;
     return doc(firestore, 'associations', user.uid);
   }, [firestore, user, isDemoMode]);
+  
   const { data: associationData, isLoading: isAssociationLoading } = useDoc(associationDocRef);
   
   // 2. Fetch donations for this association
   const donationsQuery = useMemo(() => {
     if (!firestore || !user || isDemoMode) return null;
-    // Query the duplicated donations subcollection under the association's document
     return query(
       collection(firestore, 'associations', user.uid, 'donations'),
       orderBy('transactionDate', 'desc'),
@@ -121,7 +123,34 @@ export default function AssociationDashboardPage() {
     }
   };
 
-  // 4. Calculate KPIs from the data
+  // 4. Initialize Test Data
+  const handleInitTestData = () => {
+    if (!associationDocRef || !user) return;
+    setIsInitializing(true);
+    
+    const testData = {
+      id: user.uid,
+      associationName: "Association Test",
+      representativeName: "Test Admin",
+      contactEmail: user.email || "test@example.com",
+      rnaNumber: "W123456789",
+      description: "Ceci est une association de test pour vérifier l'intégration Stripe Connect.",
+      fundraisingGoal: 5000,
+      currentMissions: "Phase de test technique",
+      logoUrl: "",
+      stripeAccountId: ""
+    };
+
+    setDocumentNonBlocking(associationDocRef, testData, { merge: true });
+    
+    toast({
+      title: "Profil test créé",
+      description: "Le document d'association a été initialisé dans Firestore.",
+    });
+    setIsInitializing(false);
+  };
+
+  // 5. Calculate KPIs
   const {
     monthlyFunds,
     monthlyFundsGrowth,
@@ -170,7 +199,7 @@ export default function AssociationDashboardPage() {
     }
 
     donations.forEach(donation => {
-      const donationDate = donation.transactionDate?.toDate() || new Date(); // Convert Firestore Timestamp to Date
+      const donationDate = (donation as any).transactionDate?.toDate() || new Date();
       totalFunds += donation.amount;
       donorIds.add(donation.userId);
       
@@ -197,41 +226,25 @@ export default function AssociationDashboardPage() {
 
     const recentDonors = donations.slice(0, 5).map(d => ({
         id: d.id,
-        name: "Donateur Anonyme", // We can't fetch user names here for performance/privacy
+        name: "Donateur Anonyme",
         amount: d.amount,
-        date: d.transactionDate?.toDate().toLocaleDateString('fr-FR') || format(new Date(), 'dd/MM/yyyy')
+        date: (d as any).transactionDate?.toDate().toLocaleDateString('fr-FR') || format(new Date(), 'dd/MM/yyyy')
     }));
 
     return { monthlyFunds, monthlyFundsGrowth, uniqueDonors: donorIds.size, averageDonation, totalFunds, chartData, recentDonors };
   }, [donations, isDemoMode]);
 
-  // Calculate next payout on client to avoid hydration issues
   useEffect(() => {
-    if (isDemoMode) {
-        const nextPayoutDate = new Date();
-        nextPayoutDate.setMonth(nextPayoutDate.getMonth() + 1);
-        nextPayoutDate.setDate(1);
-        setNextPayout({
-            date: format(nextPayoutDate, 'dd/MM/yyyy'),
-            amount: `~5 210,00 €`
-        });
-        return;
-    }
-    if (donations) {
-        const nextPayoutDate = new Date();
-        nextPayoutDate.setMonth(nextPayoutDate.getMonth() + 1);
-        nextPayoutDate.setDate(1);
+    const nextPayoutDate = new Date();
+    nextPayoutDate.setMonth(nextPayoutDate.getMonth() + 1);
+    nextPayoutDate.setDate(1);
+    setNextPayout({
+        date: format(nextPayoutDate, 'dd/MM/yyyy'),
+        amount: `~${(monthlyFunds * 0.95).toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' })}`
+    });
+  }, [monthlyFunds]);
 
-        const estimatedAmount = monthlyFunds * (0.95); // Simulate a more stable estimation
-
-        setNextPayout({
-            date: format(nextPayoutDate, 'dd/MM/yyyy'),
-            amount: `~${estimatedAmount.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' })}`
-        });
-    }
-  }, [donations, monthlyFunds, isDemoMode]);
-
-  const fundraisingGoal = isDemoMode ? 100000 : (associationData?.fundraisingGoal || 1); // Avoid division by zero
+  const fundraisingGoal = isDemoMode ? 100000 : (associationData?.fundraisingGoal || 1);
   const progressPercentage = (totalFunds / fundraisingGoal) * 100;
 
   const isLoading = !isDemoMode && (isUserLoading || isAssociationLoading || isDonationsLoading);
@@ -249,13 +262,36 @@ export default function AssociationDashboardPage() {
             <Skeleton className="h-28 w-full" />
             <Skeleton className="h-28 w-full" />
         </div>
-        <div className="grid gap-8 md:grid-cols-5">
-            <Skeleton className="h-96 md:col-span-3" />
-            <Skeleton className="h-96 md:col-span-2" />
-        </div>
-        <Skeleton className="h-96 w-full" />
       </div>
     )
+  }
+
+  // Handle case where profile doc is missing
+  if (!isDemoMode && !associationData && !isAssociationLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-6 text-center">
+        <div className="p-4 bg-amber-50 rounded-full">
+          <AlertCircle className="h-12 w-12 text-amber-600" />
+        </div>
+        <div className="max-w-md space-y-2">
+          <h1 className="text-2xl font-bold">Profil association manquant</h1>
+          <p className="text-muted-foreground">
+            Aucun document n'a été trouvé pour votre compte dans la collection "associations". 
+            Souhaitez-vous initialiser un profil de test ?
+          </p>
+        </div>
+        <Button 
+          size="lg" 
+          variant="vibrant" 
+          onClick={handleInitTestData}
+          disabled={isInitializing}
+          className="from-amber-400 to-yellow-300 text-slate-900 hover:brightness-110"
+        >
+          {isInitializing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+          Initialiser le profil de test
+        </Button>
+      </div>
+    );
   }
 
   return (
@@ -263,36 +299,38 @@ export default function AssociationDashboardPage() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Tableau de bord</h1>
-          <p className="text-muted-foreground">Suivez les dons et l'engagement de votre communauté.</p>
+          <p className="text-muted-foreground">
+            {isDemoMode ? "Mode Démonstration" : `Bienvenue, ${associationData?.associationName}`}
+          </p>
         </div>
         
         {/* Payments Section */}
-        <Card className="min-w-[300px]">
+        <Card className="min-w-[300px] border-2 border-primary/10 shadow-lg">
           <CardHeader className="py-3 px-4 flex flex-row items-center justify-between space-y-0">
-            <CardTitle className="text-sm font-medium">Statut des paiements</CardTitle>
+            <CardTitle className="text-sm font-bold uppercase tracking-wider">Statut des paiements</CardTitle>
             <CreditCard className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent className="py-0 px-4 pb-3">
             {associationData?.stripeAccountId ? (
               <div className="flex items-center gap-2 text-green-600 font-semibold text-sm">
-                <CheckCircle2 className="h-4 w-4" />
-                <span>Paiements configurés</span>
-                <Badge variant="secondary" className="bg-green-100 text-green-700 hover:bg-green-100">Actif</Badge>
+                <CheckCircle2 className="h-5 w-5" />
+                <span>Paiements activés</span>
+                <Badge variant="secondary" className="bg-green-100 text-green-700 hover:bg-green-100 ml-auto">Actif</Badge>
               </div>
             ) : (
               <div className="flex flex-col gap-2">
-                <p className="text-xs text-muted-foreground mb-1">Configurez votre compte Stripe pour recevoir les dons.</p>
+                <p className="text-xs text-muted-foreground mb-1">Votre compte n'est pas lié à Stripe Connect.</p>
                 <Button 
                   size="sm" 
-                  className="w-full h-8 text-xs from-amber-400 to-yellow-300 text-slate-900 hover:brightness-110" 
+                  className="w-full h-10 text-xs from-amber-400 to-yellow-300 text-slate-900 hover:brightness-110 font-bold" 
                   variant="vibrant"
                   onClick={handleStripeOnboarding}
                   disabled={isOnboardingStripe}
                 >
                   {isOnboardingStripe ? (
-                    <Loader2 className="mr-2 h-3 w-3 animate-spin" />
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   ) : (
-                    <ArrowRight className="mr-2 h-3 w-3" />
+                    <ArrowRight className="mr-2 h-4 w-4" />
                   )}
                   Configurer mes paiements
                 </Button>
@@ -305,52 +343,44 @@ export default function AssociationDashboardPage() {
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle>
-              Fonds Récoltés (ce mois-ci)
-            </CardTitle>
+            <CardTitle className="text-sm font-medium">Fonds Récoltés (mois)</CardTitle>
             <PiggyBank className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{monthlyFunds.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' })}</div>
-            <p className={`text-xs ${monthlyFundsGrowth >= 0 ? 'text-accent' : 'text-destructive'}`}>
+            <p className={`text-xs ${monthlyFundsGrowth >= 0 ? 'text-green-600' : 'text-destructive'}`}>
               {monthlyFundsGrowth >= 0 ? '+' : ''}{monthlyFundsGrowth.toFixed(1)}% par rapport au mois dernier
             </p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle>Donateurs Uniques</CardTitle>
+            <CardTitle className="text-sm font-medium">Donateurs Uniques</CardTitle>
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{uniqueDonors}</div>
-            <p className="text-xs text-muted-foreground">
-              Depuis le début
-            </p>
+            <p className="text-xs text-muted-foreground">Sur la durée totale</p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle>Don Moyen</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium">Don Moyen</CardTitle>
+            <Target className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{averageDonation.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' })}</div>
-            <p className="text-xs text-muted-foreground">
-              Sur toutes les donations
-            </p>
+            <p className="text-xs text-muted-foreground">Sur {donations?.length || 0} dons</p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle>Prochain virement</CardTitle>
+            <CardTitle className="text-sm font-medium">Prochain virement</CardTitle>
             <Calendar className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{nextPayout.date}</div>
-            <p className="text-xs text-muted-foreground">
-              Montant estimé : {nextPayout.amount}
-            </p>
+            <p className="text-xs text-muted-foreground">Estimé à {nextPayout.amount}</p>
           </CardContent>
         </Card>
       </div>
@@ -364,31 +394,18 @@ export default function AssociationDashboardPage() {
           <CardContent>
             <ChartContainer config={chartConfig} className="h-64 w-full">
               <ResponsiveContainer>
-                <AreaChart data={chartData} accessibilityLayer margin={{ left: -20, right: 10 }}>
-                  <CartesianGrid vertical={false} />
-                  <XAxis
-                    dataKey="date"
-                    tickLine={false}
-                    tickMargin={10}
-                    axisLine={false}
-                  />
-                  <YAxis
-                    tickLine={false}
-                    axisLine={false}
-                    tickMargin={10}
-                    tickFormatter={(value) => `€${value}`}
-                  />
-                  <ChartTooltip
-                    cursor={false}
-                    content={<ChartTooltipContent indicator="dot" />}
-                  />
+                <AreaChart data={chartData} margin={{ left: -20, right: 10 }}>
+                  <CartesianGrid vertical={false} strokeDasharray="3 3" opacity={0.1} />
+                  <XAxis dataKey="date" tickLine={false} tickMargin={10} axisLine={false} />
+                  <YAxis tickLine={false} axisLine={false} tickMargin={10} tickFormatter={(value) => `€${value}`} />
+                  <ChartTooltip cursor={false} content={<ChartTooltipContent indicator="dot" />} />
                   <defs>
                       <linearGradient id="fillTotal" x1="0" y1="0" x2="0" y2="1">
                           <stop offset="5%" stopColor="var(--color-total)" stopOpacity={0.8}/>
                           <stop offset="95%" stopColor="var(--color-total)" stopOpacity={0.1}/>
                       </linearGradient>
                   </defs>
-                  <Area dataKey="total" type="natural" fill="url(#fillTotal)" stroke="var(--color-total)" stackId="a" />
+                  <Area dataKey="total" type="natural" fill="url(#fillTotal)" stroke="var(--color-total)" strokeWidth={2} />
                 </AreaChart>
               </ResponsiveContainer>
             </ChartContainer>
@@ -406,7 +423,7 @@ export default function AssociationDashboardPage() {
             </div>
             <div className="space-y-2">
                 <Progress value={progressPercentage} className="h-3" />
-                <p className="text-center text-sm text-muted-foreground">{progressPercentage.toFixed(1)}% de l'objectif atteint</p>
+                <p className="text-center text-sm text-muted-foreground font-medium">{progressPercentage.toFixed(1)}% atteint</p>
             </div>
           </CardContent>
         </Card>
@@ -430,7 +447,7 @@ export default function AssociationDashboardPage() {
               {recentDonors.length > 0 ? recentDonors.map((donor) => (
                 <TableRow key={donor.id}>
                   <TableCell className="font-medium">{donor.name}</TableCell>
-                  <TableCell className="text-right text-accent font-semibold">
+                  <TableCell className="text-right text-accent font-bold">
                     {donor.amount.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' })}
                   </TableCell>
                   <TableCell className="text-right text-muted-foreground">
