@@ -7,7 +7,6 @@ import {
   CardHeader,
   CardTitle,
   CardDescription,
-  CardFooter,
 } from '@/components/ui/card';
 import {
   Table,
@@ -27,14 +26,13 @@ import {
   ChartConfig,
 } from '@/components/ui/chart';
 import { AreaChart, XAxis, YAxis, Area, CartesianGrid, ResponsiveContainer } from 'recharts';
-import { useUser, useFirestore, useDoc, useCollection, updateDocumentNonBlocking } from '@/firebase';
+import { useUser, useFirestore, useDoc, useCollection, updateDocumentNonBlocking, setDocumentNonBlocking } from '@/firebase';
 import { doc, collection, query, orderBy, limit } from 'firebase/firestore';
 import { useEffect, useMemo, useState } from 'react';
 import { subDays, format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
-import { setDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 
 const chartConfig = {
   total: {
@@ -105,7 +103,7 @@ export default function AssociationDashboardPage() {
         throw new Error(data.error || "Impossible de générer le lien Stripe.");
       }
 
-      // 1. Enregistrement de l'ID Stripe côté client (autorisé par les règles isOwner)
+      // 1. Enregistrement de l'ID Stripe côté client
       if (data.stripeAccountId) {
         updateDocumentNonBlocking(associationDocRef, { stripeAccountId: data.stripeAccountId });
       }

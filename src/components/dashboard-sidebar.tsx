@@ -1,4 +1,3 @@
-
 "use client";
 
 import { usePathname, useRouter } from 'next/navigation';
@@ -13,14 +12,13 @@ import {
   SidebarFooter,
   SidebarTrigger,
 } from '@/components/ui/sidebar';
-import { SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import { Home, Settings, LogOut } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useAuth, useDoc, useFirestore, useUser } from '@/firebase';
 import { signOut } from 'firebase/auth';
 import { doc } from 'firebase/firestore';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Logo } from '@/components/logo';
+import { DotlyLogo } from '@/components/dotly-logo';
 import { useMemo } from 'react';
 
 export function DashboardSidebar() {
@@ -80,9 +78,9 @@ export function DashboardSidebar() {
 
   return (
     <Sidebar>
-      <SidebarHeader className="flex flex-col items-start">
-        <Link href="/" className="text-primary transition-colors duration-300 hover:text-primary/80">
-          
+      <SidebarHeader className="flex flex-row items-center justify-between p-4">
+        <Link href="/" className="flex items-center gap-2">
+          <DotlyLogo className="h-8 w-auto text-primary" />
         </Link>
         <SidebarTrigger className="hidden md:flex" />
       </SidebarHeader>
@@ -104,8 +102,8 @@ export function DashboardSidebar() {
           ))}
         </SidebarMenu>
       </SidebarContent>
-      <SidebarFooter className="space-y-2">
-        <div className="flex items-center gap-3 p-2">
+      <SidebarFooter className="p-4 border-t">
+        <div className="flex items-center gap-3 mb-4">
           {isLoading ? (
             <>
               <Skeleton className="h-9 w-9 rounded-full" />
@@ -129,7 +127,7 @@ export function DashboardSidebar() {
         </div>
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton onClick={handleSignOut} tooltip="Déconnexion">
+            <SidebarMenuButton onClick={handleSignOut} tooltip="Déconnexion" className="text-destructive hover:text-destructive hover:bg-destructive/10">
                 <LogOut />
                 <span>Déconnexion</span>
             </SidebarMenuButton>
