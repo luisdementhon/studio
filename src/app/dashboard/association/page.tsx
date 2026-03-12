@@ -1,4 +1,3 @@
-
 "use client";
 
 import { Users, PiggyBank, Target, Calendar, CreditCard, CheckCircle2, ArrowRight, Loader2, AlertCircle } from 'lucide-react';
@@ -28,8 +27,8 @@ import {
   ChartConfig,
 } from '@/components/ui/chart';
 import { AreaChart, XAxis, YAxis, Area, CartesianGrid, ResponsiveContainer } from 'recharts';
-import { useUser, useFirestore, useDoc, useCollection } from '@/firebase';
-import { doc, collection, query, where, orderBy, limit } from 'firebase/firestore';
+import { useUser, useFirestore, useDoc, useCollection, updateDocumentNonBlocking } from '@/firebase';
+import { doc, collection, query, orderBy, limit } from 'firebase/firestore';
 import { useEffect, useMemo, useState } from 'react';
 import { subDays, format } from 'date-fns';
 import { fr } from 'date-fns/locale';
@@ -72,7 +71,6 @@ export default function AssociationDashboardPage() {
   
   const isDemoMode = user?.isAnonymous;
 
-  // 1. Fetch association profile data
   const associationDocRef = useMemo(() => {
     if (!firestore || !user || isDemoMode) return null;
     return doc(firestore, 'associations', user.uid);
@@ -80,7 +78,6 @@ export default function AssociationDashboardPage() {
   
   const { data: associationData, isLoading: isAssociationLoading } = useDoc(associationDocRef);
   
-  // 2. Fetch donations for this association
   const donationsQuery = useMemo(() => {
     if (!firestore || !user || isDemoMode) return null;
     return query(
@@ -92,9 +89,8 @@ export default function AssociationDashboardPage() {
 
   const { data: donations, isLoading: isDonationsLoading } = useCollection(donationsQuery);
 
-  // 3. Handle Stripe Onboarding
   const handleStripeOnboarding = async () => {
-    if (!user) return;
+    if (!user || !associationDocRef) return;
     
     setIsOnboardingStripe(true);
     try {
@@ -109,6 +105,12 @@ export default function AssociationDashboardPage() {
         throw new Error(data.error || "Impossible de générer le lien Stripe.");
       }
 
+      // 1. Enregistrement de l'ID Stripe côté client (autorisé par les règles isOwner)
+      if (data.stripeAccountId) {
+        updateDocumentNonBlocking(associationDocRef, { stripeAccountId: data.stripeAccountId });
+      }
+
+      // 2. Redirection vers Stripe
       if (data.url) {
         window.location.href = data.url;
       }
@@ -123,7 +125,6 @@ export default function AssociationDashboardPage() {
     }
   };
 
-  // 4. Initialize Test Data
   const handleInitTestData = () => {
     if (!associationDocRef || !user) return;
     setIsInitializing(true);
@@ -150,7 +151,6 @@ export default function AssociationDashboardPage() {
     setIsInitializing(false);
   };
 
-  // 5. Calculate KPIs
   const {
     monthlyFunds,
     monthlyFundsGrowth,
@@ -266,7 +266,6 @@ export default function AssociationDashboardPage() {
     )
   }
 
-  // Handle case where profile doc is missing
   if (!isDemoMode && !associationData && !isAssociationLoading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] gap-6 text-center">
@@ -304,7 +303,6 @@ export default function AssociationDashboardPage() {
           </p>
         </div>
         
-        {/* Payments Section */}
         <Card className="min-w-[300px] border-2 border-primary/10 shadow-lg">
           <CardHeader className="py-3 px-4 flex flex-row items-center justify-between space-y-0">
             <CardTitle className="text-sm font-bold uppercase tracking-wider">Statut des paiements</CardTitle>

@@ -1,22 +1,6 @@
 /**
  * This ruleset enforces a security model for the Dotly application with a focus
  * on strict user data privacy and public discoverability for associations.
- *
- * Core Philosophy:
- * The rules establish a strong user-ownership model, where each user has
- * exclusive control over their personal data and associated records like donations.
- * Data intended for public consumption is explicitly separated into its own
- * top-level collection.
- *
- * Data Structure:
- * - /users/{userId}: Contains private user profile information. All subcollections
- *   inherit the ownership model of this parent document.
- * - /users/{userId}/donations/{donationId}: Stores donation records, which are
- *   private to the user who made them.
- * - /associations/{associationId}: A top-level collection for association profiles,
- *   which are publicly readable to facilitate discovery within the app.
- * - /associations/{associationId}/donations/{donationId}: A duplicated record of a
- *   donation, queryable by the association.
  */
 rules_version = '2';
 service cloud.firestore {
@@ -26,23 +10,14 @@ service cloud.firestore {
     // Helper Functions
     // -------------------------------------------------------------------------
 
-    /**
-     * Checks if the user is authenticated.
-     */
     function isSignedIn() {
       return request.auth != null;
     }
 
-    /**
-     * Checks if the currently authenticated user's ID matches the provided userId.
-     */
     function isOwner(userId) {
       return isSignedIn() && request.auth.uid == userId;
     }
 
-    /**
-     * Checks if the document exists AND the authenticated user is the owner.
-     */
     function isExistingOwner(userId) {
       return isOwner(userId) && resource != null;
     }
@@ -73,7 +48,6 @@ service cloud.firestore {
       allow get, list: if true;
       
       // Une association peut créer et modifier son propre profil.
-      // L'identifiant du document doit correspondre à l'UID de l'utilisateur.
       allow create: if isOwner(associationId);
       allow update: if isOwner(associationId);
       allow delete: if isOwner(associationId);
@@ -83,12 +57,8 @@ service cloud.firestore {
     // Association Donations (/associations/{associationId}/donations/{donationId})
     // -------------------------------------------------------------------------
     match /associations/{associationId}/donations/{donationId} {
-      // Une association peut lire les dons qui lui sont destinés.
       allow read: if isOwner(associationId);
-      
-      // Un donateur peut créer l'enregistrement du don pour l'association.
       allow create: if isSignedIn() && request.auth.uid == request.resource.data.userId;
-
       allow update, delete: if false;
     }
   }

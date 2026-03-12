@@ -1,16 +1,11 @@
 import { NextResponse } from 'next/server';
 import { stripe } from '@/lib/stripe';
-import { initializeApp, getApps, getApp } from 'firebase/app';
-import { getFirestore, doc, updateDoc } from 'firebase/firestore';
-import { firebaseConfig } from '@/firebase/config';
-
-// Initialisation de Firebase côté serveur (Route Handler)
-const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
-const db = getFirestore(app);
 
 /**
  * Route API pour créer un compte Stripe Connect Express pour une association
  * et générer un lien d'onboarding.
+ * Note: L'enregistrement du stripeAccountId dans Firestore doit être fait côté client
+ * pour respecter les règles de sécurité.
  */
 export async function POST(request: Request) {
   try {
@@ -21,7 +16,6 @@ export async function POST(request: Request) {
     }
 
     // 1. Création du compte Stripe Connect Express
-    // On demande les capacités 'card_payments' et 'transfers' pour permettre la réception de fonds
     const account = await stripe.accounts.create({
       country: 'FR',
       type: 'express',
@@ -31,14 +25,7 @@ export async function POST(request: Request) {
       },
     });
 
-    // 2. Mise à jour du document de l'association dans Firestore
-    const associationRef = doc(db, 'associations', associationId);
-    await updateDoc(associationRef, {
-      stripeAccountId: account.id,
-    });
-
-    // 3. Génération du lien d'onboarding Stripe
-    // Stripe nécessite des URLs absolues
+    // 2. Génération du lien d'onboarding Stripe
     const origin = request.headers.get('origin') || 'http://localhost:9002';
     
     const accountLink = await stripe.accountLinks.create({
@@ -48,8 +35,11 @@ export async function POST(request: Request) {
       type: 'account_onboarding',
     });
 
-    // 4. Renvoi de l'URL d'onboarding au frontend
-    return NextResponse.json({ url: accountLink.url });
+    // 3. Renvoi de l'ID du compte et de l'URL au frontend
+    return NextResponse.json({ 
+      url: accountLink.url,
+      stripeAccountId: account.id 
+    });
 
   } catch (error: any) {
     console.error("Stripe Connect Onboarding Error:", error);
