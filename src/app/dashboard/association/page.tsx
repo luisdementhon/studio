@@ -1,13 +1,14 @@
 
 "use client";
 
-import { Users, PiggyBank, Target, Calendar } from 'lucide-react';
+import { Users, PiggyBank, Target, Calendar, CreditCard, CheckCircle2, ArrowRight, Loader2 } from 'lucide-react';
 import {
   Card,
   CardContent,
   CardHeader,
   CardTitle,
   CardDescription,
+  CardFooter,
 } from '@/components/ui/card';
 import {
   Table,
@@ -18,6 +19,8 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Progress } from "@/components/ui/progress";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
   ChartContainer,
   ChartTooltip,
@@ -31,6 +34,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { subDays, format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useToast } from '@/hooks/use-toast';
 
 const chartConfig = {
   total: {
@@ -60,7 +64,9 @@ const demoRecentDonors = [
 export default function AssociationDashboardPage() {
   const { user, isUserLoading } = useUser();
   const firestore = useFirestore();
+  const { toast } = useToast();
   const [nextPayout, setNextPayout] = useState({ date: '', amount: '' });
+  const [isOnboardingStripe, setIsOnboardingStripe] = useState(false);
   
   const isDemoMode = user?.isAnonymous;
 
@@ -84,7 +90,38 @@ export default function AssociationDashboardPage() {
 
   const { data: donations, isLoading: isDonationsLoading } = useCollection(donationsQuery);
 
-  // 3. Calculate KPIs from the data
+  // 3. Handle Stripe Onboarding
+  const handleStripeOnboarding = async () => {
+    if (!user) return;
+    
+    setIsOnboardingStripe(true);
+    try {
+      const response = await fetch('/api/stripe/connect-onboarding', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ associationId: user.uid }),
+      });
+
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || "Impossible de générer le lien Stripe.");
+      }
+
+      if (data.url) {
+        window.location.href = data.url;
+      }
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Erreur de configuration",
+        description: error.message,
+      });
+    } finally {
+      setIsOnboardingStripe(false);
+    }
+  };
+
+  // 4. Calculate KPIs from the data
   const {
     monthlyFunds,
     monthlyFundsGrowth,
@@ -133,7 +170,7 @@ export default function AssociationDashboardPage() {
     }
 
     donations.forEach(donation => {
-      const donationDate = donation.transactionDate.toDate(); // Convert Firestore Timestamp to Date
+      const donationDate = donation.transactionDate?.toDate() || new Date(); // Convert Firestore Timestamp to Date
       totalFunds += donation.amount;
       donorIds.add(donation.userId);
       
@@ -162,7 +199,7 @@ export default function AssociationDashboardPage() {
         id: d.id,
         name: "Donateur Anonyme", // We can't fetch user names here for performance/privacy
         amount: d.amount,
-        date: d.transactionDate.toDate().toLocaleDateString('fr-FR')
+        date: d.transactionDate?.toDate().toLocaleDateString('fr-FR') || format(new Date(), 'dd/MM/yyyy')
     }));
 
     return { monthlyFunds, monthlyFundsGrowth, uniqueDonors: donorIds.size, averageDonation, totalFunds, chartData, recentDonors };
@@ -223,10 +260,48 @@ export default function AssociationDashboardPage() {
 
   return (
     <div className="flex flex-col gap-8">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Tableau de bord</h1>
-        <p className="text-muted-foreground">Suivez les dons et l'engagement de votre communauté.</p>
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Tableau de bord</h1>
+          <p className="text-muted-foreground">Suivez les dons et l'engagement de votre communauté.</p>
+        </div>
+        
+        {/* Payments Section */}
+        <Card className="min-w-[300px]">
+          <CardHeader className="py-3 px-4 flex flex-row items-center justify-between space-y-0">
+            <CardTitle className="text-sm font-medium">Statut des paiements</CardTitle>
+            <CreditCard className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent className="py-0 px-4 pb-3">
+            {associationData?.stripeAccountId ? (
+              <div className="flex items-center gap-2 text-green-600 font-semibold text-sm">
+                <CheckCircle2 className="h-4 w-4" />
+                <span>Paiements configurés</span>
+                <Badge variant="secondary" className="bg-green-100 text-green-700 hover:bg-green-100">Actif</Badge>
+              </div>
+            ) : (
+              <div className="flex flex-col gap-2">
+                <p className="text-xs text-muted-foreground mb-1">Configurez votre compte Stripe pour recevoir les dons.</p>
+                <Button 
+                  size="sm" 
+                  className="w-full h-8 text-xs from-amber-400 to-yellow-300 text-slate-900 hover:brightness-110" 
+                  variant="vibrant"
+                  onClick={handleStripeOnboarding}
+                  disabled={isOnboardingStripe}
+                >
+                  {isOnboardingStripe ? (
+                    <Loader2 className="mr-2 h-3 w-3 animate-spin" />
+                  ) : (
+                    <ArrowRight className="mr-2 h-3 w-3" />
+                  )}
+                  Configurer mes paiements
+                </Button>
+              </div>
+            )}
+          </CardContent>
+        </Card>
       </div>
+
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -352,7 +427,7 @@ export default function AssociationDashboardPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {recentDonors.map((donor) => (
+              {recentDonors.length > 0 ? recentDonors.map((donor) => (
                 <TableRow key={donor.id}>
                   <TableCell className="font-medium">{donor.name}</TableCell>
                   <TableCell className="text-right text-accent font-semibold">
@@ -362,7 +437,11 @@ export default function AssociationDashboardPage() {
                     {donor.date}
                   </TableCell>
                 </TableRow>
-              ))}
+              )) : (
+                <TableRow>
+                  <TableCell colSpan={3} className="text-center py-8 text-muted-foreground">Aucun donateur pour le moment.</TableCell>
+                </TableRow>
+              )}
             </TableBody>
           </Table>
         </CardContent>
@@ -370,5 +449,3 @@ export default function AssociationDashboardPage() {
     </div>
   );
 }
-
-    
