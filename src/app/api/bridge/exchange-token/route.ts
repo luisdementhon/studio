@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server';
 import { BRIDGE_CONFIG } from '@/lib/bridge';
 
-// Le Client Secret ne doit être utilisé QUE côté serveur
+// Le Client Secret doit être dans .env.local normalement. 
+// On garde la valeur de test par défaut si absente.
 const BRIDGE_CLIENT_SECRET = process.env.BRIDGE_CLIENT_SECRET || "sandbox_secret_Yv6EdHzK134ZnT3fl5OUpSNNXHMGNsCxrsNEQn20TGAtLqj2Yc61ono0UR1WzZVE";
 
 export async function POST(request: Request) {
@@ -30,14 +31,14 @@ export async function POST(request: Request) {
 
     if (!response.ok) {
       const errorData = await response.json();
-      console.error('Bridge API Error:', errorData);
+      console.error('Bridge Token Exchange Error:', errorData);
       return NextResponse.json({ error: errorData.error_message || 'Erreur lors de l\'échange du token.' }, { status: response.status });
     }
 
     const data = await response.json();
     
-    // Récupération du nom de la banque associée à cet "item"
-    let bankName = 'Banque Inconnue';
+    // Récupération des infos de la banque (nom)
+    let bankName = 'Banque connectée';
     try {
       const itemResponse = await fetch(`https://api.bridgeapi.io/v2/items/${data.item_id}`, {
         headers: {
@@ -54,13 +55,15 @@ export async function POST(request: Request) {
       console.warn("Could not fetch bank name", e);
     }
 
+    // On renvoie tout au client pour qu'il mette à jour son profil Firestore
     return NextResponse.json({ 
-      itemId: data.item_id,
+      bridgeItemId: data.item_id,
+      bridgeAccessToken: data.access_token, // En prod, on chiffrerait ça ou on le stockerait via Cloud Function
       bankName: bankName,
     });
 
   } catch (error: any) {
-    console.error("Internal Server Error:", error);
+    console.error("Internal Server Error Bridge:", error);
     return NextResponse.json({ error: 'Une erreur interne est survenue.' }, { status: 500 });
   }
 }

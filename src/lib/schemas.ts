@@ -23,9 +23,10 @@ export const UserOnboardingSchema = z.object({
   donationMultiplier: z.number().min(1, "Le multiplicateur doit être d'au moins 1.").optional().default(1),
   otherCause: z.string().optional(),
   bridgeItemId: z.string().optional(),
+  bridgeAccessToken: z.string().optional(),
   bankConnected: z.boolean().optional().default(false),
   bankName: z.string().optional(),
-  connectedAt: z.date().optional(),
+  connectedAt: z.string().optional(),
 });
 
 export const AssociationOnboardingSchema = z.object({
