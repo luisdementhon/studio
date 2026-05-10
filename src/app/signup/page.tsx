@@ -5,7 +5,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import type { z } from "zod";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { createUserWithEmailAndPassword, signInAnonymously, GoogleAuthProvider, signInWithPopup } from "firebase/auth";
+import { createUserWithEmailAndPassword, GoogleAuthProvider, signInWithPopup } from "firebase/auth";
 import { useEffect, useState } from "react";
 
 import { SignupSchema } from "@/lib/schemas";
@@ -30,8 +30,8 @@ import { Input } from "@/components/ui/input";
 import { useAuth } from "@/firebase";
 import { useToast } from "@/hooks/use-toast";
 import { BrandPattern } from "@/components/brand-pattern";
-import { Separator } from "@/components/ui/separator";
 import { GoogleIcon } from "@/components/google-icon";
+import { DotlyBrand } from "@/components/ui/dotly-brand";
 
 export default function SignupPage() {
   const auth = useAuth();
@@ -99,133 +99,117 @@ export default function SignupPage() {
     }
   };
 
-  const handleDemoAccess = async (dashboardPath: string) => {
-    if (!auth) return;
-    try {
-      await signInAnonymously(auth);
-      router.push(dashboardPath);
-    } catch (error) {
-       toast({
-        variant: "destructive",
-        title: "Erreur de la démo",
-        description: "Impossible de lancer le mode démo. Veuillez réessayer.",
-      });
-    }
-  };
+
 
   const { isSubmitting } = form.formState;
 
   return (
-    <div className="relative flex min-h-screen flex-col items-center justify-center p-4">
-        <BrandPattern />
-        <Card className="w-full max-w-sm z-10 shadow-xl">
-        <CardHeader>
-            <CardTitle>Inscription</CardTitle>
-            <CardDescription>
-            Créez votre compte pour commencer à faire la différence.
-            </CardDescription>
-        </CardHeader>
-        <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)}>
-            <CardContent className="grid gap-4 pt-6">
-                <FormField
-                control={form.control}
-                name="email"
-                render={({ field }) => (
-                    <FormItem>
-                    <FormLabel>Email</FormLabel>
-                    <FormControl>
-                        <Input
-                        type="email"
-                        placeholder="Email"
-                        {...field}
-                        disabled={isSubmitting}
-                        />
-                    </FormControl>
-                    <FormMessage />
-                    </FormItem>
-                )}
-                />
-                <FormField
-                control={form.control}
-                name="password"
-                render={({ field }) => (
-                    <FormItem>
-                    <FormLabel>Mot de passe</FormLabel>
-                    <FormControl>
-                        <Input
-                        type="password"
-                        placeholder="Mot de passe"
-                        {...field}
-                        disabled={isSubmitting}
-                        />
-                    </FormControl>
-                    <FormMessage />
-                    </FormItem>
-                )}
-                />
-                <FormField
-                control={form.control}
-                name="confirmPassword"
-                render={({ field }) => (
-                    <FormItem>
-                    <FormLabel>Confirmer le mot de passe</FormLabel>
-                    <FormControl>
-                        <Input
-                        type="password"
-                        placeholder="Confirmer le mot de passe"
-                        {...field}
-                        disabled={isSubmitting}
-                        />
-                    </FormControl>
-                    <FormMessage />
-                    </FormItem>
-                )}
-                />
-            </CardContent>
-            <CardFooter className="flex flex-col gap-4">
-                <Button type="submit" className="w-full from-amber-400 to-yellow-300 text-slate-900 hover:brightness-110" disabled={isSubmitting} variant="vibrant">
-                {isSubmitting ? "Création..." : "Créer mon compte"}
-                </Button>
-                 <div className="relative w-full">
-                    <div className="absolute inset-0 flex items-center">
-                        <span className="w-full border-t" />
-                    </div>
-                    <div className="relative flex justify-center text-xs uppercase">
-                        <span className="bg-background px-2 text-muted-foreground">
-                            Ou
-                        </span>
-                    </div>
-                </div>
-                <Button variant="outline" className="w-full" onClick={handleGoogleSignIn} disabled={isSubmitting || !isAuthReady}>
-                    <GoogleIcon className="mr-2 h-4 w-4" />
-                    S'inscrire avec Google
-                </Button>
-                <div className="text-sm text-muted-foreground">
-                Vous avez déjà un compte ?{" "}
-                <Link href="/login" className="font-medium text-transparent bg-clip-text bg-gradient-to-r from-amber-400 to-yellow-300 hover:brightness-110 transition-all">
-                    Connectez-vous
-                </Link>
-                </div>
-            </CardFooter>
-            </form>
-        </Form>
+    <div className="relative flex min-h-screen items-center justify-center bg-background overflow-hidden p-6">
+        {/* Background Accents */}
+        <div className="absolute top-[-20%] left-[-10%] w-[60%] h-[60%] bg-brand-coral/5 rounded-full blur-[120px] pointer-events-none" />
+        <div className="absolute bottom-[-20%] right-[-10%] w-[60%] h-[60%] bg-brand-mint/5 rounded-full blur-[120px] pointer-events-none" />
         
-        <Separator className="my-4" />
-        
-        <div className="px-6 pb-6">
-            <p className="text-center text-sm text-muted-foreground mb-4">Ou explorez nos interfaces en mode démo :</p>
-            <div className="flex flex-col gap-3">
-                 <Button variant="vibrant" onClick={() => handleDemoAccess('/dashboard/user')} className="w-full from-amber-400 to-yellow-300 text-slate-900 hover:brightness-110">
-                    Dashboard Donateur (Démo)
-                </Button>
-                <Button variant="vibrant" onClick={() => handleDemoAccess('/dashboard/association')} className="w-full from-amber-400 to-yellow-300 text-slate-900 hover:brightness-110">
-                    Dashboard Association (Démo)
-                </Button>
-            </div>
-        </div>
+        <div className="w-full max-w-md relative z-10 flex flex-col items-center">
+            <Link href="/" className="mb-12 group">
+                <DotlyBrand className="text-5xl transition-transform group-hover:scale-105 inline-block" />
+            </Link>
 
-        </Card>
+            <Card className="w-full p-4 border-none shadow-2xl shadow-black/[0.03] rounded-[3rem] bg-white/80 backdrop-blur-xl">
+            <CardHeader className="text-center pb-6">
+                <CardTitle className="text-4xl font-headline font-bold tracking-tight mb-2">Inscription</CardTitle>
+                <CardDescription className="text-lg text-muted-foreground">
+                Rejoignez le mouvement du changement.
+                </CardDescription>
+            </CardHeader>
+            <Form {...form}>
+                <form onSubmit={form.handleSubmit(onSubmit)}>
+                <CardContent className="grid gap-6 pt-2">
+                    <FormField
+                    control={form.control}
+                    name="email"
+                    render={({ field }) => (
+                        <FormItem>
+                        <FormControl>
+                            <Input
+                            type="email"
+                            placeholder="Adresse email"
+                            className="h-14 text-lg rounded-2xl bg-muted/30"
+                            {...field}
+                            disabled={isSubmitting}
+                            />
+                        </FormControl>
+                        <FormMessage />
+                        </FormItem>
+                    )}
+                    />
+                    <FormField
+                    control={form.control}
+                    name="password"
+                    render={({ field }) => (
+                        <FormItem>
+                        <FormControl>
+                            <Input
+                            type="password"
+                            placeholder="Mot de passe"
+                            className="h-14 text-lg rounded-2xl bg-muted/30"
+                            {...field}
+                            disabled={isSubmitting}
+                            />
+                        </FormControl>
+                        <FormMessage />
+                        </FormItem>
+                    )}
+                    />
+                    <FormField
+                    control={form.control}
+                    name="confirmPassword"
+                    render={({ field }) => (
+                        <FormItem>
+                        <FormControl>
+                            <Input
+                            type="password"
+                            placeholder="Confirmer le mot de passe"
+                            className="h-14 text-lg rounded-2xl bg-muted/30"
+                            {...field}
+                            disabled={isSubmitting}
+                            />
+                        </FormControl>
+                        <FormMessage />
+                        </FormItem>
+                    )}
+                    />
+                </CardContent>
+                <CardFooter className="flex flex-col gap-6 pt-6">
+                    <Button type="submit" className="w-full h-16 text-xl rounded-2xl shadow-lg shadow-brand-coral/20" disabled={isSubmitting} variant="vibrant">
+                    {isSubmitting ? "Création..." : "Créer mon compte"}
+                    </Button>
+                    <div className="relative w-full">
+                        <div className="absolute inset-0 flex items-center">
+                            <span className="w-full border-t border-muted/30" />
+                        </div>
+                        <div className="relative flex justify-center text-xs uppercase">
+                            <span className="bg-transparent px-4 text-muted-foreground font-medium">
+                                OU
+                            </span>
+                        </div>
+                    </div>
+                    <Button variant="outline" type="button" className="w-full h-16 text-lg rounded-2xl bg-white hover:bg-muted/30 border-muted/30 transition-all" onClick={handleGoogleSignIn} disabled={isSubmitting || !isAuthReady}>
+                        <GoogleIcon className="mr-3 h-6 w-6" />
+                        S'inscrire avec Google
+                    </Button>
+                    <div className="mt-2 text-base text-center text-muted-foreground">
+                    Vous avez déjà un compte ?{" "}
+                    <Link href="/login" className="font-semibold text-brand-coral hover:text-brand-coral/80 transition-colors">
+                        Connectez-vous
+                    </Link>
+                    </div>
+                </CardFooter>
+                </form>
+            </Form>
+
+
+            </Card>
+        </div>
     </div>
   );
 }

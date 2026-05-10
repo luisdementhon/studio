@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -31,6 +32,7 @@ import { Skeleton } from './ui/skeleton';
 import { useUser, useFirestore, setDocumentNonBlocking } from '@/firebase';
 import { collection, serverTimestamp, doc } from 'firebase/firestore';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
+import { Heart } from 'lucide-react';
 
 const stripePromise = loadStripe(STRIPE_PUBLISHABLE_KEY);
 
@@ -91,15 +93,15 @@ function CheckoutForm({
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
+    <form onSubmit={handleSubmit} className="space-y-6">
       <PaymentElement />
       <Button
-        className="w-full from-amber-400 to-yellow-300 text-slate-900 hover:brightness-110 shadow-lg shadow-amber-400/20 font-bold"
+        className="w-full h-16 rounded-[1.5rem] text-lg font-extrabold shadow-xl shadow-brand-coral/20 transition-all hover:scale-[1.02] active:scale-[0.98]"
         variant="vibrant"
         disabled={!stripe || !elements}
         type="submit"
       >
-        Confirmer le don de {amount} € à {selectedAssociation?.associationName}
+        Confirmer le don de {amount} €
       </Button>
     </form>
   );
@@ -196,14 +198,19 @@ export function DonationForm({ associations, isLoading }: { associations: Associ
   const selectedAssociation = associations.find((a) => a.id === selectedAssoId);
 
   return (
-    <Card className="border-2 border-primary/10 shadow-xl">
-      <CardHeader>
-        <CardTitle className="text-xl font-bold flex items-center gap-2">
-          Faire un don unique
+    <Card className="rounded-[3.5rem] border-none bg-white shadow-2xl shadow-black/[0.03] overflow-hidden">
+      <CardHeader className="p-10 pb-4">
+        <div className="h-14 w-14 rounded-2xl bg-brand-coral/10 flex items-center justify-center mb-6">
+          <Heart className="h-7 w-7 text-brand-coral fill-brand-coral" />
+        </div>
+        <CardTitle className="text-3xl font-headline font-extrabold tracking-tight">
+          Don Unique
         </CardTitle>
-        <CardDescription>Soutenez une association instantanément via Stripe Connect.</CardDescription>
+        <CardDescription className="text-lg font-headline font-light leading-relaxed">
+          Soutenez une cause instantanément. Simple, rapide et sécurisé.
+        </CardDescription>
       </CardHeader>
-      <CardContent className="space-y-4">
+      <CardContent className="p-10 pt-4 space-y-8">
         {clientSecret ? (
           <Elements options={{ clientSecret, appearance: { theme: 'stripe' } }} stripe={stripePromise}>
             <CheckoutForm
@@ -214,65 +221,71 @@ export function DonationForm({ associations, isLoading }: { associations: Associ
             />
             <Button 
               variant="ghost" 
-              className="w-full mt-2 text-muted-foreground" 
+              className="w-full mt-4 h-14 rounded-2xl text-muted-foreground font-bold hover:bg-black/5" 
               onClick={() => setClientSecret(null)}
               disabled={isProcessing}
             >
-              Annuler
+              Retour
             </Button>
           </Elements>
         ) : isLoading ? (
-          <div className='space-y-4'>
-            <Skeleton className="h-10 w-full" />
-            <Skeleton className="h-10 w-full" />
-            <Skeleton className="h-10 w-full" />
+          <div className='space-y-6'>
+            <Skeleton className="h-16 w-full rounded-2xl" />
+            <Skeleton className="h-16 w-full rounded-2xl" />
+            <Skeleton className="h-20 w-full rounded-2xl" />
           </div>
         ) : (
           <>
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Association bénéficiaire</label>
+            <div className="space-y-4">
+              <label className="text-[10px] font-extrabold uppercase tracking-[0.2em] text-muted-foreground/50 ml-1">Bénéficiaire</label>
               <Select onValueChange={setSelectedAssoId} value={selectedAssoId}>
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Choisir une association" />
+                <SelectTrigger className="w-full h-16 rounded-[1.5rem] bg-black/[0.03] border-none px-6 text-lg font-medium focus:ring-2 focus:ring-brand-coral/20 transition-all">
+                  <SelectValue placeholder="Choisir..." />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="rounded-2xl border-none shadow-2xl p-2 bg-white/95 backdrop-blur-xl">
                   {associations.length > 0 ? (
                     associations.map((asso) => (
-                      <SelectItem key={asso.id} value={asso.id}>
-                        <div className="flex items-center gap-2">
-                          <Avatar className="h-6 w-6">
-                            <AvatarImage src={asso.logoUrl || `https://picsum.photos/seed/${asso.id}/32/32`} alt={asso.associationName} data-ai-hint="charity logo"/>
-                            <AvatarFallback>{asso.associationName.charAt(0)}</AvatarFallback>
+                      <SelectItem key={asso.id} value={asso.id} className="rounded-xl h-14 cursor-pointer focus:bg-brand-coral/5 focus:text-brand-coral transition-colors">
+                        <div className="flex items-center gap-4">
+                          <Avatar className="h-10 w-10 rounded-xl border border-black/5">
+                            <AvatarImage src={asso.logoUrl || `https://picsum.photos/seed/${asso.id}/64/64`} alt={asso.associationName} />
+                            <AvatarFallback className="bg-brand-coral/5 text-brand-coral font-extrabold">{asso.associationName.charAt(0)}</AvatarFallback>
                           </Avatar>
-                          <span>{asso.associationName}</span>
+                          <span className="font-headline font-extrabold text-lg tracking-tight">{asso.associationName}</span>
                         </div>
                       </SelectItem>
                     ))
                   ) : (
-                    <div className="p-2 text-sm text-muted-foreground">Aucune association disponible</div>
+                    <div className="p-6 text-sm text-muted-foreground text-center font-light font-serif italic font-bold">Aucune association disponible</div>
                   )}
                 </SelectContent>
               </Select>
             </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Montant du don (€)</label>
-              <Input
-                type="number"
-                placeholder="Ex: 10"
-                value={amount === undefined ? '' : amount}
-                onChange={handleAmountChange}
-                min="1"
-                className="text-lg font-semibold"
-              />
+            <div className="space-y-4">
+              <label className="text-[10px] font-extrabold uppercase tracking-[0.2em] text-muted-foreground/50 ml-1">Montant (€)</label>
+              <div className="relative group">
+                <Input
+                  type="number"
+                  placeholder="0.00"
+                  value={amount === undefined ? '' : amount}
+                  onChange={handleAmountChange}
+                  min="1"
+                  className="h-16 rounded-[1.5rem] bg-black/[0.03] border-none px-6 text-2xl font-extrabold focus:ring-2 focus:ring-brand-coral/20 transition-all"
+                />
+                <div className="absolute right-6 top-1/2 -translate-y-1/2 text-muted-foreground/30 font-extrabold text-xl pointer-events-none group-focus-within:text-brand-coral transition-colors">€</div>
+              </div>
             </div>
             <Button
-              className="w-full from-amber-400 to-yellow-300 text-slate-900 hover:brightness-110 shadow-lg shadow-amber-400/20 font-bold h-12"
+              className="w-full h-16 rounded-[1.5rem] text-lg font-extrabold shadow-xl shadow-brand-coral/20 transition-all hover:scale-[1.02] active:scale-[0.98]"
               variant="vibrant"
               onClick={handleDonationClick}
               disabled={isProcessing || isLoading || !user || !amount || !selectedAssoId}
             >
-              {isProcessing ? 'Chargement...' : 'Passer au paiement'}
+              {isProcessing ? 'Connexion...' : 'Soutenir maintenant'}
             </Button>
+            <p className="text-center text-[10px] text-muted-foreground/50 font-headline font-light uppercase tracking-widest">
+              Sécurisé par <span className="font-headline font-extrabold">Stripe</span>
+            </p>
           </>
         )}
       </CardContent>

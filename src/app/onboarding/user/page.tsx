@@ -3,9 +3,9 @@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import type { z } from "zod";
-import { useTransition, useState } from "react";
+import { useTransition, useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { doc } from "firebase/firestore";
+import { doc, getDoc } from "firebase/firestore";
 import Link from "next/link";
 
 import { useToast } from "@/hooks/use-toast";
@@ -27,23 +27,45 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Slider } from "@/components/ui/slider";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Separator } from "@/components/ui/separator";
-import { Link2 } from "lucide-react";
+import { Link2, CreditCard, User, Heart, ChevronRight, ChevronLeft, CheckCircle2, Sparkles } from "lucide-react";
+import { StripeWrapper } from "@/components/providers/stripe-wrapper";
+import { PaymentMethodSection } from "@/components/profile/payment-method";
+import { DotlyBrand } from "@/components/ui/dotly-brand";
 
 const causes = [
-  { id: "environnement", label: "Horizons Durables" },
-  { id: "precarite", label: "Solidarité Urbaine" },
-  { id: "education", label: "Savoir pour Tous" },
-  { id: "sante", label: "Santé Partagée" },
-  { id: "animaux", label: "Amis des Animaux" },
+  { id: 'environnement', label: 'Environnement' },
+  { id: 'pauvrete', label: 'Lutte contre la pauvreté' },
+  { id: 'sante', label: 'Santé & Recherche' },
+  { id: 'education', label: 'Éducation & Jeunesse' },
+  { id: 'animaux', label: 'Protection animale' },
+  { id: 'culture', label: 'Culture & Patrimoine' },
+  { id: 'humanitaire', label: 'Aide humanitaire' },
+  { id: 'social', label: 'Inclusion sociale' },
 ];
 
 export default function UserOnboardingPage() {
+  const [step, setStep] = useState(1);
   const [isPending, startTransition] = useTransition();
   const [isConnecting, setIsConnecting] = useState(false);
   const { toast } = useToast();
   const router = useRouter();
+  const searchParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null;
   const firestore = useFirestore();
   const { user } = useUser();
+  const [dbUser, setDbUser] = useState<any>(null);
+
+  useEffect(() => {
+    const s = searchParams?.get('step');
+    if (s) setStep(parseInt(s));
+  }, [searchParams]);
+
+  useEffect(() => {
+    if (user && firestore) {
+      getDoc(doc(firestore, "users", user.uid)).then(snap => {
+        if (snap.exists()) setDbUser(snap.data());
+      });
+    }
+  }, [user, firestore, step]);
 
   const form = useForm<z.infer<typeof UserOnboardingSchema>>({
     resolver: zodResolver(UserOnboardingSchema),
@@ -59,7 +81,7 @@ export default function UserOnboardingPage() {
 
   const watchedCauses = form.watch("causes", []);
 
-  function onSubmit(values: z.infer<typeof UserOnboardingSchema>) {
+  function onProfileSubmit(values: z.infer<typeof UserOnboardingSchema>) {
     if (!user || !firestore) {
       toast({ title: "Erreur", description: "Vous devez être connecté.", variant: "destructive" });
       return;
@@ -81,8 +103,7 @@ export default function UserOnboardingPage() {
       const userDocRef = doc(firestore, "users", user.uid);
       setDocumentNonBlocking(userDocRef, userProfile, { merge: true });
 
-      toast({ title: "Profil complété !", description: "Vous allez être redirigé vers votre tableau de bord." });
-      router.push("/dashboard/user");
+      setStep(2);
     });
   }
 
@@ -91,6 +112,8 @@ export default function UserOnboardingPage() {
     try {
       const response = await fetch('/api/bridge/connect', {
         method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: user?.email, userId: user?.uid, onboarding: true }),
       });
 
       if (!response.ok) {
@@ -117,197 +140,251 @@ export default function UserOnboardingPage() {
   };
 
   return (
-    <div className="mx-auto max-w-2xl space-y-8">
-      <Card>
-        <CardHeader>
-          <CardTitle>Configurez votre profil donateur</CardTitle>
-          <CardDescription>
-            Personnalisez votre expérience Dotly. Ces informations nous aident à aligner vos dons avec vos valeurs.
-          </CardDescription>
-        </CardHeader>
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)}>
-            <CardContent className="space-y-8">
-              <FormField
-                control={form.control}
-                name="fullName"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Nom complet</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Nom complet" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
+    <StripeWrapper>
+      <div className="mx-auto max-w-2xl space-y-8 pb-12">
+        {/* Progress Header */}
+        <div className="text-center space-y-4">
+          <div className="flex items-center justify-center gap-4">
+            {[1, 2, 3].map((s) => (
+              <div
+                key={s}
+                className={`h-2 w-16 rounded-full transition-all duration-500 ${
+                  step >= s ? 'bg-brand-coral' : 'bg-muted'
+                }`}
               />
-
-              <FormField
-                control={form.control}
-                name="causes"
-                render={() => (
-                  <FormItem>
-                    <div className="mb-4">
-                      <FormLabel className="text-base">Causes qui vous tiennent à cœur</FormLabel>
-                      <FormDescription>
-                        Sélectionnez les causes que vous souhaitez soutenir en priorité.
-                      </FormDescription>
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
-                    {causes.map((item) => (
-                      <FormField
-                        key={item.id}
-                        control={form.control}
-                        name="causes"
-                        render={({ field }) => (
-                          <FormItem
-                            className="flex flex-row items-start space-x-3 space-y-0"
-                          >
-                            <FormControl>
-                              <Checkbox
-                                checked={field.value?.includes(item.id)}
-                                onCheckedChange={(checked) => {
-                                  return checked
-                                    ? field.onChange([...(field.value ?? []), item.id])
-                                    : field.onChange(
-                                        field.value?.filter(
-                                          (value) => value !== item.id
-                                        )
-                                      );
-                                }}
-                              />
-                            </FormControl>
-                            <FormLabel className="font-normal">
-                              {item.label}
-                            </FormLabel>
-                          </FormItem>
-                        )}
-                      />
-                    ))}
-                    <FormField
-                        key="autre"
-                        control={form.control}
-                        name="causes"
-                        render={({ field }) => (
-                          <FormItem
-                            className="flex flex-row items-start space-x-3 space-y-0"
-                          >
-                            <FormControl>
-                              <Checkbox
-                                checked={field.value?.includes("autre")}
-                                onCheckedChange={(checked) => {
-                                  return checked
-                                    ? field.onChange([...(field.value ?? []), "autre"])
-                                    : field.onChange(
-                                        field.value?.filter(
-                                          (value) => value !== "autre"
-                                        )
-                                      );
-                                }}
-                              />
-                            </FormControl>
-                            <FormLabel className="font-normal">
-                              Autre
-                            </FormLabel>
-                          </FormItem>
-                        )}
-                      />
-                    </div>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              {watchedCauses.includes('autre') && (
-                <FormField
-                  control={form.control}
-                  name="otherCause"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Préciser l'autre cause</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Votre cause" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              )}
-
-              <FormField
-                control={form.control}
-                name="donationCeiling"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Plafond de don mensuel : {field.value}€</FormLabel>
-                    <FormControl>
-                      <Slider
-                        value={[field.value ?? 50]}
-                        max={200}
-                        step={5}
-                        onValueChange={(value) => field.onChange(value[0])}
-                      />
-                    </FormControl>
-                    <FormDescription>
-                      Le montant maximum que vous souhaitez donner par mois.
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="donationMultiplier"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Multiplicateur d'arrondi : x{field.value}</FormLabel>
-                    <FormControl>
-                       <Slider
-                        value={[field.value ?? 1]}
-                        max={10}
-                        step={1}
-                        onValueChange={(value) => field.onChange(value[0])}
-                      />
-                    </FormControl>
-                     <FormDescription>
-                      Multipliez chaque arrondi pour donner plus. (Ex: 0.20€ x2 = 0.40€)
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </CardContent>
-            <CardFooter className="flex flex-col gap-2">
-              <Button type="submit" disabled={isPending || !user} className="w-full from-amber-400 to-yellow-300 text-slate-900 hover:brightness-110" variant="vibrant">
-                {isPending ? "Finalisation..." : "Terminer et accéder à mon espace"}
-              </Button>
-              <Button asChild variant="ghost" className="w-full text-center">
-                <Link href="/dashboard/user">Passer et aller au tableau de bord</Link>
-              </Button>
-            </CardFooter>
-          </form>
-        </Form>
-      </Card>
-      
-      <Separator />
-
-      <div className="space-y-4 text-center">
-          <h3 className="text-base font-semibold">Étape suivante : Connexion bancaire (optionnel)</h3>
-          <p className="text-sm text-muted-foreground max-w-md mx-auto">
-            Connectez votre compte bancaire pour activer l'arrondi automatique à chaque transaction. C'est sécurisé et vous gardez le contrôle.
+            ))}
+          </div>
+          <h1 className="text-4xl md:text-6xl font-headline font-extrabold tracking-tight">
+            {step === 1 && <><DotlyBrand /> et vous</>}
+            {step === 2 && "L'arrondi automatique"}
+            {step === 3 && "Le don sécurisé"}
+          </h1>
+          <p className="text-muted-foreground max-w-md mx-auto text-lg">
+            {step === 1 && "Dites-nous quelles causes vous tiennent à cœur."}
+            {step === 2 && "Connectez votre banque pour activer les arrondis."}
+            {step === 3 && "Enregistrez votre carte pour valider vos dons."}
           </p>
-          <Button 
-            onClick={handleConnectBank}
-            disabled={isConnecting}
-            className="from-amber-400 to-yellow-300 text-slate-900 hover:brightness-110" 
-            variant="vibrant"
-          >
-            <Link2 className="mr-2 h-4 w-4" />
-            {isConnecting ? "Connexion en cours..." : "Connecter ma banque"}
-          </Button>
-      </div>
+        </div>
 
-    </div>
+        {step === 1 && (
+          <Card className="rounded-[2.5rem] border-none bg-white shadow-2xl shadow-black/[0.03]">
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(onProfileSubmit)}>
+                <CardContent className="space-y-8 pt-8">
+                  <FormField
+                    control={form.control}
+                    name="fullName"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-base font-semibold">Nom complet</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Votre prénom et nom" className="h-12 rounded-xl" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="causes"
+                    render={() => (
+                      <FormItem>
+                        <FormLabel className="text-base font-semibold">Vos causes favorites</FormLabel>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3">
+                          {causes.map((item) => (
+                            <FormField
+                              key={item.id}
+                              control={form.control}
+                              name="causes"
+                              render={({ field }) => (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const isChecked = field.value?.includes(item.id);
+                                    return isChecked
+                                      ? field.onChange(field.value?.filter((v) => v !== item.id))
+                                      : field.onChange([...(field.value ?? []), item.id]);
+                                  }}
+                                  className={`flex items-center justify-center gap-3 px-4 py-4 rounded-2xl border-2 text-sm font-bold transition-all ${
+                                    field.value?.includes(item.id)
+                                      ? 'border-brand-coral bg-brand-coral/5 text-brand-coral shadow-lg shadow-brand-coral/5'
+                                      : 'border-muted bg-muted/20 text-muted-foreground hover:border-brand-coral/20'
+                                  }`}
+                                >
+                                  {item.label}
+                                </button>
+                              )}
+                            />
+                          ))}
+                          
+                          <FormField
+                            key="autre"
+                            control={form.control}
+                            name="causes"
+                            render={({ field }) => (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const isChecked = field.value?.includes("autre");
+                                  return isChecked
+                                    ? field.onChange(field.value?.filter((v) => v !== "autre"))
+                                    : field.onChange([...(field.value ?? []), "autre"]);
+                                }}
+                                className={`flex items-center justify-center gap-3 px-4 py-4 rounded-2xl border-2 text-sm font-bold transition-all ${
+                                  field.value?.includes("autre")
+                                    ? 'border-brand-coral bg-brand-coral/5 text-brand-coral shadow-lg shadow-brand-coral/5'
+                                    : 'border-muted bg-muted/20 text-muted-foreground hover:border-brand-coral/20'
+                                }`}
+                              >
+                                Autre cause...
+                              </button>
+                            )}
+                          />
+                        </div>
+
+                        {watchedCauses.includes('autre') && (
+                          <div className="mt-4 animate-in slide-in-from-top-2 duration-300">
+                            <FormField
+                              control={form.control}
+                              name="otherCause"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormControl>
+                                    <Input className="h-12 rounded-xl border-brand-coral/20 focus-visible:ring-brand-coral" {...field} />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                          </div>
+                        )}
+                      </FormItem>
+                    )}
+                  />
+
+                    <div className="space-y-12 pt-4">
+                      <FormField
+                        control={form.control}
+                        name="donationMultiplier"
+                        render={({ field }) => (
+                          <FormItem>
+                            <div className="flex justify-between items-end mb-2">
+                              <FormLabel className="text-base font-semibold">Multiplicateur : x{field.value}</FormLabel>
+                              <span className="text-xs font-bold text-brand-coral bg-brand-coral/10 px-3 py-1 rounded-full">
+                                  Env. {(field.value * 12.5).toFixed(2)}€ / mois
+                              </span>
+                            </div>
+                            <FormControl>
+                              <Slider
+                                min={1}
+                                max={10}
+                                step={0.5}
+                                value={[field.value ?? 1]}
+                                onValueChange={(vals) => field.onChange(vals[0])}
+                                className="py-4"
+                              />
+                            </FormControl>
+                            <p className="text-[10px] text-muted-foreground italic leading-tight">
+                              * Basé sur une moyenne de 25 transactions par mois (0,50€ d'arrondi moyen).
+                            </p>
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={form.control}
+                        name="donationCeiling"
+                        render={({ field }) => (
+                          <FormItem>
+                            <div className="flex justify-between items-end mb-2">
+                              <FormLabel className="text-base font-semibold">Plafond mensuel</FormLabel>
+                              <span className="text-2xl font-bold text-brand-coral">{field.value}€</span>
+                            </div>
+                            <FormControl>
+                              <Slider 
+                                min={5} 
+                                max={200} 
+                                step={5} 
+                                value={[field.value ?? 50]} 
+                                onValueChange={(v) => field.onChange(v[0])} 
+                              />
+                            </FormControl>
+                            <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold mt-2">Minimum 5€</p>
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                </CardContent>
+                <CardFooter className="p-8">
+                  <Button type="submit" className="w-full h-14 rounded-2xl text-lg font-bold" variant="vibrant">
+                    Continuer <ChevronRight className="ml-2 h-5 w-5" />
+                  </Button>
+                </CardFooter>
+              </form>
+            </Form>
+          </Card>
+        )}
+
+        {step === 2 && (
+          <Card className="rounded-[2.5rem] border-none bg-white shadow-2xl shadow-black/[0.03] p-12 text-center space-y-8">
+            <div className="mx-auto h-20 w-20 rounded-[2rem] bg-brand-mint/10 flex items-center justify-center">
+              <Link2 className="h-10 w-10 text-brand-mint" />
+            </div>
+            <div className="space-y-2">
+              <h2 className="text-2xl font-bold">Lier votre compte</h2>
+              <p className="text-muted-foreground">
+                C'est ici que la magie opère. Nous calculons vos arrondis en toute sécurité sans jamais toucher à votre argent.
+              </p>
+            </div>
+
+            {dbUser?.bankConnected ? (
+              <div className="bg-brand-mint/10 rounded-2xl p-6 flex items-center gap-4 text-left border border-brand-mint/20">
+                <CheckCircle2 className="h-6 w-6 text-brand-mint" />
+                <p className="font-bold">Banque connectée avec succès !</p>
+              </div>
+            ) : (
+              <Button onClick={handleConnectBank} disabled={isConnecting} className="w-full h-16 rounded-2xl text-lg font-bold" variant="vibrant">
+                {isConnecting ? "Connexion..." : "Connecter ma banque"}
+              </Button>
+            )}
+
+            <div className="flex gap-4">
+              <Button variant="ghost" onClick={() => setStep(1)} className="flex-1 h-12 rounded-xl">
+                <ChevronLeft className="mr-2 h-4 w-4" /> Retour
+              </Button>
+              <Button variant="outline" onClick={() => setStep(3)} className="flex-1 h-12 rounded-xl">
+                Plus tard <ChevronRight className="ml-2 h-4 w-4" />
+              </Button>
+            </div>
+          </Card>
+        )}
+
+        {step === 3 && (
+          <Card className="rounded-[2.5rem] border-none bg-white shadow-2xl shadow-black/[0.03] p-8">
+            <div className="flex flex-col items-center text-center gap-6 mb-8">
+              <div className="h-16 w-16 rounded-2xl bg-brand-coral/10 flex items-center justify-center">
+                <CreditCard className="h-8 w-8 text-brand-coral" />
+              </div>
+              <div>
+                <h2 className="text-2xl font-bold">Moyen de prélèvement</h2>
+                <p className="text-muted-foreground">Enregistrez votre carte pour valider vos dons mensuels.</p>
+              </div>
+            </div>
+
+            <PaymentMethodSection />
+
+            <div className="mt-12 flex flex-col gap-4">
+              <Button asChild className="w-full h-16 rounded-2xl text-lg font-bold" variant="vibrant">
+                <Link href="/dashboard/user">Accéder à mon tableau de bord</Link>
+              </Button>
+              <Button variant="ghost" onClick={() => setStep(2)} className="h-12 rounded-xl">
+                <ChevronLeft className="mr-2 h-4 w-4" /> Étape précédente
+              </Button>
+            </div>
+          </Card>
+        )}
+      </div>
+    </StripeWrapper>
   );
 }

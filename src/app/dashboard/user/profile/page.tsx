@@ -26,14 +26,20 @@ import { doc } from "firebase/firestore";
 import { setDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 import { getBridgeAuthUrl } from "@/lib/bridge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Banknote, CheckCircle2, Link2 } from "lucide-react";
+import { Banknote, CheckCircle2, Link2, CreditCard, Clock } from "lucide-react";
+import { DotlyBrand } from "@/components/ui/dotly-brand";
+import { StripeWrapper } from "@/components/providers/stripe-wrapper";
+import { PaymentMethodSection } from "@/components/profile/payment-method";
 
 const causes = [
-  { id: "environnement", label: "Environnement" },
-  { id: "precarite", label: "Précarité" },
-  { id: "education", label: "Éducation" },
-  { id: "sante", label: "Santé" },
-  { id: "animaux", label: "Cause animale" },
+  { id: 'environnement', label: 'Environnement' },
+  { id: 'pauvrete', label: 'Lutte contre la pauvreté' },
+  { id: 'sante', label: 'Santé & Recherche' },
+  { id: 'education', label: 'Éducation & Jeunesse' },
+  { id: 'animaux', label: 'Protection animale' },
+  { id: 'culture', label: 'Culture & Patrimoine' },
+  { id: 'humanitaire', label: 'Aide humanitaire' },
+  { id: 'social', label: 'Inclusion sociale' },
 ];
 
 export default function UserProfilePage() {
@@ -100,6 +106,33 @@ export default function UserProfilePage() {
   }
 
   const isLoading = isUserLoading || isProfileLoading;
+  const handleConnectBank = async () => {
+    try {
+      const response = await fetch("/api/bridge/connect", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: user?.email, userId: user?.uid }),
+      });
+
+      const data = await response.json();
+
+      if (data.redirect_url) {
+        window.location.href = data.redirect_url;
+      } else {
+        toast({
+          title: "Erreur",
+          description: data.error || "Impossible de générer le lien de connexion.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Erreur",
+        description: "Une erreur est survenue lors de la connexion.",
+        variant: "destructive",
+      });
+    }
+  };
 
   if (isLoading) {
     return (
@@ -114,42 +147,48 @@ export default function UserProfilePage() {
   }
 
   return (
-    <div className="flex flex-col gap-8">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Mon Profil</h1>
-        <p className="text-muted-foreground">Gérez vos informations personnelles et vos préférences.</p>
+    <StripeWrapper>
+      <div className="flex flex-col gap-12 max-w-5xl">
+      <div className="space-y-4">
+        <h1 className="text-6xl md:text-8xl font-headline font-bold tracking-tight text-foreground leading-[0.9]">
+            mon<br />
+            <span className="text-brand-coral">profil.</span>
+        </h1>
+        <p className="text-xl md:text-2xl text-muted-foreground font-headline font-light max-w-2xl">
+          Gérez vos informations personnelles et vos préférences de don sur <DotlyBrand className="inline text-lg" />
+        </p>
       </div>
 
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)}>
-          <Tabs defaultValue="preferences" className="w-full">
-            <TabsList className="grid w-full grid-cols-3">
-              <TabsTrigger value="preferences">Préférences de don</TabsTrigger>
-              <TabsTrigger value="connexions">Comptes connectés</TabsTrigger>
-              <TabsTrigger value="infos">Informations</TabsTrigger>
+          <Tabs defaultValue="preferences" className="w-full space-y-12">
+            <TabsList className="bg-muted/20 p-2 rounded-[2rem] h-auto flex flex-wrap md:flex-nowrap gap-2 w-fit">
+              <TabsTrigger value="preferences" className="rounded-[1.5rem] px-8 py-4 data-[state=active]:bg-white data-[state=active]:shadow-xl data-[state=active]:shadow-black/[0.03] text-base font-bold transition-all">Préférences</TabsTrigger>
+              <TabsTrigger value="connexions" className="rounded-[1.5rem] px-8 py-4 data-[state=active]:bg-white data-[state=active]:shadow-xl data-[state=active]:shadow-black/[0.03] text-base font-bold transition-all">Comptes</TabsTrigger>
+              <TabsTrigger value="infos" className="rounded-[1.5rem] px-8 py-4 data-[state=active]:bg-white data-[state=active]:shadow-xl data-[state=active]:shadow-black/[0.03] text-base font-bold transition-all">Informations</TabsTrigger>
             </TabsList>
 
-            <TabsContent value="preferences">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Préférences de don</CardTitle>
-                  <CardDescription>Ajustez comment et combien vous souhaitez donner.</CardDescription>
+            <TabsContent value="preferences" className="mt-0">
+              <Card className="rounded-[2.5rem] border-none bg-white shadow-2xl shadow-black/[0.03] overflow-hidden">
+                <CardHeader className="p-8 pb-4">
+                  <CardTitle className="text-2xl font-headline font-extrabold tracking-tight">Préférences de don</CardTitle>
+                  <CardDescription className="text-base font-headline font-light">Ajustez comment et combien vous souhaitez donner chaque mois.</CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-8">
+                <CardContent className="p-8 pt-4 space-y-10">
                   <FormField
                     control={form.control}
                     name="causes"
                     render={() => (
-                      <FormItem>
-                        <FormLabel className="text-base">Causes favorites</FormLabel>
-                        <div className="grid grid-cols-2 gap-4 pt-2">
+                      <FormItem className="space-y-6">
+                        <FormLabel className="text-sm font-bold uppercase tracking-widest text-muted-foreground ml-1">Causes favorites</FormLabel>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                           {[...causes, { id: 'autre', label: 'Autre' }].map((item) => (
                             <FormField
                               key={item.id}
                               control={form.control}
                               name="causes"
                               render={({ field }) => (
-                                <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                                <FormItem className="flex flex-row items-center space-x-4 space-y-0 bg-muted/20 p-4 rounded-2xl hover:bg-muted/30 transition-colors cursor-pointer">
                                   <FormControl>
                                     <Checkbox
                                       checked={field.value?.includes(item.id)}
@@ -160,9 +199,10 @@ export default function UserProfilePage() {
                                               field.value?.filter((value) => value !== item.id)
                                             );
                                       }}
+                                      className="rounded-lg h-6 w-6 border-muted/50 data-[state=checked]:bg-brand-coral data-[state=checked]:border-brand-coral"
                                     />
                                   </FormControl>
-                                  <FormLabel className="font-normal">{item.label}</FormLabel>
+                                  <FormLabel className="text-base font-bold text-foreground cursor-pointer">{item.label}</FormLabel>
                                 </FormItem>
                               )}
                             />
@@ -178,10 +218,10 @@ export default function UserProfilePage() {
                       control={form.control}
                       name="otherCause"
                       render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Préciser l'autre cause</FormLabel>
+                        <FormItem className="space-y-3">
+                          <FormLabel className="text-sm font-bold uppercase tracking-widest text-muted-foreground ml-1">Préciser l'autre cause</FormLabel>
                           <FormControl>
-                            <Input placeholder="Votre cause" {...field} />
+                            <Input placeholder="Votre cause" className="h-14 rounded-2xl bg-muted/30 border-none px-6 text-base font-medium focus:ring-2 focus:ring-brand-coral/20 transition-all" {...field} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -189,131 +229,153 @@ export default function UserProfilePage() {
                     />
                   )}
 
-                  <FormField
-                    control={form.control}
-                    name="donationCeiling"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Plafond mensuel : {field.value}€</FormLabel>
-                        <FormControl>
-                          <Slider
-                            value={[field.value ?? 50]}
-                            max={200}
-                            step={5}
-                            onValueChange={(value) => field.onChange(value[0])}
-                          />
-                        </FormControl>
-                        <FormDescription>Le montant maximum de dons par mois.</FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-12 pt-4">
+                    <FormField
+                        control={form.control}
+                        name="donationCeiling"
+                        render={({ field }) => (
+                        <FormItem className="space-y-6">
+                            <div className="flex items-center justify-between">
+                                <FormLabel className="text-sm font-bold uppercase tracking-widest text-muted-foreground ml-1">Plafond mensuel</FormLabel>
+                                <span className="text-2xl font-bold text-brand-coral">{field.value}€</span>
+                            </div>
+                            <FormControl>
+                            <Slider
+                                value={[field.value ?? 50]}
+                                min={5}
+                                max={200}
+                                step={5}
+                                onValueChange={(value) => field.onChange(value[0])}
+                                className="py-4"
+                            />
+                            </FormControl>
+                            <FormDescription className="text-sm font-medium">Le montant maximum prélevé par mois. (Min 5€)</FormDescription>
+                            <FormMessage />
+                        </FormItem>
+                        )}
+                    />
 
-                  <FormField
-                    control={form.control}
-                    name="donationMultiplier"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Multiplicateur d'arrondi : x{field.value}</FormLabel>
-                        <FormControl>
-                          <Slider
-                            value={[field.value ?? 1]}
-                            max={10}
-                            step={1}
-                            onValueChange={(value) => field.onChange(value[0])}
-                          />
-                        </FormControl>
-                        <FormDescription>Multipliez chaque arrondi pour amplifier votre impact.</FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                    <FormField
+                        control={form.control}
+                        name="donationMultiplier"
+                        render={({ field }) => (
+                        <FormItem className="space-y-6">
+                            <div className="flex items-center justify-between">
+                                <div className="flex flex-col">
+                                    <FormLabel className="text-sm font-bold uppercase tracking-widest text-muted-foreground ml-1">Multiplicateur</FormLabel>
+                                    <span className="text-[10px] font-bold text-brand-coral mt-1">Env. {(field.value * 12.5).toFixed(2)}€ / mois</span>
+                                </div>
+                                <span className="text-2xl font-bold text-brand-coral">x{field.value}</span>
+                            </div>
+                            <FormControl>
+                            <Slider
+                                value={[field.value ?? 1]}
+                                min={1}
+                                max={10}
+                                step={0.5}
+                                onValueChange={(value) => field.onChange(value[0])}
+                                className="py-4"
+                            />
+                            </FormControl>
+                            <FormDescription className="text-sm font-medium">Amplifiez chaque arrondi pour plus d'impact.</FormDescription>
+                            <FormMessage />
+                        </FormItem>
+                        )}
+                    />
+                  </div>
                 </CardContent>
               </Card>
             </TabsContent>
             
-            <TabsContent value="connexions">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Connexions Bancaires</CardTitle>
-                  <CardDescription>Connectez vos comptes pour activer l'arrondi automatique.</CardDescription>
+            <TabsContent value="connexions" className="mt-0">
+              <Card className="rounded-[2.5rem] border-none bg-white shadow-2xl shadow-black/[0.03] overflow-hidden">
+                <CardHeader className="p-8 pb-4">
+                  <CardTitle className="text-2xl font-headline font-extrabold tracking-tight">Connexions Bancaires</CardTitle>
+                  <CardDescription className="text-base font-headline font-light">Connectez vos comptes pour activer l'arrondi automatique sur vos achats.</CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-4">
+                <CardContent className="p-8 pt-4">
                   {userData?.bankConnected ? (
-                    <Card className="bg-green-50 border-green-200">
-                        <CardHeader>
-                            <div className="flex items-center gap-3">
-                                <CheckCircle2 className="h-6 w-6 text-green-600" />
-                                <CardTitle className="text-base text-green-800">Compte connecté !</CardTitle>
-                            </div>
-                        </CardHeader>
-                        <CardContent>
-                            <p className="text-sm text-green-700">
-                                Votre compte bancaire <span className="font-semibold">{userData.bankName}</span> est connecté à Dotly.
+                    <div className="bg-brand-mint/10 rounded-[2rem] p-8 flex items-center gap-6 border-2 border-brand-mint/20">
+                        <div className="h-16 w-16 rounded-2xl bg-brand-mint flex items-center justify-center shadow-lg shadow-brand-mint/20">
+                            <CheckCircle2 className="h-8 w-8 text-white" />
+                        </div>
+                        <div>
+                            <h3 className="text-xl font-bold text-foreground">Compte connecté</h3>
+                            <p className="text-muted-foreground font-medium mt-1">
+                                Votre compte <span className="text-brand-mint">{userData.bankName}</span> est actif.
                             </p>
-                        </CardContent>
-                    </Card>
+                        </div>
+                    </div>
                   ) : (
-                    <div className="flex flex-col items-center gap-4 text-center p-4 bg-muted/50 rounded-lg">
-                        <Banknote className="h-12 w-12 text-primary" />
-                        <p className="text-sm text-muted-foreground">
-                            Activez l'arrondi automatique en connectant votre compte bancaire en toute sécurité.
-                        </p>
-                        <Button asChild>
-                            <a 
-                              href={getBridgeAuthUrl()}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                            >
-                                <Link2 className="mr-2 h-4 w-4" />
-                                Connecter ma banque
-                            </a>
+                    <div className="flex flex-col items-center gap-8 text-center p-12 bg-muted/20 rounded-[2.5rem] border-2 border-dashed border-muted/50">
+                        <div className="h-20 w-20 rounded-[2rem] bg-white flex items-center justify-center shadow-xl shadow-black/[0.03]">
+                            <Banknote className="h-10 w-10 text-brand-coral" />
+                        </div>
+                        <div className="space-y-2">
+                            <h3 className="text-2xl font-headline font-bold">Activer l'arrondi</h3>
+                            <p className="text-muted-foreground max-w-sm font-medium">
+                                Connectez votre compte bancaire en toute sécurité via Bridge pour transformer vos centimes en dons.
+                            </p>
+                        </div>
+                        <Button onClick={handleConnectBank} className="h-16 rounded-2xl px-10 text-lg font-bold shadow-xl shadow-brand-coral/20 hover:scale-[1.02] active:scale-[0.98] transition-all" variant="vibrant">
+                            <Link2 className="mr-3 h-5 w-5" />
+                            Connecter ma banque
                         </Button>
                     </div>
                   )}
+
+                  <div className="mt-12 space-y-8">
+                    <div className="flex items-center gap-4">
+                      <div className="h-10 w-10 rounded-full bg-brand-coral/10 flex items-center justify-center">
+                        <CreditCard className="h-5 w-5 text-brand-coral" />
+                      </div>
+                      <h3 className="text-xl font-headline font-bold">Moyen de prélèvement</h3>
+                    </div>
+                    
+                    <PaymentMethodSection />
+                  </div>
                 </CardContent>
               </Card>
             </TabsContent>
 
-            <TabsContent value="infos">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Informations Personnelles</CardTitle>
-                  <CardDescription>Mettez à jour vos informations de contact.</CardDescription>
+            <TabsContent value="infos" className="mt-0">
+              <Card className="rounded-[2.5rem] border-none bg-white shadow-2xl shadow-black/[0.03] overflow-hidden">
+                <CardHeader className="p-8 pb-4">
+                  <CardTitle className="text-2xl font-headline font-extrabold tracking-tight">Informations Personnelles</CardTitle>
+                  <CardDescription className="text-base font-headline font-light">Mettez à jour vos informations de contact.</CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-4">
+                <CardContent className="p-8 pt-4 space-y-8">
                   <FormField
                     control={form.control}
                     name="fullName"
                     render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Nom complet</FormLabel>
+                      <FormItem className="space-y-3">
+                        <FormLabel className="text-sm font-bold uppercase tracking-widest text-muted-foreground ml-1">Nom complet</FormLabel>
                         <FormControl>
-                          <Input {...field} />
+                          <Input className="h-14 rounded-2xl bg-muted/30 border-none px-6 text-base font-medium focus:ring-2 focus:ring-brand-coral/20 transition-all" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
-                  <FormItem>
-                    <FormLabel>Adresse Email</FormLabel>
-                    <FormControl>
-                      <Input type="email" value={user?.email || ''} disabled />
-                    </FormControl>
-                    <FormDescription>L'adresse email ne peut pas être modifiée.</FormDescription>
-                  </FormItem>
+                  <div className="space-y-3">
+                    <label className="text-sm font-bold uppercase tracking-widest text-muted-foreground ml-1">Adresse Email</label>
+                    <Input value={user?.email || ''} disabled className="h-14 rounded-2xl bg-muted/10 border-none px-6 text-base font-medium text-muted-foreground/60 cursor-not-allowed" />
+                    <p className="text-xs text-muted-foreground ml-1">L'adresse email ne peut pas être modifiée.</p>
+                  </div>
                 </CardContent>
               </Card>
             </TabsContent>
           </Tabs>
           
-          <div className="mt-8 flex justify-end">
-            <Button type="submit" disabled={isPending} className="from-amber-400 to-yellow-300 text-slate-900 hover:brightness-110 shadow-lg shadow-amber-400/20 px-8" variant="vibrant">
-              {isPending ? "Sauvegarde..." : "Sauvegarder les changements"}
+          <div className="mt-12 flex justify-end">
+            <Button type="submit" disabled={isPending} className="h-16 rounded-2xl px-12 text-lg font-bold shadow-xl shadow-brand-coral/20 hover:scale-[1.02] active:scale-[0.98] transition-all" variant="vibrant">
+              {isPending ? "Sauvegarde..." : "Enregistrer les modifications"}
             </Button>
           </div>
         </form>
       </Form>
     </div>
+    </StripeWrapper>
   );
 }

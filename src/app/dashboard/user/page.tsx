@@ -1,7 +1,10 @@
 
 "use client";
 
-import { HandHeart, PiggyBank, Coins, ShieldCheck, Landmark } from 'lucide-react';
+export const dynamic = 'force-dynamic';
+
+import Link from 'next/link';
+import { HandHeart, PiggyBank, Coins, ShieldCheck, Landmark, Calendar, Heart, Receipt } from 'lucide-react';
 import {
   Card,
   CardContent,
@@ -24,39 +27,44 @@ import {
   ChartTooltipContent,
   ChartConfig,
 } from '@/components/ui/chart';
-import { BarChart as RechartsBarChart, XAxis, YAxis, Bar, CartesianGrid, ResponsiveContainer } from 'recharts';
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Tooltip } from 'recharts';
 import { useDoc, useFirestore, useUser, useCollection } from '@/firebase';
 import { doc, collection, getDocs, query, limit, orderBy } from 'firebase/firestore';
 import { Skeleton } from '@/components/ui/skeleton';
 import { DonationForm } from '@/components/donation-form';
 import { useEffect, useState, useMemo } from 'react';
 import type { Association } from '@/lib/schemas';
-import { format, getMonth, subDays } from 'date-fns';
+import { format, subDays, startOfDay, isAfter } from 'date-fns';
 import { fr } from 'date-fns/locale';
-
+import { Button } from '@/components/ui/button';
+import { DotlyBrand } from '@/components/ui/dotly-brand';
 
 const chartConfig = {
   dons: {
     label: 'Dons (€)',
-    color: 'hsl(var(--chart-1))',
+    color: 'hsl(var(--brand-coral))',
   },
 } satisfies ChartConfig;
 
 const causesLabels: { [key: string]: string } = {
-  environnement: "Environnement",
-  precarite: "Précarité",
-  education: "Éducation",
-  sante: "Santé",
-  animaux: "Cause animale",
+  'environnement': 'Environnement',
+  'pauvrete': 'Lutte contre la pauvreté',
+  'sante': 'Santé & Recherche',
+  'education': 'Éducation & Jeunesse',
+  'animaux': 'Protection animale',
+  'culture': 'Culture & Patrimoine',
+  'humanitaire': 'Aide humanitaire',
+  'social': 'Inclusion sociale',
+  'autre': 'Autre'
 };
 
 const demoChartData = [
-  { month: format(new Date(new Date().setMonth(new Date().getMonth() - 5)), 'MMMM', { locale: fr }), dons: 12.5 },
-  { month: format(new Date(new Date().setMonth(new Date().getMonth() - 4)), 'MMMM', { locale: fr }), dons: 15.8 },
-  { month: format(new Date(new Date().setMonth(new Date().getMonth() - 3)), 'MMMM', { locale: fr }), dons: 11.2 },
-  { month: format(new Date(new Date().setMonth(new Date().getMonth() - 2)), 'MMMM', { locale: fr }), dons: 21.4 },
-  { month: format(new Date(new Date().setMonth(new Date().getMonth() - 1)), 'MMMM', { locale: fr }), dons: 18.9 },
-  { month: format(new Date(), 'MMMM', { locale: fr }), dons: 25.6 },
+  { date: format(subDays(new Date(), 5), 'dd MMM', { locale: fr }), dons: 12.5 },
+  { date: format(subDays(new Date(), 4), 'dd MMM', { locale: fr }), dons: 15.8 },
+  { date: format(subDays(new Date(), 3), 'dd MMM', { locale: fr }), dons: 11.2 },
+  { date: format(subDays(new Date(), 2), 'dd MMM', { locale: fr }), dons: 21.4 },
+  { date: format(subDays(new Date(), 1), 'dd MMM', { locale: fr }), dons: 18.9 },
+  { date: format(new Date(), 'dd MMM', { locale: fr }), dons: 25.6 },
 ];
 
 const demoRecentDonations = [
@@ -65,14 +73,17 @@ const demoRecentDonations = [
     { id: 'd3', associationName: 'Greenpeace', amount: 10.00, transactionDate: subDays(new Date(), 25) },
 ];
 
+type Period = '7j' | '30j' | '1an';
+
 export default function UserDashboardPage() {
   const { user, isUserLoading } = useUser();
   const firestore = useFirestore();
   const [associations, setAssociations] = useState<Association[]>([]);
   const [associationsLoading, setAssociationsLoading] = useState(true);
+  const [period, setPeriod] = useState<Period>('30j');
   const [weeklyRoundups, setWeeklyRoundups] = useState(0);
 
-  const isDemoMode = user?.isAnonymous;
+  const isDemoMode = !!user?.isAnonymous;
 
   // 1. Fetch user profile
   const userDocRef = useMemo(() => {
@@ -81,7 +92,7 @@ export default function UserDashboardPage() {
   }, [firestore, user, isDemoMode]);
   const { data: userData, isLoading: isProfileLoading } = useDoc(userDocRef);
 
-  // 2. Fetch user's donations from the subcollection
+  // 2. Fetch user's donations
   const donationsQuery = useMemo(() => {
     if (!firestore || !user || isDemoMode) return null;
     return query(
@@ -91,7 +102,7 @@ export default function UserDashboardPage() {
   }, [firestore, user, isDemoMode]);
   const { data: donations, isLoading: isDonationsLoading } = useCollection(donationsQuery);
   
-  // 3. Fetch associations for donation form and donation list
+  // 3. Fetch associations
   useEffect(() => {
     if (isDemoMode) {
       setAssociations([
@@ -112,7 +123,6 @@ export default function UserDashboardPage() {
             const assos: Association[] = [];
             querySnapshot.forEach((doc) => {
                 const data = doc.data();
-                // Filter out the test association
                 if (data.associationName?.toLowerCase() !== 'prout') {
                     assos.push({ id: doc.id, ...data } as Association);
                 }
@@ -127,162 +137,242 @@ export default function UserDashboardPage() {
     fetchAssociations();
   }, [firestore, isDemoMode]);
 
+  const [bridgeData, setBridgeData] = useState<{ totalDonations: number, transactions: any[] } | null>(null);
+  const [bridgeLoading, setBridgeLoading] = useState(false);
 
-  // 4. Calculate KPIs from dynamic data
+  // 4. Fetch real bridge transactions for roundups
+  useEffect(() => {
+    if (user?.email && userData?.bankConnected && !isDemoMode) {
+      async function fetchBridgeTransactions() {
+        setBridgeLoading(true);
+        try {
+          const response = await fetch("/api/bridge/transactions", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ 
+                email: user?.email, 
+                userId: user?.uid,
+                multiplier: userData?.donationMultiplier || 1 
+            }),
+          });
+          if (response.ok) {
+            const data = await response.json();
+            setBridgeData(data);
+          }
+        } catch (error) {
+          console.error("Failed to fetch bridge transactions:", error);
+        } finally {
+          setBridgeLoading(false);
+        }
+      }
+      fetchBridgeTransactions();
+    }
+  }, [user, userData, isDemoMode]);
+
+  // 5. Calculate KPIs and Chart Data based on period
   const {
-    monthlyDonation,
+    totalDonations,
+    pendingRoundups,
     taxDeductibleAmount,
     chartData,
     recentDonations,
     userCauses
   } = useMemo(() => {
     if (isDemoMode) {
-        const monthlyDonation = 25.60;
         return {
-            monthlyDonation,
-            taxDeductibleAmount: monthlyDonation * 0.66,
+            totalDonations: period === '7j' ? 42.50 : period === '30j' ? 128.40 : 1450.00,
+            pendingRoundups: 15.42,
+            taxDeductibleAmount: (period === '7j' ? 42.50 : period === '30j' ? 128.40 : 1450.00) * 0.66,
             chartData: demoChartData,
             recentDonations: demoRecentDonations,
-            userCauses: { causes: ['environnement', 'animaux'] }
+            userCauses: { causes: ['environnement', 'animaux'], selectedAssociations: ['1', '2', '3'] }
         }
     }
 
+    const bridgeTotal = bridgeData?.totalDonations || 0;
+
     if (!donations) {
-        return { monthlyDonation: 0, taxDeductibleAmount: 0, chartData: [], recentDonations: [], userCauses: null };
+        return { totalDonations: 0, pendingRoundups: bridgeTotal, taxDeductibleAmount: 0, chartData: [], recentDonations: [], userCauses: null };
     }
 
     const now = new Date();
-    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-
-    let monthlyDonation = 0;
-    const monthlyTotals: number[] = Array(6).fill(0);
-    const monthLabels: string[] = [];
-
-    // Initialize month labels for the last 6 months
-    for (let i = 5; i >= 0; i--) {
-        const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-        monthLabels.push(format(d, 'MMMM', { locale: fr }));
+    let startDate: Date;
+    switch (period) {
+      case '7j': startDate = subDays(now, 7); break;
+      case '30j': startDate = subDays(now, 30); break;
+      case '1an': startDate = subDays(now, 365); break;
     }
 
-    donations.forEach(d => {
-        const donationDate = new Date(d.transactionDate.toDate()); // Convert Firestore Timestamp to Date
-        if (donationDate >= startOfMonth) {
-            monthlyDonation += d.amount;
-        }
-
-        // Aggregate data for the chart
-        const monthDiff = (now.getFullYear() - donationDate.getFullYear()) * 12 + (now.getMonth() - donationDate.getMonth());
-        if (monthDiff >= 0 && monthDiff < 6) {
-            monthlyTotals[5 - monthDiff] += d.amount;
-        }
+    const filteredDonations = donations.filter(d => {
+      const rawDate = (d as any).transactionDate;
+      const donationDate = (rawDate && typeof rawDate.toDate === 'function') ? rawDate.toDate() : (rawDate instanceof Date ? rawDate : new Date());
+      return isAfter(donationDate, startOfDay(startDate));
     });
 
-    const taxDeductibleAmount = monthlyDonation * 0.66;
-    
-    const chartData = monthlyTotals.map((total, index) => ({
-        month: monthLabels[index],
-        dons: parseFloat(total.toFixed(2)),
-    }));
+    const total = filteredDonations.reduce((acc, d) => acc + Number(d.amount || 0), 0);
 
-    const recentDonationsWithAssoName = donations.slice(0, 5).map(d => {
+    // Group for chart
+    const dailyData: { [key: string]: number } = {};
+    filteredDonations.forEach(d => {
+      const dateKey = format(d.transactionDate.toDate(), 'dd MMM', { locale: fr });
+      dailyData[dateKey] = (dailyData[dateKey] || 0) + d.amount;
+    });
+
+    const chartData = Object.entries(dailyData).map(([date, dons]) => ({
+      date,
+      dons: parseFloat(dons.toFixed(2))
+    })).sort((a, b) => 0); // Need proper sort if needed
+
+    const recent = donations.slice(0, 5).map(d => {
         const asso = associations.find(a => a.id === d.associationId);
+        const rawDate = (d as any).transactionDate;
+        const dateObj = (rawDate && typeof rawDate.toDate === 'function') ? rawDate.toDate() : (rawDate instanceof Date ? rawDate : new Date());
         return {
             ...d,
             associationName: asso?.associationName || 'Association inconnue',
-            transactionDate: d.transactionDate.toDate(), // Convert for formatting
+            transactionDate: dateObj,
         }
     });
 
-    return { monthlyDonation, taxDeductibleAmount, chartData, recentDonations: recentDonationsWithAssoName, userCauses: userData };
+    return { 
+      totalDonations: total, 
+      pendingRoundups: bridgeTotal,
+      taxDeductibleAmount: total * 0.66, 
+      chartData, 
+      recentDonations: recent, 
+      userCauses: userData 
+    };
 
-  }, [donations, associations, isDemoMode, userData]);
+  }, [donations, associations, isDemoMode, userData, period]);
 
-  // Generate weekly roundups on client side to avoid hydration mismatch
   useEffect(() => {
-    if (isDemoMode) {
-      setWeeklyRoundups(5.82);
-      return;
-    }
-    if (donations) {
-      const monthlyDonation = donations.reduce((acc, d) => {
-        const donationDate = d.transactionDate.toDate();
-        const now = new Date();
-        const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-        if (donationDate >= startOfMonth) {
-          return acc + d.amount;
-        }
-        return acc;
-      }, 0);
-      setWeeklyRoundups(donations.length > 0 ? (monthlyDonation / 4) * (Math.random() * 0.5 + 0.75) : 0);
-    }
-  }, [donations, isDemoMode]);
+    setWeeklyRoundups(isDemoMode ? 5.82 : (totalDonations / 4) * 0.8);
+  }, [totalDonations, isDemoMode]);
 
   const isLoading = !isDemoMode && (isUserLoading || isProfileLoading || isDonationsLoading);
 
   return (
-    <div className="flex flex-col gap-8">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-amber-400 to-yellow-300">Mes Dons</h1>
-        <p className="text-muted-foreground">Suivez l'impact de votre générosité.</p>
+    <div className="flex flex-col gap-10 pb-16">
+      {/* Header Section */}
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+        <div className="space-y-4">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-brand-coral/10 text-brand-coral text-xs font-bold uppercase tracking-wider">
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-brand-coral opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-brand-coral"></span>
+            </span>
+            Tableau de Bord Donateur
+          </div>
+          <h1 className="text-5xl md:text-7xl font-headline font-bold tracking-tight text-foreground leading-[0.9]">
+            Mon Impact avec <DotlyBrand />
+          </h1>
+          <p className="text-lg text-muted-foreground font-headline font-light max-w-xl">
+            Retrouvez ici l'ensemble de vos contributions et l'évolution de votre générosité via <DotlyBrand className="inline text-base" />
+          </p>
+        </div>
+
+        <div className="flex bg-white/50 backdrop-blur-sm p-1 rounded-2xl border border-black/5 shadow-sm self-start">
+          {(['7j', '30j', '1an'] as Period[]).map((p) => (
+            <Button
+              key={p}
+              variant="ghost"
+              size="sm"
+              onClick={() => setPeriod(p)}
+              className={`rounded-xl px-6 py-2 h-10 text-sm font-bold transition-all ${
+                period === p 
+                  ? 'bg-white shadow-md text-brand-coral scale-105' 
+                  : 'text-muted-foreground hover:bg-black/5'
+              }`}
+            >
+              {p.toUpperCase()}
+            </Button>
+          ))}
+        </div>
       </div>
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle>
-              Total Donné (ce mois-ci)
-            </CardTitle>
-            <PiggyBank className="h-4 w-4 text-muted-foreground" />
+
+      {/* KPI Cards */}
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+        {[
+          { title: 'Dons Versés', value: totalDonations, icon: PiggyBank, color: 'mint', sub: 'Total déjà reversé' },
+          { title: 'Arrondis en cours', value: pendingRoundups, icon: Coins, color: 'coral', sub: 'Calculé en temps réel', isLoading: bridgeLoading },
+          { title: 'Associations', value: isDemoMode ? 3 : userCauses?.selectedAssociations?.length || 0, icon: Heart, color: 'teal', sub: 'Soutenues activement' },
+          { title: 'Réduction Fiscale', value: taxDeductibleAmount, icon: ShieldCheck, color: 'lavender', sub: 'Potentiel déductible (66%)' },
+        ].map((kpi, i) => (
+          i === 1 ? (
+            <Link key={i} href="/dashboard/user/history" className="block transition-transform hover:scale-[1.02] active:scale-[0.98]">
+              <Card className="group rounded-[2.5rem] border-none shadow-xl shadow-black/[0.02] bg-white transition-all hover:shadow-2xl h-full">
+                <CardHeader className="flex flex-row items-center justify-between pb-2">
+                  <CardTitle className="text-[10px] font-extrabold uppercase tracking-[0.2em] text-muted-foreground/50">
+                    {kpi.title}
+                  </CardTitle>
+                  <div className={`p-2.5 bg-brand-${kpi.color}/10 rounded-2xl transition-transform group-hover:rotate-12`}>
+                    <kpi.icon className={`h-5 w-5 text-brand-${kpi.color}`} />
+                  </div>
+                </CardHeader>
+                <CardContent className="pt-4">
+                  {isLoading || kpi.isLoading ? (
+                    <Skeleton className="h-10 w-2/3" />
+                  ) : (
+                    <div className="text-4xl font-headline font-extrabold text-foreground tabular-nums">
+                      {kpi.value?.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' }) || "0,00 €"}
+                    </div>
+                  )}
+                  <p className="text-xs text-muted-foreground/60 font-medium mt-3 flex items-center gap-1">
+                    <Calendar className="h-3 w-3" /> {kpi.sub}
+                  </p>
+                </CardContent>
+              </Card>
+            </Link>
+          ) : (
+            <Card key={i} className="group rounded-[2.5rem] border-none shadow-xl shadow-black/[0.02] bg-white transition-all hover:scale-[1.02] hover:shadow-2xl">
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-[10px] font-extrabold uppercase tracking-[0.2em] text-muted-foreground/50">
+                {kpi.title}
+              </CardTitle>
+              <div className={`p-2.5 bg-brand-${kpi.color}/10 rounded-2xl transition-transform group-hover:rotate-12`}>
+                <kpi.icon className={`h-5 w-5 text-brand-${kpi.color}`} />
+              </div>
+            </CardHeader>
+            <CardContent className="pt-4">
+              {isLoading || kpi.isLoading ? (
+                <Skeleton className="h-10 w-2/3" />
+              ) : (
+                <div className="text-4xl font-headline font-extrabold text-foreground tabular-nums">
+                  {(kpi.value || 0).toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' })}
+                </div>
+              )}
+              <p className="text-xs text-muted-foreground/60 font-medium mt-3 flex items-center gap-1">
+                <Calendar className="h-3 w-3" /> {kpi.sub}
+              </p>
+            </CardContent>
+          </Card>
+          )
+        ))}
+      </div>
+
+      <div className="grid gap-6 md:grid-cols-2">
+        <Card className="rounded-[2.5rem] border-none shadow-xl shadow-black/[0.02] bg-white">
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-[10px] font-extrabold uppercase tracking-[0.2em] text-muted-foreground/50">Mes Causes</CardTitle>
+            <div className="p-2.5 bg-brand-yellow/10 rounded-2xl">
+              <HandHeart className="h-5 w-5 text-brand-yellow" />
+            </div>
           </CardHeader>
-          <CardContent>
-            {isLoading ? <Skeleton className="h-8 w-2/3" /> : <div className="text-2xl font-bold">{monthlyDonation.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' })}</div>}
-            <p className="text-xs text-muted-foreground">
-              Merci pour votre générosité !
-            </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle>Arrondis de la semaine</CardTitle>
-            <Coins className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-             {isLoading ? <Skeleton className="h-8 w-1/2" /> : <div className="text-2xl font-bold">{weeklyRoundups.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' })}</div>}
-            <p className="text-xs text-muted-foreground">
-              (Estimation)
-            </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle>Avantage Fiscal (estimation)</CardTitle>
-            <ShieldCheck className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            {isLoading ? <Skeleton className="h-8 w-1/2" /> : <div className="text-2xl font-bold">{taxDeductibleAmount.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' })}</div>}
-            <p className="text-xs text-muted-foreground">
-              66% de vos dons mensuels
-            </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle>Causes Soutenues</CardTitle>
-            <HandHeart className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
+          <CardContent className="pt-4">
             {isLoading ? (
-              <div className="flex flex-wrap gap-2 pt-2">
-                <Skeleton className="h-6 w-24 rounded-full" />
-                <Skeleton className="h-6 w-20 rounded-full" />
+              <div className="flex flex-wrap gap-2">
+                <Skeleton className="h-7 w-20 rounded-full" />
+                <Skeleton className="h-7 w-16 rounded-full" />
               </div>
             ) : (
-              <div className="flex flex-wrap gap-2 pt-2">
+              <div className="flex flex-wrap gap-2">
                   {userCauses?.causes?.map((causeId: string) => (
-                    <Badge key={causeId} variant="secondary">{causesLabels[causeId] || causeId}</Badge>
+                    <Badge key={causeId} variant="secondary" className="rounded-full bg-muted/40 border-none px-4 py-1.5 text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+                      {causesLabels[causeId] || causeId}
+                    </Badge>
                   ))}
-                  {userCauses?.otherCause && <Badge variant="secondary">{userCauses.otherCause}</Badge>}
-                  {(!userCauses?.causes || userCauses.causes.length === 0) && !userCauses?.otherCause && (
-                      <p className="text-xs text-muted-foreground">Aucune cause sélectionnée.</p>
+                  {(!userCauses?.causes || userCauses.causes.length === 0) && (
+                      <p className="text-sm text-muted-foreground font-headline font-light lowercase">aucune cause sélectionnée</p>
                   )}
               </div>
             )}
@@ -290,96 +380,156 @@ export default function UserDashboardPage() {
         </Card>
       </div>
 
-      <div className="grid gap-8 md:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle>Historique des dons mensuels</CardTitle>
-            <CardDescription>Évolution de vos dons au cours des 6 derniers mois.</CardDescription>
+      {/* Chart and Form Section */}
+      <div className="grid gap-10 lg:grid-cols-12">
+        <Card className="lg:col-span-8 rounded-[3.5rem] border-none shadow-2xl shadow-black/[0.02] bg-white p-8">
+          <CardHeader className="px-2 pb-10">
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="text-3xl font-headline font-extrabold tracking-tight">Activité des dons</CardTitle>
+                <CardDescription className="text-lg font-headline font-light mt-1">Répartition de vos contributions dans le temps.</CardDescription>
+              </div>
+              <div className="h-12 w-12 rounded-full bg-brand-coral/5 flex items-center justify-center">
+                <div className="h-2 w-2 rounded-full bg-brand-coral animate-pulse" />
+              </div>
+            </div>
           </CardHeader>
-          <CardContent>
+          <CardContent className="px-0">
             {isLoading ? (
-                <Skeleton className="h-64 w-full" />
+                <Skeleton className="h-[400px] w-full rounded-[2.5rem]" />
+            ) : chartData.length === 0 ? (
+                <div className="h-[400px] w-full flex flex-col items-center justify-center text-center px-8">
+                  <div className="h-20 w-20 rounded-full bg-brand-coral/5 flex items-center justify-center mb-6">
+                    <PiggyBank className="h-10 w-10 text-brand-coral/40" />
+                  </div>
+                  <p className="text-xl font-headline font-bold text-foreground/80 mb-2">Pas encore d'activité</p>
+                  <p className="text-sm text-muted-foreground max-w-sm">Votre historique de dons apparaîtra ici dès votre première contribution.</p>
+                </div>
             ) : (
-            <ChartContainer config={chartConfig} className="h-64 w-full">
-              <ResponsiveContainer>
-                <RechartsBarChart data={chartData} accessibilityLayer>
-                  <CartesianGrid vertical={false} />
-                  <XAxis
-                    dataKey="month"
-                    tickLine={false}
-                    tickMargin={10}
-                    axisLine={false}
-                  />
-                  <YAxis
-                      tickLine={false}
-                      axisLine={false}
-                      tickMargin={10}
-                      tickFormatter={(value) => `€${value}`}
-                  />
-                  <ChartTooltip
-                    cursor={false}
-                    content={<ChartTooltipContent indicator="dot" />}
-                  />
+            <div className="h-[400px] w-full">
+              <ChartContainer config={chartConfig} className="h-full w-full">
+                <AreaChart data={chartData}>
                   <defs>
-                      <linearGradient id="fillDons" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="var(--color-dons)" stopOpacity={0.8}/>
-                          <stop offset="95%" stopColor="var(--color-dons)" stopOpacity={0.1}/>
-                      </linearGradient>
+                    <linearGradient id="colorDons" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="hsl(var(--brand-coral))" stopOpacity={0.3}/>
+                      <stop offset="95%" stopColor="hsl(var(--brand-coral))" stopOpacity={0}/>
+                    </linearGradient>
                   </defs>
-                  <Bar dataKey="dons" fill="url(#fillDons)" radius={4} />
-                </RechartsBarChart>
-              </ResponsiveContainer>
-            </ChartContainer>
+                  <CartesianGrid vertical={false} strokeDasharray="8 8" stroke="#f0f0f0" />
+                  <XAxis 
+                    dataKey="date" 
+                    axisLine={false} 
+                    tickLine={false} 
+                    tick={{ fill: '#999', fontSize: 12, fontWeight: 600 }}
+                    tickMargin={20}
+                  />
+                  <YAxis 
+                    axisLine={false} 
+                    tickLine={false} 
+                    tick={{ fill: '#999', fontSize: 12, fontWeight: 600 }}
+                    tickFormatter={(val) => `${val}€`}
+                    tickMargin={20}
+                  />
+                  <ChartTooltip 
+                    content={<ChartTooltipContent indicator="line" />}
+                    cursor={{ stroke: 'hsl(var(--brand-coral))', strokeWidth: 2, strokeDasharray: '4 4' }}
+                  />
+                  <Area 
+                    type="monotone" 
+                    dataKey="dons" 
+                    stroke="hsl(var(--brand-coral))" 
+                    strokeWidth={4}
+                    fillOpacity={1} 
+                    fill="url(#colorDons)" 
+                  />
+                </AreaChart>
+              </ChartContainer>
+            </div>
             )}
           </CardContent>
         </Card>
-        <DonationForm associations={associations} isLoading={associationsLoading} />
+        
+        <div className="lg:col-span-4">
+          <DonationForm associations={associations} isLoading={associationsLoading} />
+        </div>
       </div>
       
-      <Card>
-        <CardHeader>
-          <CardTitle>Dons Récents</CardTitle>
-          <CardDescription>Vos dernières contributions via un don unique.</CardDescription>
+      {/* Recent Donations Table */}
+      <Card className="rounded-[3.5rem] border-none shadow-2xl shadow-black/[0.02] bg-white overflow-hidden">
+        <CardHeader className="p-12 pb-8">
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="text-4xl font-headline font-extrabold tracking-tight">Historique Récent</CardTitle>
+              <CardDescription className="text-xl font-headline font-light mt-2">Détail de vos dernières générosités.</CardDescription>
+            </div>
+            <Button asChild variant="outline" className="rounded-2xl border-black/5 hover:bg-black/5 font-bold h-12 px-8">
+              <Link href="/dashboard/user/history">Tout voir</Link>
+            </Button>
+          </div>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-0">
           <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="flex items-center gap-2"><Landmark className="h-4 w-4" /> Association</TableHead>
-                <TableHead className="text-right">Montant Donné</TableHead>
-                <TableHead className="text-right">Date</TableHead>
+            <TableHeader className="bg-black/[0.02] border-none">
+              <TableRow className="hover:bg-transparent border-none">
+                <TableHead className="px-12 h-16 font-extrabold uppercase tracking-[0.2em] text-[10px] text-muted-foreground/50">
+                    Association
+                </TableHead>
+                <TableHead className="text-right px-12 h-16 font-extrabold uppercase tracking-[0.2em] text-[10px] text-muted-foreground/50">Montant</TableHead>
+                <TableHead className="text-right px-12 h-16 font-extrabold uppercase tracking-[0.2em] text-[10px] text-muted-foreground/50">Date</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {isLoading ? (
                   Array.from({ length: 3 }).map((_, i) => (
-                    <TableRow key={i}>
-                        <TableCell><Skeleton className="h-5 w-32" /></TableCell>
-                        <TableCell><Skeleton className="h-5 w-20 ml-auto" /></TableCell>
-                        <TableCell><Skeleton className="h-5 w-24 ml-auto" /></TableCell>
+                    <TableRow key={i} className="border-black/[0.05]">
+                        <TableCell className="px-12 py-8"><Skeleton className="h-8 w-64 rounded-lg" /></TableCell>
+                        <TableCell className="px-12 py-8"><Skeleton className="h-8 w-24 ml-auto rounded-lg" /></TableCell>
+                        <TableCell className="px-12 py-8"><Skeleton className="h-8 w-32 ml-auto rounded-lg" /></TableCell>
                     </TableRow>
                   ))
               ) : recentDonations.length === 0 ? (
-                <TableRow>
-                    <TableCell colSpan={3} className="text-center text-muted-foreground py-8">
-                        Aucun don unique pour le moment.
+                <TableRow className="hover:bg-transparent">
+                    <TableCell colSpan={3} className="py-20">
+                        <div className="flex flex-col items-center justify-center text-center">
+                            <div className="h-16 w-16 rounded-full bg-brand-coral/5 flex items-center justify-center mb-6 animate-pulse">
+                                <Heart className="h-8 w-8 text-brand-coral/40" />
+                            </div>
+                            <p className="text-2xl font-headline font-bold text-foreground/80 mb-2">Aucun don pour l'instant</p>
+                            <p className="text-sm text-muted-foreground max-w-md mb-6">Faites votre premier don et il apparaîtra ici. Chaque centime compte.</p>
+                        </div>
                     </TableCell>
                 </TableRow>
               ) : (
                 recentDonations.map((tx) => (
-                    <TableRow key={tx.id}>
-                    <TableCell className="font-medium">{tx.associationName}</TableCell>
-                    <TableCell className="text-right text-accent font-semibold">
-                        {tx.amount.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' })}
-                    </TableCell>
-                    <TableCell className="text-right text-muted-foreground">
-                        {format(new Date(tx.transactionDate), 'd MMM yyyy', { locale: fr })}
-                    </TableCell>
+                    <TableRow key={tx.id} className="group hover:bg-black/[0.01] border-black/[0.03] transition-all">
+                      <TableCell className="px-12 py-8">
+                        <div className="flex items-center gap-4">
+                          <div className="h-12 w-12 rounded-2xl bg-muted/30 flex items-center justify-center font-headline font-extrabold text-brand-coral group-hover:scale-110 transition-transform">
+                            {tx.associationName.charAt(0)}
+                          </div>
+                          <span className="font-headline font-extrabold text-2xl tracking-tight">{tx.associationName}</span>
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-right px-12 py-8">
+                          <span className="inline-flex px-6 py-2.5 rounded-full bg-brand-coral/10 text-brand-coral font-extrabold text-xl tabular-nums">
+                              {tx.amount?.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' }) || "0,00 €"}
+                          </span>
+                      </TableCell>
+                      <TableCell className="text-right px-12 py-8 text-muted-foreground font-bold text-base">
+                          {format(new Date(tx.transactionDate), 'd MMM yyyy', { locale: fr })}
+                      </TableCell>
                     </TableRow>
                 ))
               )}
             </TableBody>
           </Table>
+          {recentDonations.length > 0 && (
+            <div className="p-12 pt-8 text-center border-t border-black/[0.03]">
+              <p className="text-sm text-muted-foreground font-medium">
+                Vous avez soutenu <span className="text-brand-coral font-bold">{recentDonations.length}</span> associations sur cette période.
+              </p>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

@@ -1,4 +1,3 @@
-
 import type {Config} from 'tailwindcss';
 import plugin from 'tailwindcss/plugin';
 
@@ -12,11 +11,12 @@ export default {
   theme: {
     extend: {
       textShadow: {
-        'strong': '0 2px 4px rgba(0, 0, 0, 0.4)',
+        'strong': 'none',
       },
       fontFamily: {
-        body: ['Inter', 'sans-serif'],
-        headline: ['Inter', 'sans-serif'], // Changed to Inter as per guidelines
+        body: ['Bricolage Grotesque', 'sans-serif'],
+        headline: ['Bricolage Grotesque', 'sans-serif'],
+        serif: ['Instrument Serif', 'serif'],
         code: ['monospace'],
       },
       colors: {
@@ -46,10 +46,6 @@ export default {
           DEFAULT: 'hsl(var(--accent))',
           foreground: 'hsl(var(--accent-foreground))',
         },
-        'accent-vibrant': {
-          DEFAULT: 'hsl(var(--accent-vibrant))',
-          foreground: 'hsl(var(--accent-vibrant-foreground))',
-        },
         destructive: {
           DEFAULT: 'hsl(var(--destructive))',
           foreground: 'hsl(var(--destructive-foreground))',
@@ -57,13 +53,18 @@ export default {
         border: 'hsl(var(--border))',
         input: 'hsl(var(--input))',
         ring: 'hsl(var(--ring))',
-        chart: {
-          '1': 'hsl(var(--chart-1))',
-          '2': 'hsl(var(--chart-2))',
-          '3': 'hsl(var(--chart-3))',
-          '4': 'hsl(var(--chart-4))',
-          '5': 'hsl(var(--chart-5))',
-        },
+        'brand-coral': 'hsl(var(--color-coral))',
+        'brand-yellow': 'hsl(var(--color-yellow))',
+        'brand-mint': 'hsl(var(--color-mint))',
+        'brand-lavender': 'hsl(var(--color-lavender))',
+        'brand-teal': 'hsl(var(--color-teal))',
+        'brand-pink': 'hsl(var(--color-pink))',
+        coral: 'hsl(var(--color-coral))',
+        yellow: 'hsl(var(--color-yellow))',
+        mint: 'hsl(var(--color-mint))',
+        lavender: 'hsl(var(--color-lavender))',
+        teal: 'hsl(var(--color-teal))',
+        pink: 'hsl(var(--color-pink))',
         sidebar: {
           DEFAULT: 'hsl(var(--sidebar-background))',
           foreground: 'hsl(var(--sidebar-foreground))',
@@ -82,20 +83,12 @@ export default {
       },
       keyframes: {
         'accordion-down': {
-          from: {
-            height: '0',
-          },
-          to: {
-            height: 'var(--radix-accordion-content-height)',
-          },
+          from: { height: '0' },
+          to: { height: 'var(--radix-accordion-content-height)' },
         },
         'accordion-up': {
-          from: {
-            height: 'var(--radix-accordion-content-height)',
-          },
-          to: {
-            height: '0',
-          },
+          from: { height: 'var(--radix-accordion-content-height)' },
+          to: { height: '0' },
         },
       },
       animation: {
@@ -109,7 +102,7 @@ export default {
     plugin(function({ addUtilities, theme }) {
       const newUtilities = {
         '.text-shadow-strong': {
-          textShadow: theme('textShadow.strong'),
+          textShadow: 'none',
         },
       }
       addUtilities(newUtilities)

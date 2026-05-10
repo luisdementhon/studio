@@ -83,31 +83,37 @@ export default function AssociationProfilePage() {
   }
 
   return (
-    <div className="flex flex-col gap-8">
-      <div className="flex items-center justify-between">
-        <div>
-            <h1 className="text-3xl font-bold tracking-tight">Profil Association</h1>
-            <p className="text-muted-foreground">Gérez les informations publiques et administratives de votre association.</p>
+    <div className="flex flex-col gap-12 max-w-5xl">
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+        <div className="space-y-4">
+            <h1 className="text-6xl md:text-8xl font-headline font-extrabold tracking-tight text-foreground leading-[0.9]">
+                Profil<br />
+                <span className="text-brand-mint font-serif italic font-bold">Asso.</span>
+            </h1>
+            <p className="text-xl text-muted-foreground max-w-md font-headline font-light leading-relaxed">Gérez les informations publiques et administratives de votre association.</p>
         </div>
-        <Badge variant="secondary" className="text-base">Vérifié</Badge>
+        <div className="flex items-center gap-4">
+            <Badge variant="secondary" className="text-sm px-6 py-3 rounded-2xl bg-brand-mint text-white font-bold border-0 shadow-lg shadow-brand-mint/20">✓ Vérifié</Badge>
+        </div>
       </div>
 
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-          <Card>
-            <CardHeader>
-              <CardTitle>Informations de l'Association</CardTitle>
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-12">
+          <Card className="rounded-[3.5rem] border-none bg-white shadow-2xl shadow-black/[0.03] overflow-hidden">
+            <CardHeader className="p-12 pb-4">
+              <CardTitle className="text-3xl font-headline font-extrabold tracking-tight">Informations Générales</CardTitle>
+              <CardDescription className="text-lg font-headline font-light">Ces données sont utilisées pour votre page publique.</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <CardContent className="p-12 pt-8 space-y-12">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
                 <FormField
                   control={form.control}
                   name="associationName"
                   render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Nom de l'association</FormLabel>
+                    <FormItem className="space-y-4">
+                      <FormLabel className="text-[10px] font-extrabold uppercase tracking-[0.2em] text-muted-foreground/50 ml-1">Nom de l'organisation</FormLabel>
                       <FormControl>
-                        <Input {...field} />
+                        <Input className="h-16 rounded-[1.5rem] bg-black/[0.03] border-none px-6 text-lg font-medium focus:ring-2 focus:ring-brand-mint/20 transition-all" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -117,12 +123,12 @@ export default function AssociationProfilePage() {
                   control={form.control}
                   name="rnaNumber"
                   render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Numéro RNA</FormLabel>
+                    <FormItem className="space-y-4">
+                      <FormLabel className="text-[10px] font-extrabold uppercase tracking-[0.2em] text-muted-foreground/50 ml-1">Numéro RNA</FormLabel>
                       <FormControl>
-                        <Input {...field} disabled />
+                        <Input className="h-16 rounded-[1.5rem] bg-black/[0.01] border-none px-6 text-lg font-medium text-muted-foreground/40 cursor-not-allowed" {...field} disabled />
                       </FormControl>
-                      <FormDescription>Le numéro RNA ne peut pas être modifié.</FormDescription>
+                      <FormDescription className="ml-1 text-xs opacity-50 font-medium">L'identifiant officiel de votre association.</FormDescription>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -131,10 +137,10 @@ export default function AssociationProfilePage() {
                   control={form.control}
                   name="representativeName"
                   render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Nom du représentant légal</FormLabel>
+                    <FormItem className="space-y-4">
+                      <FormLabel className="text-[10px] font-extrabold uppercase tracking-[0.2em] text-muted-foreground/50 ml-1">Représentant légal</FormLabel>
                       <FormControl>
-                        <Input {...field} />
+                        <Input className="h-16 rounded-[1.5rem] bg-black/[0.03] border-none px-6 text-lg font-medium focus:ring-2 focus:ring-brand-mint/20 transition-all" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -144,10 +150,10 @@ export default function AssociationProfilePage() {
                   control={form.control}
                   name="contactEmail"
                   render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Email de contact public</FormLabel>
+                    <FormItem className="space-y-4">
+                      <FormLabel className="text-[10px] font-extrabold uppercase tracking-[0.2em] text-muted-foreground/50 ml-1">Email de contact</FormLabel>
                       <FormControl>
-                        <Input type="email" {...field} />
+                        <Input type="email" className="h-16 rounded-[1.5rem] bg-black/[0.03] border-none px-6 text-lg font-medium focus:ring-2 focus:ring-brand-mint/20 transition-all" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -159,25 +165,29 @@ export default function AssociationProfilePage() {
                 control={form.control}
                 name="description"
                 render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Description publique</FormLabel>
+                  <FormItem className="space-y-4">
+                    <FormLabel className="text-[10px] font-extrabold uppercase tracking-[0.2em] text-muted-foreground/50 ml-1">Histoire & Mission</FormLabel>
                     <FormControl>
-                      <Textarea placeholder="Décrivez la mission et les activités de votre association..." {...field} />
+                      <Textarea 
+                        placeholder="Racontez votre impact..." 
+                        className="min-h-[200px] rounded-[2.5rem] bg-black/[0.03] border-none p-8 text-lg font-medium leading-relaxed focus:ring-2 focus:ring-brand-mint/20 transition-all resize-none" 
+                        {...field} 
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
               
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
                 <FormField
                     control={form.control}
                     name="fundraisingGoal"
                     render={({ field }) => (
-                    <FormItem>
-                        <FormLabel>Objectif de collecte annuel (€)</FormLabel>
+                    <FormItem className="space-y-4">
+                        <FormLabel className="text-[10px] font-extrabold uppercase tracking-[0.2em] text-muted-foreground/50 ml-1">Objectif Annuel (€)</FormLabel>
                         <FormControl>
-                        <Input type="number" {...field} />
+                        <Input type="number" className="h-16 rounded-[1.5rem] bg-black/[0.03] border-none px-6 text-2xl font-extrabold focus:ring-2 focus:ring-brand-mint/20 transition-all" {...field} />
                         </FormControl>
                         <FormMessage />
                     </FormItem>
@@ -187,10 +197,10 @@ export default function AssociationProfilePage() {
                     control={form.control}
                     name="currentMissions"
                     render={({ field }) => (
-                    <FormItem>
-                        <FormLabel>Missions à financer actuellement</FormLabel>
+                    <FormItem className="space-y-4">
+                        <FormLabel className="text-[10px] font-extrabold uppercase tracking-[0.2em] text-muted-foreground/50 ml-1">Missions en cours</FormLabel>
                         <FormControl>
-                        <Input {...field} />
+                        <Input className="h-16 rounded-[1.5rem] bg-black/[0.03] border-none px-6 text-lg font-medium focus:ring-2 focus:ring-brand-mint/20 transition-all" {...field} />
                         </FormControl>
                         <FormMessage />
                     </FormItem>
@@ -198,9 +208,9 @@ export default function AssociationProfilePage() {
                 />
               </div>
             </CardContent>
-            <CardFooter className="flex justify-end">
-                <Button type="submit" disabled={isPending} className="from-amber-400 to-yellow-300 text-slate-900 hover:brightness-110 shadow-lg shadow-amber-400/20 px-8" variant="vibrant">
-                {isPending ? "Sauvegarde..." : "Mettre à jour le profil"}
+            <CardFooter className="p-12 pt-0 flex justify-end">
+                <Button type="submit" disabled={isPending} className="h-20 rounded-[1.5rem] px-12 text-xl font-extrabold shadow-xl shadow-brand-mint/20 hover:scale-[1.02] active:scale-[0.98] transition-all" variant="vibrant">
+                {isPending ? "Publication..." : "Enregistrer les modifications"}
               </Button>
             </CardFooter>
           </Card>

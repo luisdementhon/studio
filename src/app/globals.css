@@ -4,99 +4,106 @@
 
 @layer base {
   :root {
-    --background: 0 0% 100%; /* White */
-    --foreground: 220 40% 12%; /* Navy Blue Text */
-    --card: 0 0% 100%; /* Was Light Gray for Cards, now white */
-    --card-foreground: 220 40% 12%;
+    --background: 45 25% 93%; /* Cream background */
+    --foreground: 0 0% 9%; /* Almost Black */
+    --card: 0 0% 100%; /* White */
+    --card-foreground: 0 0% 9%;
     --popover: 0 0% 100%;
-    --popover-foreground: 220 40% 12%;
-    --primary: 45 87% 50%; /* Gold #efb810 */
-    --primary-foreground: 220 40% 12%;
-    --secondary: 0 0% 98%; /* Lighter gray for secondary elements */
-    --secondary-foreground: 220 40% 12%;
+    --popover-foreground: 0 0% 9%;
+    --primary: 4 97% 67%; /* Coral/Red */
+    --primary-foreground: 0 0% 100%;
+    --secondary: 51 96% 69%; /* Yellow */
+    --secondary-foreground: 0 0% 9%;
     --muted: 0 0% 96%;
-    --muted-foreground: 220 40% 40%;
-    --accent: 45 87% 50%; /* Gold #efb810 */
-    --accent-foreground: 220 40% 12%;
+    --muted-foreground: 0 0% 40%;
+    --accent: 258 64% 79%; /* Lavender */
+    --accent-foreground: 0 0% 9%;
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 98%;
     --border: 0 0% 90%;
     --input: 0 0% 90%;
-    --ring: 45 87% 50%; /* Gold #efb810 */
-    --chart-1: 45 87% 50%; /* Gold #efb810 */
-    --chart-2: 347 100% 59%;
-    --radius: 0.8rem;
+    --ring: 4 97% 67%; /* Coral */
+    --radius: 1.5rem; /* Very rounded cards */
 
-    /* Custom vibrant variant */
-    --accent-vibrant: 347 100% 59%;
-    --accent-vibrant-foreground: 0 0% 100%;
+    /* Custom Data Colors */
+    --color-coral: 4 97% 67%;
+    --color-yellow: 51 96% 69%;
+    --color-mint: 157 51% 75%;
+    --color-lavender: 258 64% 79%;
+    --color-teal: 190 56% 26%;
+    --color-pink: 328 73% 89%;
 
     /* Sidebar Theme */
-    --sidebar-background: 220 40% 10%; 
-    --sidebar-foreground: 45 87% 50%;
-    --sidebar-primary: 45 87% 50%;
-    --sidebar-primary-foreground: 220 40% 10%;
-    --sidebar-accent: 220 40% 15%; 
-    --sidebar-accent-foreground: 45 87% 50%;
-    --sidebar-border: 220 40% 18%;
-    --sidebar-ring: 45 87% 50%;
+    --sidebar-background: 0 0% 100%; 
+    --sidebar-foreground: 0 0% 9%;
+    --sidebar-primary: 4 97% 67%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 0 0% 96%; 
+    --sidebar-accent-foreground: 0 0% 9%;
+    --sidebar-border: 0 0% 90%;
+    --sidebar-ring: 4 97% 67%;
   }
 
   .dark {
-    --background: 220 40% 12%; /* Navy Blue */
-    --foreground: 45 87% 50%; /* Gold #efb810 */
-    --card: 220 40% 16%;
-    --card-foreground: 45 87% 50%;
-    --popover: 220 40% 16%;
-    --popover-foreground: 45 87% 50%;
-    --primary: 45 87% 50%; /* Gold #efb810 */
-    --primary-foreground: 220 40% 12%;
-    --secondary: 220 40% 20%;
-    --secondary-foreground: 45 87% 50%;
-    --muted: 220 40% 20%;
-    --muted-foreground: 45 87% 38%;
-    --accent: 45 87% 50%; /* Gold #efb810 */
-    --accent-foreground: 220 40% 12%;
-    --destructive: 0 62.8% 30.6%;
+    --background: 45 25% 93%; /* Cream background */
+    --foreground: 0 0% 9%; /* Almost Black */
+    --card: 0 0% 100%; /* White */
+    --card-foreground: 0 0% 9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 9%;
+    --primary: 4 97% 67%; /* Coral/Red */
+    --primary-foreground: 0 0% 100%;
+    --secondary: 51 96% 69%; /* Yellow */
+    --secondary-foreground: 0 0% 9%;
+    --muted: 0 0% 96%;
+    --muted-foreground: 0 0% 40%;
+    --accent: 258 64% 79%; /* Lavender */
+    --accent-foreground: 0 0% 9%;
+    --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 98%;
-    --border: 220 40% 25%;
-    --input: 220 40% 25%;
-    --ring: 45 87% 50%; /* Gold #efb810 */
-    --chart-1: 45 87% 50%; /* Gold #efb810 */
-    --chart-2: 347 100% 59%;
+    --border: 0 0% 90%;
+    --input: 0 0% 90%;
+    --ring: 4 97% 67%; /* Coral */
 
-    /* Custom vibrant variant */
-    --accent-vibrant: 347 100% 59%;
-    --accent-vibrant-foreground: 0 0% 100%;
+    /* Custom Data Colors */
+    --color-coral: 4 97% 67%;
+    --color-yellow: 51 96% 69%;
+    --color-mint: 157 51% 75%;
+    --color-lavender: 258 64% 79%;
+    --color-teal: 190 56% 26%;
+    --color-pink: 328 73% 89%;
 
     /* Sidebar Theme */
-    --sidebar-background: 220 40% 10%; 
-    --sidebar-foreground: 45 87% 50%;
-    --sidebar-primary: 45 87% 50%;
-    --sidebar-primary-foreground: 220 40% 10%;
-    --sidebar-accent: 220 40% 15%; 
-    --sidebar-accent-foreground: 45 87% 50%;
-    --sidebar-border: 220 40% 18%;
-    --sidebar-ring: 45 87% 50%;
+    --sidebar-background: 0 0% 100%; 
+    --sidebar-foreground: 0 0% 9%;
+    --sidebar-primary: 4 97% 67%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 0 0% 96%; 
+    --sidebar-accent-foreground: 0 0% 9%;
+    --sidebar-border: 0 0% 90%;
+    --sidebar-ring: 4 97% 67%;
   }
 }
 
 @layer base {
   * {
     @apply border-border;
+    cursor: none;
   }
   body {
     @apply bg-background text-foreground;
-    font-family: 'Inter', sans-serif;
+    font-family: 'Bricolage Grotesque', sans-serif;
+    cursor: none;
   }
   h1, h2, h3, h4, h5, h6 {
-    font-family: 'Inter', sans-serif;
-    font-weight: 700;
+    font-family: 'Bricolage Grotesque', sans-serif;
+    font-weight: 800;
   }
 }
 
+
 @layer utilities {
   .text-shadow-strong {
-    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
+    text-shadow: none; /* Removing text shadow for flat design */
   }
 }

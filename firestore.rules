@@ -61,5 +61,16 @@ service cloud.firestore {
       allow create: if isSignedIn() && request.auth.uid == request.resource.data.userId;
       allow update, delete: if false;
     }
+
+    // -------------------------------------------------------------------------
+    // Association Financials (/associations/{associationId}/payouts/{payoutId})
+    // -------------------------------------------------------------------------
+    match /associations/{associationId}/payouts/{payoutId} {
+      allow read: if isOwner(associationId);
+    }
+
+    match /associations/{associationId}/taxReceipts/{receiptId} {
+      allow read: if isOwner(associationId);
+    }
   }
 }

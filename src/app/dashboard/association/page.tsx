@@ -29,15 +29,26 @@ import { AreaChart, XAxis, YAxis, Area, CartesianGrid, ResponsiveContainer } fro
 import { useUser, useFirestore, useDoc, useCollection, updateDocumentNonBlocking, setDocumentNonBlocking } from '@/firebase';
 import { doc, collection, query, orderBy, limit } from 'firebase/firestore';
 import { useEffect, useMemo, useState } from 'react';
-import { subDays, format } from 'date-fns';
+import { subDays, format, isValid } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { Skeleton } from '@/components/ui/skeleton';
+
+// Safe date formatting helper
+const safeFormat = (date: any, formatStr: string, options?: any) => {
+  try {
+    const d = date instanceof Date ? date : new Date(date);
+    if (!isValid(d)) return "—";
+    return format(d, formatStr, options);
+  } catch (e) {
+    return "—";
+  }
+};
 import { useToast } from '@/hooks/use-toast';
 
 const chartConfig = {
   total: {
     label: 'Total (€)',
-    color: 'hsl(var(--chart-2))',
+    color: '#4ade80',
   },
 } satisfies ChartConfig;
 
@@ -66,24 +77,25 @@ export default function AssociationDashboardPage() {
   const [nextPayout, setNextPayout] = useState({ date: '', amount: '' });
   const [isOnboardingStripe, setIsOnboardingStripe] = useState(false);
   const [isInitializing, setIsInitializing] = useState(false);
+  const [activePeriod, setActivePeriod] = useState('30j');
   
-  const isDemoMode = user?.isAnonymous;
+  const isDemoMode = !!user?.isAnonymous;
 
   const associationDocRef = useMemo(() => {
-    if (!firestore || !user || isDemoMode) return null;
+    if (!firestore || !user || user.isAnonymous) return null;
     return doc(firestore, 'associations', user.uid);
-  }, [firestore, user, isDemoMode]);
+  }, [firestore, user]);
   
   const { data: associationData, isLoading: isAssociationLoading } = useDoc(associationDocRef);
   
   const donationsQuery = useMemo(() => {
-    if (!firestore || !user || isDemoMode) return null;
+    if (!firestore || !user || user.isAnonymous) return null;
     return query(
       collection(firestore, 'associations', user.uid, 'donations'),
       orderBy('transactionDate', 'desc'),
       limit(50)
     );
-  }, [firestore, user, isDemoMode]);
+  }, [firestore, user]);
 
   const { data: donations, isLoading: isDonationsLoading } = useCollection(donationsQuery);
 
@@ -103,12 +115,10 @@ export default function AssociationDashboardPage() {
         throw new Error(data.error || "Impossible de générer le lien Stripe.");
       }
 
-      // 1. Enregistrement de l'ID Stripe côté client
       if (data.stripeAccountId) {
         updateDocumentNonBlocking(associationDocRef, { stripeAccountId: data.stripeAccountId });
       }
 
-      // 2. Redirection vers Stripe
       if (data.url) {
         window.location.href = data.url;
       }
@@ -197,37 +207,46 @@ export default function AssociationDashboardPage() {
     }
 
     donations.forEach(donation => {
-      const donationDate = (donation as any).transactionDate?.toDate() || new Date();
-      totalFunds += donation.amount;
+      const amount = Number(donation.amount || 0);
+      const rawDate = (donation as any).transactionDate;
+      const donationDate = (rawDate && typeof rawDate.toDate === 'function') ? rawDate.toDate() : (rawDate instanceof Date ? rawDate : new Date());
+      totalFunds += amount;
       donorIds.add(donation.userId);
       
       if (donationDate >= startOfMonth) {
-        monthlyFunds += donation.amount;
+        monthlyFunds += amount;
       }
       if (donationDate >= startOfLastMonth && donationDate <= endOfLastMonth) {
-        lastMonthFunds += donation.amount;
+        lastMonthFunds += amount;
       }
 
-      const dayKey = format(donationDate, 'yyyy-MM-dd');
-      if (dayKey in donationsByDay) {
-          donationsByDay[dayKey] += donation.amount;
+      const dayKey = safeFormat(donationDate, 'yyyy-MM-dd');
+      if (dayKey !== "—" && dayKey in donationsByDay) {
+          donationsByDay[dayKey] += amount;
       }
     });
 
     const monthlyFundsGrowth = lastMonthFunds > 0 ? ((monthlyFunds - lastMonthFunds) / lastMonthFunds) * 100 : monthlyFunds > 0 ? 100 : 0;
     const averageDonation = donations.length > 0 ? totalFunds / donations.length : 0;
 
-    const chartData = Object.keys(donationsByDay).map(date => ({
-        date: format(new Date(date), 'dd/MM', { locale: fr }),
-        total: donationsByDay[date],
-    })).reverse();
+    const chartData = Object.keys(donationsByDay).map(dateKey => {
+        const dateObj = new Date(dateKey);
+        return {
+            date: safeFormat(dateObj, 'dd/MM', { locale: fr }),
+            total: donationsByDay[dateKey],
+        };
+    }).reverse();
 
-    const recentDonors = donations.slice(0, 5).map(d => ({
-        id: d.id,
-        name: "Donateur Anonyme",
-        amount: d.amount,
-        date: (d as any).transactionDate?.toDate().toLocaleDateString('fr-FR') || format(new Date(), 'dd/MM/yyyy')
-    }));
+    const recentDonors = donations.slice(0, 5).map(d => {
+        const rawDate = (d as any).transactionDate;
+        const dateObj = (rawDate && typeof rawDate.toDate === 'function') ? rawDate.toDate() : (rawDate instanceof Date ? rawDate : new Date());
+        return {
+            id: d.id,
+            name: "Donateur Anonyme",
+            amount: Number(d.amount || 0),
+            date: dateObj.toLocaleDateString('fr-FR')
+        };
+    });
 
     return { monthlyFunds, monthlyFundsGrowth, uniqueDonors: donorIds.size, averageDonation, totalFunds, chartData, recentDonors };
   }, [donations, isDemoMode]);
@@ -237,12 +256,12 @@ export default function AssociationDashboardPage() {
     nextPayoutDate.setMonth(nextPayoutDate.getMonth() + 1);
     nextPayoutDate.setDate(1);
     setNextPayout({
-        date: format(nextPayoutDate, 'dd/MM/yyyy'),
+        date: safeFormat(nextPayoutDate, 'dd/MM/yyyy'),
         amount: `~${(monthlyFunds * 0.95).toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' })}`
     });
   }, [monthlyFunds]);
 
-  const fundraisingGoal = isDemoMode ? 100000 : (associationData?.fundraisingGoal || 1);
+  const fundraisingGoal = isDemoMode ? 100000 : (associationData?.fundraisingGoal || 10000);
   const progressPercentage = (totalFunds / fundraisingGoal) * 100;
 
   const isLoading = !isDemoMode && (isUserLoading || isAssociationLoading || isDonationsLoading);
@@ -254,211 +273,186 @@ export default function AssociationDashboardPage() {
             <Skeleton className="h-8 w-1/3" />
             <Skeleton className="h-4 w-1/2" />
         </div>
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-            <Skeleton className="h-28 w-full" />
-            <Skeleton className="h-28 w-full" />
-            <Skeleton className="h-28 w-full" />
-            <Skeleton className="h-28 w-full" />
-        </div>
       </div>
     )
   }
 
-  if (!isDemoMode && !associationData && !isAssociationLoading) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-6 text-center">
-        <div className="p-4 bg-amber-50 rounded-full">
-          <AlertCircle className="h-12 w-12 text-amber-600" />
-        </div>
-        <div className="max-w-md space-y-2">
-          <h1 className="text-2xl font-bold">Profil association manquant</h1>
-          <p className="text-muted-foreground">
-            Aucun document n'a été trouvé pour votre compte dans la collection "associations". 
-            Souhaitez-vous initialiser un profil de test ?
-          </p>
-        </div>
-        <Button 
-          size="lg" 
-          variant="vibrant" 
-          onClick={handleInitTestData}
-          disabled={isInitializing}
-          className="from-amber-400 to-yellow-300 text-slate-900 hover:brightness-110"
-        >
-          {isInitializing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-          Initialiser le profil de test
-        </Button>
-      </div>
-    );
-  }
-
   return (
-    <div className="flex flex-col gap-8">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Tableau de bord</h1>
-          <p className="text-muted-foreground">
-            {isDemoMode ? "Mode Démonstration" : `Bienvenue, ${associationData?.associationName}`}
-          </p>
-        </div>
+    <div className="flex flex-col gap-10 pb-20">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+        <h1 className="text-4xl md:text-5xl font-headline font-extrabold tracking-tight text-foreground">
+          Bonjour, <span className="text-brand-coral font-serif italic font-bold">{(associationData as any)?.associationName || 'votre association'}</span> 🌿
+        </h1>
         
-        <Card className="min-w-[300px] border-2 border-primary/10 shadow-lg">
-          <CardHeader className="py-3 px-4 flex flex-row items-center justify-between space-y-0">
-            <CardTitle className="text-sm font-bold uppercase tracking-wider">Statut des paiements</CardTitle>
-            <CreditCard className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent className="py-0 px-4 pb-3">
-            {associationData?.stripeAccountId ? (
-              <div className="flex items-center gap-2 text-green-600 font-semibold text-sm">
-                <CheckCircle2 className="h-5 w-5" />
-                <span>Paiements activés</span>
-                <Badge variant="secondary" className="bg-green-100 text-green-700 hover:bg-green-100 ml-auto">Actif</Badge>
-              </div>
-            ) : (
-              <div className="flex flex-col gap-2">
-                <p className="text-xs text-muted-foreground mb-1">Votre compte n'est pas lié à Stripe Connect.</p>
-                <Button 
-                  size="sm" 
-                  className="w-full h-10 text-xs from-amber-400 to-yellow-300 text-slate-900 hover:brightness-110 font-bold" 
-                  variant="vibrant"
-                  onClick={handleStripeOnboarding}
-                  disabled={isOnboardingStripe}
-                >
-                  {isOnboardingStripe ? (
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  ) : (
-                    <ArrowRight className="mr-2 h-4 w-4" />
-                  )}
-                  Configurer mes paiements
-                </Button>
+        <div className="flex bg-black/[0.03] p-1.5 rounded-full border border-black/[0.05]">
+          {['7j', '30j', '1an', 'Tout'].map((period) => (
+            <button
+              key={period}
+              onClick={() => setActivePeriod(period)}
+              className={`px-6 py-2 rounded-full text-xs font-extrabold transition-all ${
+                activePeriod === period 
+                  ? 'bg-white text-foreground shadow-sm' 
+                  : 'text-foreground/40 hover:text-foreground'
+              }`}
+            >
+              {period}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="bg-brand-coral text-white rounded-[2.5rem] p-8 flex flex-col justify-between min-h-[220px]">
+          <span className="text-[10px] font-extrabold uppercase tracking-[0.2em] opacity-60">FONDS RÉCOLTÉS CE MOIS-CI</span>
+          <div>
+            <div className="text-4xl md:text-5xl font-extrabold mb-2 truncate">{(monthlyFunds || 0).toLocaleString('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 })}</div>
+            {isDemoMode && monthlyFundsGrowth > 0 && (
+              <div className="flex items-center gap-2 text-xs font-bold bg-white/20 w-fit px-3 py-1 rounded-full">
+                <span className="opacity-100">↑ {monthlyFundsGrowth.toFixed(1)}%</span>
+                <span className="opacity-60">vs mois dernier</span>
               </div>
             )}
-          </CardContent>
-        </Card>
+          </div>
+        </div>
+
+        <div className="bg-brand-yellow rounded-[2.5rem] p-8 flex flex-col justify-between min-h-[220px]">
+          <span className="text-[10px] font-extrabold uppercase tracking-[0.2em] opacity-40">DONATEURS UNIQUES</span>
+          <div>
+            <div className="text-4xl md:text-5xl font-extrabold mb-2 truncate">{uniqueDonors}</div>
+            {isDemoMode && (
+              <div className="flex items-center gap-2 text-xs font-bold bg-black/5 w-fit px-3 py-1 rounded-full">
+                <span>↑ 8 nouveaux</span>
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className="bg-brand-mint rounded-[2.5rem] p-8 flex flex-col justify-between min-h-[220px]">
+          <span className="text-[10px] font-extrabold uppercase tracking-[0.2em] opacity-40">PROCHAIN VIREMENT</span>
+          <div>
+            <div className="text-4xl font-extrabold mb-1 truncate">{nextPayout?.date || '—'}</div>
+            <p className="text-sm font-bold opacity-40">Estimation : {nextPayout?.amount || '0,00 €'}</p>
+          </div>
+        </div>
+
+        <div className="bg-brand-lavender rounded-[2.5rem] p-8 flex flex-col justify-between min-h-[220px]">
+          <span className="text-[10px] font-extrabold uppercase tracking-[0.2em] opacity-40">DON MOYEN</span>
+          <div>
+            <div className="text-4xl md:text-5xl font-extrabold mb-2 truncate">{(averageDonation || 0).toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' })}</div>
+            {isDemoMode && (
+              <div className="flex items-center gap-2 text-xs font-bold bg-black/5 w-fit px-3 py-1 rounded-full">
+                <span>↑ 0,45 €</span>
+              </div>
+            )}
+          </div>
+        </div>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Fonds Récoltés (mois)</CardTitle>
-            <PiggyBank className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{monthlyFunds.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' })}</div>
-            <p className={`text-xs ${monthlyFundsGrowth >= 0 ? 'text-green-600' : 'text-destructive'}`}>
-              {monthlyFundsGrowth >= 0 ? '+' : ''}{monthlyFundsGrowth.toFixed(1)}% par rapport au mois dernier
-            </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Donateurs Uniques</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{uniqueDonors}</div>
-            <p className="text-xs text-muted-foreground">Sur la durée totale</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Don Moyen</CardTitle>
-            <Target className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{averageDonation.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' })}</div>
-            <p className="text-xs text-muted-foreground">Sur {donations?.length || 0} dons</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Prochain virement</CardTitle>
-            <Calendar className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{nextPayout.date}</div>
-            <p className="text-xs text-muted-foreground">Estimé à {nextPayout.amount}</p>
-          </CardContent>
-        </Card>
-      </div>
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+        <div className="lg:col-span-4 space-y-6">
+          <div className="bg-white border border-black/[0.05] rounded-[2.5rem] p-10 flex flex-col justify-between min-h-[200px] shadow-sm">
+            <span className="text-[10px] font-extrabold uppercase tracking-[0.2em] opacity-40">TOTAL DEPUIS LE DÉBUT</span>
+            <div className="text-4xl md:text-5xl font-extrabold truncate">{(totalFunds || 0).toLocaleString('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 })}</div>
+          </div>
+          
+          <div className="bg-white border border-black/[0.05] rounded-[2.5rem] p-10 space-y-8 shadow-sm">
+            <div>
+              <span className="text-[10px] font-extrabold uppercase tracking-[0.2em] opacity-40 block mb-2">OBJECTIF ANNUEL</span>
+              <div className="text-3xl font-extrabold truncate">{(fundraisingGoal || 0).toLocaleString('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 })}</div>
+            </div>
+            <div className="space-y-3">
+              <div className="h-4 w-full bg-black/[0.03] rounded-full overflow-hidden p-1">
+                <div className="h-full bg-brand-mint rounded-full transition-all duration-700" style={{ width: `${Math.min(progressPercentage, 100)}%` }}></div>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-sm font-extrabold text-brand-mint">{progressPercentage.toFixed(0)}% atteint</span>
+                <span className="text-xs font-bold text-foreground/40 uppercase tracking-widest">Restant : {Math.max(fundraisingGoal - totalFunds, 0).toLocaleString('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 })}</span>
+              </div>
+            </div>
+          </div>
+        </div>
 
-      <div className="grid gap-8 md:grid-cols-5">
-        <Card className="md:col-span-3">
-          <CardHeader>
-            <CardTitle>Évolution des dons journaliers</CardTitle>
-            <CardDescription>Dons reçus au cours de la dernière semaine.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <ChartContainer config={chartConfig} className="h-64 w-full">
+        <div className="lg:col-span-8 bg-foreground text-white rounded-[3rem] p-10 shadow-xl overflow-hidden relative min-h-[440px]">
+          <div className="flex justify-between items-start mb-10">
+            <div>
+              <h3 className="text-2xl font-headline font-extrabold tracking-tight">Évolution hebdomadaire</h3>
+              <p className="text-white/40 text-sm font-headline font-light mt-1">Dons collectés par jour sur les 7 derniers jours</p>
+            </div>
+            <div className="h-10 w-10 rounded-full bg-white/10 flex items-center justify-center">
+              <ArrowRight className="w-4 h-4" />
+            </div>
+          </div>
+          
+          <div className="h-64 w-full mt-12">
+             <ChartContainer config={chartConfig} className="h-full w-full">
               <ResponsiveContainer>
-                <AreaChart data={chartData} margin={{ left: -20, right: 10 }}>
-                  <CartesianGrid vertical={false} strokeDasharray="3 3" opacity={0.1} />
-                  <XAxis dataKey="date" tickLine={false} tickMargin={10} axisLine={false} />
-                  <YAxis tickLine={false} axisLine={false} tickMargin={10} tickFormatter={(value) => `€${value}`} />
-                  <ChartTooltip cursor={false} content={<ChartTooltipContent indicator="dot" />} />
+                <AreaChart data={chartData}>
                   <defs>
-                      <linearGradient id="fillTotal" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="var(--color-total)" stopOpacity={0.8}/>
-                          <stop offset="95%" stopColor="var(--color-total)" stopOpacity={0.1}/>
-                      </linearGradient>
+                    <linearGradient id="colorTotalDashboard" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#FB8B7B" stopOpacity={0.8}/>
+                      <stop offset="95%" stopColor="#FB8B7B" stopOpacity={0}/>
+                    </linearGradient>
                   </defs>
-                  <Area dataKey="total" type="natural" fill="url(#fillTotal)" stroke="var(--color-total)" strokeWidth={2} />
+                  <Area 
+                    dataKey="total" 
+                    type="natural" 
+                    fill="url(#colorTotalDashboard)" 
+                    stroke="#FB8B7B" 
+                    strokeWidth={4} 
+                  />
+                  <XAxis hide dataKey="date" />
+                  <YAxis hide />
+                  <ChartTooltip cursor={false} content={<ChartTooltipContent indicator="line" />} />
                 </AreaChart>
               </ResponsiveContainer>
             </ChartContainer>
-          </CardContent>
-        </Card>
-        <Card className="md:col-span-2">
-          <CardHeader>
-            <CardTitle>Objectif Annuel</CardTitle>
-            <CardDescription>Progrès vers votre objectif de collecte.</CardDescription>
-          </CardHeader>
-          <CardContent className="flex flex-col justify-center gap-4 h-full">
-            <div className="flex flex-wrap items-baseline justify-center gap-2">
-                <span className="text-3xl font-bold">{totalFunds.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' })}</span>
-                <span className="text-sm text-muted-foreground">/ {fundraisingGoal.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' })}</span>
-            </div>
-            <div className="space-y-2">
-                <Progress value={progressPercentage} className="h-3" />
-                <p className="text-center text-sm text-muted-foreground font-medium">{progressPercentage.toFixed(1)}% atteint</p>
-            </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       </div>
-      
-      <Card>
-        <CardHeader>
-          <CardTitle>Donateurs Récents</CardTitle>
-          <CardDescription>Les dernières contributions à votre cause.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Donateur</TableHead>
-                <TableHead className="text-right">Montant</TableHead>
-                <TableHead className="text-right">Date</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {recentDonors.length > 0 ? recentDonors.map((donor) => (
-                <TableRow key={donor.id}>
-                  <TableCell className="font-medium">{donor.name}</TableCell>
-                  <TableCell className="text-right text-accent font-bold">
-                    {donor.amount.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' })}
-                  </TableCell>
-                  <TableCell className="text-right text-muted-foreground">
-                    {donor.date}
-                  </TableCell>
-                </TableRow>
-              )) : (
-                <TableRow>
-                  <TableCell colSpan={3} className="text-center py-8 text-muted-foreground">Aucun donateur pour le moment.</TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+
+      <div className="bg-white border border-black/[0.05] rounded-[3rem] overflow-hidden shadow-sm">
+        <div className="p-10 flex justify-between items-center border-b border-black/[0.05]">
+          <div>
+            <h3 className="text-2xl font-headline font-extrabold tracking-tight">Donateurs récents</h3>
+            <p className="text-foreground/40 text-sm font-headline font-light mt-1">Dernières contributions à <span className="font-serif italic font-bold">{(associationData as any)?.associationName || 'votre association'}</span></p>
+          </div>
+          <Button variant="outline" className="rounded-full border-black font-extrabold px-6">Voir tout</Button>
+        </div>
+        
+        <div className="overflow-x-auto">
+          <table className="w-full text-left">
+            <thead>
+              <tr className="text-[10px] font-extrabold uppercase tracking-[0.2em] text-foreground/30">
+                <th className="px-10 py-6">DONATEUR</th>
+                <th className="px-10 py-6">MONTANT</th>
+                <th className="px-10 py-6">DATE</th>
+                <th className="px-10 py-6 text-right">STATUT</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-black/[0.03]">
+              {recentDonors.map((donor) => (
+                <tr key={donor.id} className="hover:bg-black/[0.01] transition-colors">
+                  <td className="px-10 py-6">
+                    <div className="flex items-center gap-4">
+                      <div className="w-10 h-10 rounded-full bg-brand-yellow flex items-center justify-center font-extrabold text-xs">
+                        {donor.name.split(' ').map(n => n[0]).join('')}
+                      </div>
+                      <span className="font-bold">{donor.name}</span>
+                    </div>
+                  </td>
+                  <td className="px-10 py-6 font-extrabold">{donor.amount?.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' }) || "0,00 €"}</td>
+                  <td className="px-10 py-6 text-foreground/40 font-bold">{donor.date}</td>
+                  <td className="px-10 py-6 text-right">
+                    <span className="px-4 py-1.5 rounded-full bg-brand-mint/20 text-brand-mint text-[10px] font-extrabold uppercase tracking-widest">
+                      TRANSFÉRÉ
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
     </div>
   );
 }

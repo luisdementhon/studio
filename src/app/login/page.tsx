@@ -32,6 +32,7 @@ import { useToast } from "@/hooks/use-toast";
 import { BrandPattern } from "@/components/brand-pattern";
 import { GoogleIcon } from "@/components/google-icon";
 import { Separator } from "@/components/ui/separator";
+import { DotlyBrand } from "@/components/ui/dotly-brand";
 
 export default function LoginPage() {
   const auth = useAuth();
@@ -93,92 +94,101 @@ export default function LoginPage() {
   const { isSubmitting } = form.formState;
 
   return (
-    <div className="relative flex min-h-screen flex-col items-center justify-center p-4">
-        <BrandPattern />
-        <Card className="w-full max-w-sm z-10">
-        <CardHeader>
-            <CardTitle>Connexion</CardTitle>
-            <CardDescription>
-            Ravi de vous revoir ! Connectez-vous pour continuer.
-            </CardDescription>
-        </CardHeader>
+    <div className="relative flex min-h-screen items-center justify-center bg-background overflow-hidden p-6">
+        {/* Background Accents */}
+        <div className="absolute top-[-20%] left-[-10%] w-[60%] h-[60%] bg-brand-mint/5 rounded-full blur-[120px] pointer-events-none" />
+        <div className="absolute bottom-[-20%] right-[-10%] w-[60%] h-[60%] bg-brand-lavender/5 rounded-full blur-[120px] pointer-events-none" />
         
-        <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)}>
-            <CardContent className="grid gap-4 pt-6">
-                <FormField
-                control={form.control}
-                name="email"
-                render={({ field }) => (
-                    <FormItem>
-                    <FormLabel>Email</FormLabel>
-                    <FormControl>
-                        <Input
-                        type="email"
-                        placeholder="Email"
-                        {...field}
-                        disabled={isSubmitting}
-                        />
-                    </FormControl>
-                    <FormMessage />
-                    </FormItem>
-                )}
-                />
-                <FormField
-                control={form.control}
-                name="password"
-                render={({ field }) => (
-                    <FormItem>
-                        <div className="flex items-center">
-                            <FormLabel>Mot de passe</FormLabel>
+        <div className="w-full max-w-md relative z-10 flex flex-col items-center">
+            <Link href="/" className="mb-12 group">
+                <DotlyBrand className="text-5xl transition-transform group-hover:scale-105 inline-block" />
+            </Link>
+
+            <Card className="w-full p-4 border-none shadow-2xl shadow-black/[0.03] rounded-[3rem] bg-white/80 backdrop-blur-xl">
+            <CardHeader className="text-center pb-6">
+                <CardTitle className="text-4xl font-headline font-bold tracking-tight mb-2">Connexion</CardTitle>
+                <CardDescription className="text-lg text-muted-foreground">
+                Heureux de vous revoir !
+                </CardDescription>
+            </CardHeader>
+            
+            <Form {...form}>
+                <form onSubmit={form.handleSubmit(onSubmit)}>
+                <CardContent className="grid gap-6 pt-2">
+                    <FormField
+                    control={form.control}
+                    name="email"
+                    render={({ field }) => (
+                        <FormItem>
+                        <FormControl>
+                            <Input
+                            type="email"
+                            placeholder="Adresse email"
+                            className="h-14 text-lg rounded-2xl bg-muted/30"
+                            {...field}
+                            disabled={isSubmitting}
+                            />
+                        </FormControl>
+                        <FormMessage />
+                        </FormItem>
+                    )}
+                    />
+                    <FormField
+                    control={form.control}
+                    name="password"
+                    render={({ field }) => (
+                        <FormItem>
+                        <FormControl>
+                            <Input
+                            type="password"
+                            placeholder="Mot de passe"
+                            className="h-14 text-lg rounded-2xl bg-muted/30"
+                            {...field}
+                            disabled={isSubmitting}
+                            />
+                        </FormControl>
+                        <div className="flex justify-end mt-1">
                             <Link
                                 href="/forgot-password"
-                                className="ml-auto inline-block text-sm underline"
+                                className="text-sm font-semibold text-muted-foreground hover:text-brand-coral transition-colors"
                             >
                                 Mot de passe oublié ?
                             </Link>
                         </div>
-                    <FormControl>
-                        <Input
-                        type="password"
-                        placeholder="Mot de passe"
-                        {...field}
-                        disabled={isSubmitting}
-                        />
-                    </FormControl>
-                    <FormMessage />
-                    </FormItem>
-                )}
-                />
-            </CardContent>
-            <CardFooter className="flex flex-col gap-4">
-                <Button type="submit" className="w-full" disabled={isSubmitting} variant="vibrant">
-                {isSubmitting ? "Connexion..." : "Se connecter"}
-                </Button>
-                <div className="relative w-full">
-                    <div className="absolute inset-0 flex items-center">
-                        <span className="w-full border-t" />
+                        <FormMessage />
+                        </FormItem>
+                    )}
+                    />
+                </CardContent>
+                <CardFooter className="flex flex-col gap-6 pt-6">
+                    <Button type="submit" className="w-full h-16 text-xl rounded-2xl shadow-lg shadow-brand-coral/20" disabled={isSubmitting} variant="vibrant">
+                    {isSubmitting ? "Connexion..." : "Se connecter"}
+                    </Button>
+                    <div className="relative w-full">
+                        <div className="absolute inset-0 flex items-center">
+                            <span className="w-full border-t border-muted/30" />
+                        </div>
+                        <div className="relative flex justify-center text-xs uppercase">
+                            <span className="bg-transparent px-4 text-muted-foreground font-medium">
+                                OU
+                            </span>
+                        </div>
                     </div>
-                    <div className="relative flex justify-center text-xs uppercase">
-                        <span className="bg-background px-2 text-muted-foreground">
-                            Ou
-                        </span>
+                    <Button variant="outline" type="button" className="w-full h-16 text-lg rounded-2xl bg-white hover:bg-muted/30 border-muted/30 transition-all" onClick={handleGoogleSignIn} disabled={isSubmitting || !isAuthReady}>
+                        <GoogleIcon className="mr-3 h-6 w-6" />
+                        Continuer avec Google
+                    </Button>
+                    <div className="mt-2 text-base text-center text-muted-foreground">
+                    Pas encore de compte ?{" "}
+                    <Link href="/signup" className="font-semibold text-brand-coral hover:text-brand-coral/80 transition-colors">
+                        Inscrivez-vous
+                    </Link>
                     </div>
-                </div>
-                <Button variant="outline" className="w-full" onClick={handleGoogleSignIn} disabled={isSubmitting || !isAuthReady}>
-                    <GoogleIcon className="mr-2 h-4 w-4" />
-                    Continuer avec Google
-                </Button>
-                <div className="text-sm text-muted-foreground">
-                Pas encore de compte ?{" "}
-                <Link href="/signup" className="font-semibold text-transparent bg-clip-text bg-gradient-to-r from-amber-400 to-yellow-300 hover:brightness-110 transition-all">
-                    Inscrivez-vous
-                </Link>
-                </div>
-            </CardFooter>
-            </form>
-        </Form>
-        </Card>
+                </CardFooter>
+                </form>
+            </Form>
+            </Card>
+        </div>
     </div>
   );
 }

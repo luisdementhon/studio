@@ -6,64 +6,90 @@ import { BRIDGE_CONFIG } from '@/lib/bridge';
 const BRIDGE_CLIENT_SECRET = process.env.BRIDGE_CLIENT_SECRET || "sandbox_secret_Yv6EdHzK134ZnT3fl5OUpSNNXHMGNsCxrsNEQn20TGAtLqj2Yc61ono0UR1WzZVE";
 
 export async function POST(request: Request) {
-  try {
-    const { code } = await request.json();
+  const clientId = process.env.BRIDGE_CLIENT_ID || "sandbox_id_eb1eb747f61541d68c1f7775ed91278b";
+  const clientSecret = process.env.BRIDGE_CLIENT_SECRET || "sandbox_secret_9Qpn7gTnq1kwfD0mCtL5xSt0dK482tKjH5HZ8Bf1SoQgVH96kT7MtvP1uxq9xWXx";
 
-    if (!code) {
-      return NextResponse.json({ error: 'Code d\'autorisation manquant.' }, { status: 400 });
+  if (!clientId || !clientSecret) {
+    return NextResponse.json({ error: 'Configuration Bridge manquante.' }, { status: 500 });
+  }
+
+  try {
+    const { userUuid, itemId, email, userId } = await request.json();
+    console.log("DEBUG: Exchange Token Request:", { userUuid, itemId, email, userId });
+
+    const externalUserId = userId || email;
+
+    if (!userUuid || !externalUserId) {
+      console.error("ERROR: Missing userUuid or externalUserId", { userUuid, externalUserId });
+      return NextResponse.json({ error: 'Données manquantes pour la finalisation' }, { status: 400 });
     }
 
-    // Échange du code contre un access token auprès de Bridge
-    const response = await fetch('https://api.bridgeapi.io/v2/token', {
-      method: 'POST',
+    // Obtenir un token d'accès permanent pour cet utilisateur
+    console.log("DEBUG: Fetching Bridge Auth Token for:", externalUserId);
+    const authResponse = await fetch("https://api.bridgeapi.io/v3/aggregation/authorization/token", {
+      method: "POST",
       headers: {
-        'Content-Type': 'application/json',
-        'Bridge-Version': '2021-06-01',
-        'Client-Id': BRIDGE_CONFIG.clientId,
-        'Client-Secret': BRIDGE_CLIENT_SECRET,
+        "Content-Type": "application/json",
+        "Bridge-Version": "2025-01-15",
+        "Client-Id": clientId,
+        "Client-Secret": clientSecret,
       },
-      body: JSON.stringify({
-        code,
-        grant_type: 'authorization_code',
-        redirect_uri: BRIDGE_CONFIG.redirectUri,
-      }),
+      body: JSON.stringify({ external_user_id: externalUserId }),
     });
 
-    if (!response.ok) {
-      const errorData = await response.json();
-      console.error('Bridge Token Exchange Error:', errorData);
-      return NextResponse.json({ error: errorData.error_message || 'Erreur lors de l\'échange du token.' }, { status: response.status });
+    if (!authResponse.ok) {
+      const errorData = await authResponse.json();
+      console.error("ERROR: Bridge Auth failed:", errorData);
+      return NextResponse.json({ 
+        error: 'Échec d\'autorisation pour la finalisation', 
+        details: errorData 
+      }, { status: authResponse.status });
     }
 
-    const data = await response.json();
-    
-    // Récupération des infos de la banque (nom)
+    const authData = await authResponse.json();
+    const { access_token } = authData;
+    const bridgeUserUuid = authData.user?.uuid || userUuid;
+
+    // 2. Si on a un itemId, on récupère les détails de la banque
+    // Sinon, on peut lister les items récents
     let bankName = 'Banque connectée';
+    let finalItemId = itemId;
+
     try {
-      const itemResponse = await fetch(`https://api.bridgeapi.io/v2/items/${data.item_id}`, {
+      const itemsResponse = await fetch("https://api.bridgeapi.io/v3/aggregation/items", {
         headers: {
-          'Authorization': `Bearer ${data.access_token}`,
-          'Bridge-Version': '2021-06-01',
-          'Client-Id': BRIDGE_CONFIG.clientId,
+          "Authorization": `Bearer ${access_token}`,
+          "Bridge-Version": "2025-01-15",
+          "Client-Id": clientId,
         }
       });
-      if (itemResponse.ok) {
-        const itemData = await itemResponse.json();
-        bankName = itemData.bank.name;
+
+      if (itemsResponse.ok) {
+        const itemsData = await itemsResponse.json();
+        const items = itemsData.resources || [];
+        
+        if (items.length > 0) {
+          // On prend soit l'item spécifique, soit le plus récent
+          const matchedItem = itemId ? items.find((i: any) => i.id === itemId) : items[0];
+          if (matchedItem) {
+            bankName = matchedItem.bank?.name || 'Banque connectée';
+            finalItemId = matchedItem.id;
+          }
+        }
       }
     } catch (e) {
-      console.warn("Could not fetch bank name", e);
+      console.warn("Could not fetch item details in V3", e);
     }
 
-    // On renvoie tout au client pour qu'il mette à jour son profil Firestore
     return NextResponse.json({ 
-      bridgeItemId: data.item_id,
-      bridgeAccessToken: data.access_token, // En prod, on chiffrerait ça ou on le stockerait via Cloud Function
+      bridgeItemId: finalItemId,
+      bridgeUserUuid: bridgeUserUuid,
       bankName: bankName,
+      status: 'success'
     });
 
   } catch (error: any) {
-    console.error("Internal Server Error Bridge:", error);
-    return NextResponse.json({ error: 'Une erreur interne est survenue.' }, { status: 500 });
+    console.error("Internal Server Error Bridge Finalize:", error);
+    return NextResponse.json({ error: 'Une erreur interne est survenue lors de la finalisation.' }, { status: 500 });
   }
 }

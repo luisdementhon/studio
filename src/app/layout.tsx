@@ -2,14 +2,13 @@
 import type { Metadata } from 'next';
 import { Toaster } from "@/components/ui/toaster";
 import { FirebaseClientProvider } from '@/firebase';
+import { CustomCursor } from '@/components/ui/custom-cursor';
 import './globals.css';
-import { Inter } from 'next/font/google';
 import Script from 'next/script';
 
-const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
 
 export const metadata: Metadata = {
-  title: 'Dotly: Change for Change',
+  title: 'dotly. Change for Change',
   description: 'Transformez votre petite monnaie en grands gestes.',
 };
 
@@ -19,14 +18,15 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="fr" suppressHydrationWarning className={inter.variable}>
+    <html lang="fr" suppressHydrationWarning>
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Playfair+Display:wght@700&display=swap" rel="stylesheet" />
+        <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,200..800&family=Instrument+Serif:ital,wght@0,400;1,400&display=swap" rel="stylesheet" />
       </head>
-      <body className="font-body antialiased">
+      <body className="font-body antialiased bg-background selection:bg-brand-coral/30">
         <FirebaseClientProvider>
+          <CustomCursor />
           {children}
         </FirebaseClientProvider>
         <Toaster />
