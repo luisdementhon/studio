@@ -77,7 +77,7 @@ export default function TransactionHistoryPage() {
         <div className="space-y-4">
           <h1 className="text-5xl md:text-7xl font-headline font-bold tracking-tight text-foreground leading-[0.9]">
             Mes<br />
-            <DotlyBrand />
+            <span className="text-brand-coral">arrondis.</span>
           </h1>
           <p className="text-lg text-muted-foreground font-headline font-light max-w-xl">
             Suivez l'origine de chaque centime collecté pour vos causes via <DotlyBrand className="inline text-base" />

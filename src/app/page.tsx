@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { DotlyBrand } from '@/components/ui/dotly-brand';
+import { Magnetic } from '@/components/ui/magnetic';
 import { useEffect, useRef, useState } from 'react';
 
 const steps = [
@@ -26,29 +27,6 @@ const steps = [
     color: 'bg-brand-lavender/40',
   },
 ];
-
-function AnimatedWord({ word, delay = 0 }: { word: string; delay?: number }) {
-  const ref = useRef<HTMLSpanElement>(null);
-  const [visible, setVisible] = useState(false);
-
-  useEffect(() => {
-    const timer = setTimeout(() => setVisible(true), delay);
-    return () => clearTimeout(timer);
-  }, [delay]);
-
-  return (
-    <span
-      ref={ref}
-      className="inline-block transition-all duration-700"
-      style={{
-        opacity: visible ? 1 : 0,
-        transform: visible ? 'translateY(0)' : 'translateY(40px)',
-      }}
-    >
-      {word}
-    </span>
-  );
-}
 
 function ScrollStep({ step, index }: { step: typeof steps[0]; index: number }) {
   const ref = useRef<HTMLDivElement>(null);
@@ -83,6 +61,14 @@ function ScrollStep({ step, index }: { step: typeof steps[0]; index: number }) {
 }
 
 export default function Home() {
+  const [selectedCauses, setSelectedCauses] = useState<string[]>([]);
+
+  const toggleCause = (cause: string) => {
+    setSelectedCauses(prev =>
+      prev.includes(cause) ? prev.filter(c => c !== cause) : [...prev, cause]
+    );
+  };
+
   return (
     <div className="flex flex-col min-h-screen bg-background overflow-x-hidden">
       {/* Header */}
@@ -91,61 +77,149 @@ export default function Home() {
           <DotlyBrand className="text-3xl transition-transform group-hover:scale-105" />
         </Link>
         <nav className="hidden md:flex items-center gap-8">
-          <Link href="#comment-ca-marche" className="text-sm font-bold text-foreground/70 hover:text-foreground transition-colors">Comment ça marche</Link>
-          <Link href="/login" className="text-sm font-bold text-foreground/70 hover:text-foreground transition-colors">Se connecter</Link>
+          <Link href="#comment-ca-marche" className="text-sm font-bold text-foreground/70 hover:text-foreground transition-colors nav-link-underline">Comment ça marche</Link>
+          <Link href="/login" className="text-sm font-bold text-foreground/70 hover:text-foreground transition-colors nav-link-underline">Se connecter</Link>
           <Button asChild size="sm" className="rounded-full bg-black text-white hover:bg-black/80 font-bold px-6 py-5 group">
             <Link href="/signup" className="flex items-center gap-2">
-              Commencer <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
+              Commencer <ArrowRight className="w-4 h-4 transition-transform hover-arrow" />
             </Link>
           </Button>
         </nav>
       </header>
 
       <main className="flex-1 pt-20">
-        {/* Hero — plein écran, flex-col pour séparer contenu et logo */}
-        <section className="min-h-[calc(100vh-80px)] flex flex-col justify-between px-8 overflow-hidden">
-
-          {/* Contenu principal — centré en haut */}
-          <div className="flex flex-col items-center text-center space-y-8 pt-16 md:pt-20">
-            <h1 className="text-6xl md:text-8xl font-headline font-bold tracking-tight leading-[0.95] text-foreground">
+        {/* Hero Section */}
+        <section className="px-8 pt-12 pb-20 max-w-[1400px] mx-auto space-y-12">
+          
+          {/* Cascade 1: Titre (2 lignes) */}
+          <div className="text-left w-full animate-cascade" style={{ animationDelay: '100ms' }}>
+            <h1 className="text-6xl md:text-[6.5rem] font-headline font-extrabold tracking-tight leading-[0.9] text-foreground max-w-none">
               Petite monnaie,<br />
               <span className="text-brand-coral font-serif italic font-bold">grands</span> gestes.
             </h1>
+          </div>
 
-            <p className="text-base md:text-lg font-headline font-light text-foreground/60 max-w-2xl mx-auto leading-relaxed">
-              <DotlyBrand className="inline text-2xl" /> arrondit automatiquement vos paiements à l'euro supérieur et transforme ces centimes en dons pour les causes qui vous sont chères.
+          {/* Cascade 2: Sous-titre */}
+          <div className="text-left w-full animate-cascade" style={{ animationDelay: '250ms' }}>
+            <p className="text-lg md:text-xl font-headline font-light text-foreground/60 max-w-2xl leading-relaxed">
+              Arrondissez automatiquement vos dépenses quotidiennes à l'euro supérieur et donnez vos centimes aux associations de votre choix en toute simplicité.
             </p>
+          </div>
 
-            <div className="flex flex-wrap justify-center gap-6 pt-2">
-              <Button asChild size="lg" className="rounded-full bg-brand-coral hover:bg-brand-coral/90 text-white font-bold px-12 h-16 text-lg shadow-xl shadow-brand-coral/20">
-                <Link href="/signup">Commencez dès maintenant</Link>
-              </Button>
-              <Button asChild variant="outline" size="lg" className="rounded-full border-black text-black hover:bg-black hover:text-white font-bold px-12 h-16 text-lg transition-all">
-                <Link href="/login">Se connecter</Link>
-              </Button>
+          {/* Cascade 3: Bandeau mécanisme */}
+          <div className="w-full bg-white/40 backdrop-blur-sm border border-black/[0.05] rounded-[2.5rem] p-4 flex flex-col md:flex-row md:items-stretch md:justify-between gap-4 animate-cascade" style={{ animationDelay: '400ms' }}>
+            {/* Colonne 1: Vous payez */}
+            <div className="flex-1 bg-white rounded-3xl p-8 flex flex-col justify-center border border-black/[0.02] shadow-sm">
+              <span className="text-[10px] font-extrabold uppercase tracking-widest text-muted-foreground/60">Vous payez</span>
+              <span className="text-4xl md:text-5xl font-extrabold text-foreground mt-3 mb-1">2,80 €</span>
+              <span className="text-xs text-muted-foreground font-medium">Un café, ce matin</span>
+            </div>
+            
+            {/* Flèche 1 */}
+            <div className="hidden md:flex items-center justify-center">
+              <div className="w-8 h-8 rounded-full bg-white border border-black/[0.05] flex items-center justify-center shadow-sm">
+                <ArrowRight className="w-4 h-4 text-muted-foreground/60" />
+              </div>
+            </div>
+
+            {/* Colonne 2: On arrondit */}
+            <div className="flex-1 bg-white rounded-3xl p-8 flex flex-col justify-center border border-black/[0.02] shadow-sm">
+              <span className="text-[10px] font-extrabold uppercase tracking-widest text-muted-foreground/60">On arrondit</span>
+              <span className="text-4xl md:text-5xl font-extrabold text-foreground mt-3 mb-1">3,00 €</span>
+              <span className="text-xs text-muted-foreground font-medium">à l'euro supérieur</span>
+            </div>
+            
+            {/* Flèche 2 */}
+            <div className="hidden md:flex items-center justify-center">
+              <div className="w-8 h-8 rounded-full bg-white border border-black/[0.05] flex items-center justify-center shadow-sm">
+                <ArrowRight className="w-4 h-4 text-muted-foreground/60" />
+              </div>
+            </div>
+
+            {/* Colonne 3: La différence */}
+            <div className="flex-1 bg-brand-coral/5 rounded-3xl p-8 flex flex-col justify-center border border-brand-coral/10 shadow-sm">
+              <span className="text-[10px] font-extrabold uppercase tracking-widest text-brand-coral/70">La différence</span>
+              <span className="text-4xl md:text-5xl font-extrabold text-brand-coral mt-3 mb-1">0,20 €</span>
+              <span className="text-xs text-brand-coral/60 font-medium">mise de côté</span>
+            </div>
+            
+            {/* Flèche 3 */}
+            <div className="hidden md:flex items-center justify-center">
+              <div className="w-8 h-8 rounded-full bg-white border border-black/[0.05] flex items-center justify-center shadow-sm">
+                <ArrowRight className="w-4 h-4 text-muted-foreground/60" />
+              </div>
+            </div>
+
+            {/* Colonne 4: Part à (votre asso de coeur) */}
+            <div className="flex-1 bg-neutral-950 rounded-3xl p-8 flex flex-col justify-center shadow-lg">
+              <span className="text-[10px] font-extrabold uppercase tracking-widest text-white/40">Part à</span>
+              <span className="text-3xl md:text-4xl font-serif italic text-brand-coral mt-3 leading-none">votre asso</span>
+              <span className="text-3xl md:text-4xl font-extrabold text-white leading-none mt-1">de coeur</span>
             </div>
           </div>
 
-          {/* DOTLY Géant — dans le flux, aligné en bas à gauche */}
-          <div className="select-none pointer-events-none pb-6 pl-4">
-            <span
-              className="font-headline font-black block whitespace-nowrap"
-              style={{
-                fontSize: 'clamp(80px, 12vw, 170px)',
-                letterSpacing: '-0.05em',
-                lineHeight: '1',
-                color: 'black',
-              }}
-            >
-              dotly<span className="text-brand-coral">.</span>
-            </span>
+          {/* Cascade 4: Boutons Commencer et Se connecter (Magnétiques !) */}
+          <div className="flex flex-wrap justify-center gap-6 pt-4 animate-cascade" style={{ animationDelay: '550ms' }}>
+            <Magnetic>
+              <Button asChild size="lg" className="rounded-full bg-brand-coral hover:bg-brand-coral/90 text-white font-bold px-12 h-16 text-lg shadow-xl shadow-brand-coral/20 group">
+                <Link href="/signup" className="flex items-center gap-2">
+                  Commencez dès maintenant
+                  <ArrowRight className="w-5 h-5 hover-arrow" />
+                </Link>
+              </Button>
+            </Magnetic>
+            <Magnetic>
+              <Button asChild variant="outline" size="lg" className="rounded-full border-black text-black hover:bg-black hover:text-white font-bold px-12 h-16 text-lg transition-all">
+                <Link href="/login">Se connecter</Link>
+              </Button>
+            </Magnetic>
+          </div>
+
+          {/* Cascade 5: Indicateur de défilement en boucle */}
+          <div className="hidden md:flex flex-col items-center gap-3 pt-12 animate-cascade" style={{ animationDelay: '700ms' }}>
+            <span className="text-[10px] font-extrabold uppercase tracking-widest text-muted-foreground/50">Défiler pour en savoir plus</span>
+            <div className="w-[2px] h-12 bg-black/10 relative overflow-hidden rounded-full">
+              <div className="absolute top-0 left-0 w-full h-1/2 bg-brand-coral rounded-full animate-scroll-segment" />
+            </div>
           </div>
 
         </section>
 
+        {/* Section: Causes d'associations (Sélection interactive) */}
+        <section className="px-8 py-16 max-w-[1400px] mx-auto text-center space-y-8 flex flex-col items-center">
+          <span className="text-xs font-extrabold uppercase tracking-[0.2em] text-muted-foreground/60">Quelles causes pouvez-vous soutenir ?</span>
+          <div className="flex flex-wrap justify-center gap-3 max-w-4xl mx-auto">
+            {['Environnement', 'Solidarité', 'Santé & Recherche', 'Éducation', 'Protection Animale', 'Aide Humanitaire', 'Inclusion Sociale', 'Patrimoine & Culture'].map(cause => {
+              const isSelected = selectedCauses.includes(cause);
+              return (
+                <button
+                  key={cause}
+                  onClick={() => toggleCause(cause)}
+                  className={`px-6 py-3 rounded-full text-sm font-bold transition-all cursor-pointer shadow-sm ${
+                    isSelected
+                      ? 'bg-brand-coral text-white border border-brand-coral shadow-md scale-105'
+                      : 'association-chip border border-black/10 bg-white text-muted-foreground'
+                  }`}
+                >
+                  {cause} {isSelected && '✓'}
+                </button>
+              );
+            })}
+          </div>
 
-
-
+          {selectedCauses.length > 0 && (
+            <div className="pt-4 animate-cascade">
+              <Magnetic>
+                <Button asChild size="lg" className="rounded-full bg-brand-coral hover:bg-brand-coral/90 text-white font-bold px-12 h-16 text-lg shadow-xl shadow-brand-coral/20 group">
+                  <Link href="/signup" className="flex items-center gap-2">
+                    Commencer dès maintenant
+                    <ArrowRight className="w-5 h-5 hover-arrow" />
+                  </Link>
+                </Button>
+              </Magnetic>
+            </div>
+          )}
+        </section>
 
         {/* Section: Trois étapes — scroll animé */}
         <section id="comment-ca-marche" className="px-8 py-32 max-w-[1400px] mx-auto">

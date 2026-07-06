@@ -18,11 +18,12 @@
   "auth": {
     "providers": {
       "googleSignIn": {
-        "oAuthBrandDisplayName": "Dotly: Change for Change",
+        "oAuthBrandDisplayName": "Dotly",
         "supportEmail": "luis.dementhon@gmail.com",
         "authorizedRedirectUris": [
-          "http://localhost:9002",
-          "https://studio--studio-6613366678-b4207.us-central1.hosted.app"
+          "https://studio--studio-6613366678-b4207.us-central1.hosted.app",
+          "https://dotly-app.fr",
+          "https://www.dotly-app.fr"
         ]
       }
     }

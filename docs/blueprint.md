@@ -1,4 +1,4 @@
-# **App Name**: Dotly: Change for Change
+# **App Name**: Dotly
 
 ## Core Features:
 

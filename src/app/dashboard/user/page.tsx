@@ -254,7 +254,7 @@ export default function UserDashboardPage() {
   return (
     <div className="flex flex-col gap-10 pb-16">
       {/* Header Section */}
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 animate-cascade" style={{ animationDelay: '100ms' }}>
         <div className="space-y-4">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-brand-coral/10 text-brand-coral text-xs font-bold uppercase tracking-wider">
             <span className="relative flex h-2 w-2">
@@ -264,7 +264,7 @@ export default function UserDashboardPage() {
             Tableau de Bord Donateur
           </div>
           <h1 className="text-5xl md:text-7xl font-headline font-bold tracking-tight text-foreground leading-[0.9]">
-            Mon Impact avec <DotlyBrand />
+            Mon <span className="text-brand-coral">Impact.</span>
           </h1>
           <p className="text-lg text-muted-foreground font-headline font-light max-w-xl">
             Retrouvez ici l'ensemble de vos contributions et l'évolution de votre générosité via <DotlyBrand className="inline text-base" />
@@ -299,7 +299,7 @@ export default function UserDashboardPage() {
           { title: 'Réduction Fiscale', value: taxDeductibleAmount, icon: ShieldCheck, color: 'lavender', sub: 'Potentiel déductible (66%)' },
         ].map((kpi, i) => (
           i === 1 ? (
-            <Link key={i} href="/dashboard/user/history" className="block transition-transform hover:scale-[1.02] active:scale-[0.98]">
+            <Link key={i} href="/dashboard/user/history" className="block transition-transform hover:scale-[1.02] active:scale-[0.98] animate-cascade" style={{ animationDelay: `${200 + i * 100}ms` }}>
               <Card className="group rounded-[2.5rem] border-none shadow-xl shadow-black/[0.02] bg-white transition-all hover:shadow-2xl h-full">
                 <CardHeader className="flex flex-row items-center justify-between pb-2">
                   <CardTitle className="text-[10px] font-extrabold uppercase tracking-[0.2em] text-muted-foreground/50">
@@ -324,7 +324,7 @@ export default function UserDashboardPage() {
               </Card>
             </Link>
           ) : (
-            <Card key={i} className="group rounded-[2.5rem] border-none shadow-xl shadow-black/[0.02] bg-white transition-all hover:scale-[1.02] hover:shadow-2xl">
+            <Card key={i} className="group rounded-[2.5rem] border-none shadow-xl shadow-black/[0.02] bg-white transition-all hover:scale-[1.02] hover:shadow-2xl animate-cascade" style={{ animationDelay: `${200 + i * 100}ms` }}>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-[10px] font-extrabold uppercase tracking-[0.2em] text-muted-foreground/50">
                 {kpi.title}
@@ -350,7 +350,7 @@ export default function UserDashboardPage() {
         ))}
       </div>
 
-      <div className="grid gap-6 md:grid-cols-2">
+      <div className="grid gap-6 md:grid-cols-2 animate-cascade" style={{ animationDelay: '600ms' }}>
         <Card className="rounded-[2.5rem] border-none shadow-xl shadow-black/[0.02] bg-white">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-[10px] font-extrabold uppercase tracking-[0.2em] text-muted-foreground/50">Mes Causes</CardTitle>
@@ -367,7 +367,7 @@ export default function UserDashboardPage() {
             ) : (
               <div className="flex flex-wrap gap-2">
                   {userCauses?.causes?.map((causeId: string) => (
-                    <Badge key={causeId} variant="secondary" className="rounded-full bg-muted/40 border-none px-4 py-1.5 text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+                    <Badge key={causeId} variant="secondary" className="rounded-full bg-muted/40 border-none px-4 py-1.5 text-[11px] font-bold uppercase tracking-wider text-muted-foreground association-chip cursor-pointer">
                       {causesLabels[causeId] || causeId}
                     </Badge>
                   ))}

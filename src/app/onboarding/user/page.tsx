@@ -31,6 +31,7 @@ import { Link2, CreditCard, User, Heart, ChevronRight, ChevronLeft, CheckCircle2
 import { StripeWrapper } from "@/components/providers/stripe-wrapper";
 import { PaymentMethodSection } from "@/components/profile/payment-method";
 import { DotlyBrand } from "@/components/ui/dotly-brand";
+import { Magnetic } from "@/components/ui/magnetic";
 
 const causes = [
   { id: 'environnement', label: 'Environnement' },
@@ -143,7 +144,7 @@ export default function UserOnboardingPage() {
     <StripeWrapper>
       <div className="mx-auto max-w-2xl space-y-8 pb-12">
         {/* Progress Header */}
-        <div className="text-center space-y-4">
+        <div className="text-center space-y-4 animate-cascade" style={{ animationDelay: '100ms' }}>
           <div className="flex items-center justify-center gap-4">
             {[1, 2, 3].map((s) => (
               <div
@@ -167,7 +168,7 @@ export default function UserOnboardingPage() {
         </div>
 
         {step === 1 && (
-          <Card className="rounded-[2.5rem] border-none bg-white shadow-2xl shadow-black/[0.03]">
+          <Card className="rounded-[2.5rem] border-none bg-white shadow-2xl shadow-black/[0.03] animate-cascade" style={{ animationDelay: '250ms' }}>
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onProfileSubmit)}>
                 <CardContent className="space-y-8 pt-8">
@@ -206,7 +207,7 @@ export default function UserOnboardingPage() {
                                       ? field.onChange(field.value?.filter((v) => v !== item.id))
                                       : field.onChange([...(field.value ?? []), item.id]);
                                   }}
-                                  className={`flex items-center justify-center gap-3 px-4 py-4 rounded-2xl border-2 text-sm font-bold transition-all ${
+                                  className={`flex items-center justify-center gap-3 px-4 py-4 rounded-2xl border-2 text-sm font-bold transition-all association-chip ${
                                     field.value?.includes(item.id)
                                       ? 'border-brand-coral bg-brand-coral/5 text-brand-coral shadow-lg shadow-brand-coral/5'
                                       : 'border-muted bg-muted/20 text-muted-foreground hover:border-brand-coral/20'
@@ -231,7 +232,7 @@ export default function UserOnboardingPage() {
                                     ? field.onChange(field.value?.filter((v) => v !== "autre"))
                                     : field.onChange([...(field.value ?? []), "autre"]);
                                 }}
-                                className={`flex items-center justify-center gap-3 px-4 py-4 rounded-2xl border-2 text-sm font-bold transition-all ${
+                                className={`flex items-center justify-center gap-3 px-4 py-4 rounded-2xl border-2 text-sm font-bold transition-all association-chip ${
                                   field.value?.includes("autre")
                                     ? 'border-brand-coral bg-brand-coral/5 text-brand-coral shadow-lg shadow-brand-coral/5'
                                     : 'border-muted bg-muted/20 text-muted-foreground hover:border-brand-coral/20'
@@ -316,10 +317,12 @@ export default function UserOnboardingPage() {
                       />
                     </div>
                 </CardContent>
-                <CardFooter className="p-8">
-                  <Button type="submit" className="w-full h-14 rounded-2xl text-lg font-bold" variant="vibrant">
-                    Continuer <ChevronRight className="ml-2 h-5 w-5" />
-                  </Button>
+                <CardFooter className="p-8 flex justify-center">
+                  <Magnetic>
+                    <Button type="submit" className="w-full min-w-[300px] h-14 rounded-2xl text-lg font-bold group" variant="vibrant">
+                      Continuer <ChevronRight className="ml-2 h-5 w-5 hover-arrow" />
+                    </Button>
+                  </Magnetic>
                 </CardFooter>
               </form>
             </Form>
@@ -327,7 +330,7 @@ export default function UserOnboardingPage() {
         )}
 
         {step === 2 && (
-          <Card className="rounded-[2.5rem] border-none bg-white shadow-2xl shadow-black/[0.03] p-12 text-center space-y-8">
+          <Card className="rounded-[2.5rem] border-none bg-white shadow-2xl shadow-black/[0.03] p-12 text-center space-y-8 animate-cascade" style={{ animationDelay: '250ms' }}>
             <div className="mx-auto h-20 w-20 rounded-[2rem] bg-brand-mint/10 flex items-center justify-center">
               <Link2 className="h-10 w-10 text-brand-mint" />
             </div>
@@ -344,16 +347,20 @@ export default function UserOnboardingPage() {
                 <p className="font-bold">Banque connectée avec succès !</p>
               </div>
             ) : (
-              <Button onClick={handleConnectBank} disabled={isConnecting} className="w-full h-16 rounded-2xl text-lg font-bold" variant="vibrant">
-                {isConnecting ? "Connexion..." : "Connecter ma banque"}
-              </Button>
+              <div className="w-full flex justify-center">
+                <Magnetic>
+                  <Button onClick={handleConnectBank} disabled={isConnecting} className="w-full min-w-[300px] h-16 rounded-2xl text-lg font-bold" variant="vibrant">
+                    {isConnecting ? "Connexion..." : "Connecter ma banque"}
+                  </Button>
+                </Magnetic>
+              </div>
             )}
 
-            <div className="flex gap-4">
-              <Button variant="ghost" onClick={() => setStep(1)} className="flex-1 h-12 rounded-xl">
+            <div className="flex gap-4 justify-center">
+              <Button variant="ghost" onClick={() => setStep(1)} className="flex-1 h-12 rounded-xl max-w-[150px]">
                 <ChevronLeft className="mr-2 h-4 w-4" /> Retour
               </Button>
-              <Button variant="outline" onClick={() => setStep(3)} className="flex-1 h-12 rounded-xl">
+              <Button variant="outline" onClick={() => setStep(3)} className="flex-1 h-12 rounded-xl max-w-[150px]">
                 Plus tard <ChevronRight className="ml-2 h-4 w-4" />
               </Button>
             </div>
@@ -361,7 +368,7 @@ export default function UserOnboardingPage() {
         )}
 
         {step === 3 && (
-          <Card className="rounded-[2.5rem] border-none bg-white shadow-2xl shadow-black/[0.03] p-8">
+          <Card className="rounded-[2.5rem] border-none bg-white shadow-2xl shadow-black/[0.03] p-8 animate-cascade" style={{ animationDelay: '250ms' }}>
             <div className="flex flex-col items-center text-center gap-6 mb-8">
               <div className="h-16 w-16 rounded-2xl bg-brand-coral/10 flex items-center justify-center">
                 <CreditCard className="h-8 w-8 text-brand-coral" />
@@ -374,10 +381,12 @@ export default function UserOnboardingPage() {
 
             <PaymentMethodSection />
 
-            <div className="mt-12 flex flex-col gap-4">
-              <Button asChild className="w-full h-16 rounded-2xl text-lg font-bold" variant="vibrant">
-                <Link href="/dashboard/user">Accéder à mon tableau de bord</Link>
-              </Button>
+            <div className="mt-12 flex flex-col gap-4 items-center">
+              <Magnetic>
+                <Button asChild className="w-full min-w-[300px] h-16 rounded-2xl text-lg font-bold" variant="vibrant">
+                  <Link href="/dashboard/user">Accéder à mon tableau de bord</Link>
+                </Button>
+              </Magnetic>
               <Button variant="ghost" onClick={() => setStep(2)} className="h-12 rounded-xl">
                 <ChevronLeft className="mr-2 h-4 w-4" /> Étape précédente
               </Button>

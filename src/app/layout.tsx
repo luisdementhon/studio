@@ -8,7 +8,7 @@ import Script from 'next/script';
 
 
 export const metadata: Metadata = {
-  title: 'dotly. Change for Change',
+  title: 'dotly.',
   description: 'Transformez votre petite monnaie en grands gestes.',
 };
 
