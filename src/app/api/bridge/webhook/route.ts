@@ -20,8 +20,13 @@ function calculateRoundup(amount: number) {
  * Reçoit les notifications de nouvelles transactions et calcule l'arrondi.
  */
 export async function POST(request: Request) {
-  const clientId = process.env.BRIDGE_CLIENT_ID || "sandbox_id_eb1eb747f61541d68c1f7775ed91278b";
-  const clientSecret = process.env.BRIDGE_CLIENT_SECRET || "sandbox_secret_9Qpn7gTnq1kwfD0mCtL5xSt0dK482tKjH5HZ8Bf1SoQgVH96kT7MtvP1uxq9xWXx";
+  const clientId = process.env.BRIDGE_CLIENT_ID;
+  const clientSecret = process.env.BRIDGE_CLIENT_SECRET;
+
+  if (!clientId || !clientSecret) {
+    console.error("CRITICAL: Bridge credentials missing in webhook handler.");
+    return NextResponse.json({ error: "Configuration Bridge manquante." }, { status: 500 });
+  }
 
   try {
     const body = await request.json();

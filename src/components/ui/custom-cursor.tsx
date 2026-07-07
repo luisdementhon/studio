@@ -13,6 +13,8 @@ export function CustomCursor() {
       return;
     }
 
+    document.documentElement.classList.add("custom-cursor-active");
+
     const dot = dotRef.current;
     if (!dot) return;
 
@@ -55,6 +57,7 @@ export function CustomCursor() {
     rafId = requestAnimationFrame(animate);
 
     return () => {
+      document.documentElement.classList.remove("custom-cursor-active");
       document.removeEventListener("mousemove", onMouseMove);
       document.removeEventListener("mouseover", onMouseOver);
       cancelAnimationFrame(rafId);

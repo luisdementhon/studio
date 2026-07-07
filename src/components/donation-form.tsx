@@ -170,7 +170,7 @@ export function DonationForm({ associations, isLoading }: { associations: Associ
     setProcessing(true);
     
     try {
-      const res = await fetch('/api/create-payment-intent', {
+      const res = await fetch('/api/stripe/create-payment-intent', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

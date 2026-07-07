@@ -1,13 +1,8 @@
 import { NextResponse } from 'next/server';
-import { BRIDGE_CONFIG } from '@/lib/bridge';
-
-// Le Client Secret doit être dans .env.local normalement. 
-// On garde la valeur de test par défaut si absente.
-const BRIDGE_CLIENT_SECRET = process.env.BRIDGE_CLIENT_SECRET || "sandbox_secret_Yv6EdHzK134ZnT3fl5OUpSNNXHMGNsCxrsNEQn20TGAtLqj2Yc61ono0UR1WzZVE";
 
 export async function POST(request: Request) {
-  const clientId = process.env.BRIDGE_CLIENT_ID || "sandbox_id_eb1eb747f61541d68c1f7775ed91278b";
-  const clientSecret = process.env.BRIDGE_CLIENT_SECRET || "sandbox_secret_9Qpn7gTnq1kwfD0mCtL5xSt0dK482tKjH5HZ8Bf1SoQgVH96kT7MtvP1uxq9xWXx";
+  const clientId = process.env.BRIDGE_CLIENT_ID;
+  const clientSecret = process.env.BRIDGE_CLIENT_SECRET;
 
   if (!clientId || !clientSecret) {
     return NextResponse.json({ error: 'Configuration Bridge manquante.' }, { status: 500 });

@@ -8,10 +8,10 @@ env:
   - variable: BRIDGE_CLIENT_ID
     value: "sandbox_id_eb1eb747f61541d68c1f7775ed91278b"
   - variable: BRIDGE_CLIENT_SECRET
-    value: "sandbox_secret_9Qpn7gTnq1kwfD0mCtL5xSt0dK482tKjH5HZ8Bf1SoQgVH96kT7MtvP1uxq9xWXx"
+    secret: BRIDGE_CLIENT_SECRET
   - variable: NEXT_PUBLIC_BRIDGE_CLIENT_ID
     value: "sandbox_id_eb1eb747f61541d68c1f7775ed91278b"
   - variable: NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
     value: "pk_test_51RsLWg2cs2Ko36FftJwT81VPAZxncV7yeemplfpB720nRZX7BCYqGV4WPTDNhoEXmk3MAP8k8mHshIJUoIHlndT1002U0hYvwk"
   - variable: STRIPE_SECRET_KEY
-    value: "sk_test_51RsLWg2cs2Ko36FfC6lRnNDb3smV0d7qXE964cEqJw98yMpPmw3h3EK1BB0ssQZ9BlqMxvUSONcbBK79xxSKk9at00ZCSuOUvh"
+    secret: STRIPE_SECRET_KEY

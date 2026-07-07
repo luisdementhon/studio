@@ -7,8 +7,12 @@ import { NextResponse } from "next/server";
  * 2. Création d'une session de connexion.
  */
 export async function POST(request: Request) {
-  const clientId = process.env.BRIDGE_CLIENT_ID || "sandbox_id_eb1eb747f61541d68c1f7775ed91278b";
-  const clientSecret = process.env.BRIDGE_CLIENT_SECRET || "sandbox_secret_9Qpn7gTnq1kwfD0mCtL5xSt0dK482tKjH5HZ8Bf1SoQgVH96kT7MtvP1uxq9xWXx";
+  const clientId = process.env.BRIDGE_CLIENT_ID;
+  const clientSecret = process.env.BRIDGE_CLIENT_SECRET;
+
+  if (!clientId || !clientSecret) {
+    return NextResponse.json({ error: 'Configuration Bridge manquante.' }, { status: 500 });
+  }
 
   // Récupérer l'origine pour la callback_url
   const origin = request.headers.get("origin") || "http://localhost:9002";
