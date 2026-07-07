@@ -81,6 +81,9 @@ export function PaymentMethodSection() {
         await updateDoc(userRef, {
           paymentMethodLinked: true,
           stripeSetupIntentId: result.setupIntent.id,
+          stripePaymentMethodId: typeof result.setupIntent.payment_method === "string"
+            ? result.setupIntent.payment_method
+            : (result.setupIntent.payment_method as any)?.id || "",
           // Note: On pourrait appeler une API pour avoir les vrais détails, mais on simule ici pour l'UI
           cardBrand: "Visa", 
           cardLast4: "4242",
