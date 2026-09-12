@@ -265,7 +265,9 @@ export default function Home() {
             </p>
           </div>
 
-          <div className="grid md:grid-cols-2 gap-12 md:gap-8">
+          {/* Empilées plutôt que côte à côte : ce sont des captures d'écran
+              d'interface, illisibles en demi-largeur. */}
+          <div className="flex flex-col gap-20 md:gap-28">
             <ShowcaseVideo
               src="/videos/dotly-donateur.mp4"
               poster="/videos/dotly-donateur-poster.jpg"
@@ -282,7 +284,7 @@ export default function Home() {
               accent="mint"
               title="Vos dons, en clair."
               description="Tableau de bord des collectes, suivi des donateurs, versements et reçus fiscaux réunis au même endroit."
-              delay={150}
+              delay={0}
             />
           </div>
         </section>
