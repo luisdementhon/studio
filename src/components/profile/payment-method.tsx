@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { useUser, useFirestore } from "@/firebase";
 import { authedFetch } from "@/lib/api-client";
-import { doc, updateDoc, getDoc } from "firebase/firestore";
+import { doc, getDoc } from "firebase/firestore";
 import { CreditCard, Lock, CheckCircle2, Loader2 } from "lucide-react";
 
 export function PaymentMethodSection() {
@@ -77,18 +77,9 @@ export function PaymentMethodSection() {
       }
 
       if (result.setupIntent.status === "succeeded") {
-        // 3. Mettre à jour Firestore avec les détails de la carte
-        const userRef = doc(firestore!, "users", user.uid);
-        await updateDoc(userRef, {
-          paymentMethodLinked: true,
-          stripeSetupIntentId: result.setupIntent.id,
-          // Note: On pourrait appeler une API pour avoir les vrais détails, mais on simule ici pour l'UI
-          cardBrand: "Visa", 
-          cardLast4: "4242",
-          updatedAt: new Date().toISOString(),
-        });
-
-        setCardInfo({ brand: "Visa", last4: "4242" });
+        // Le mandat et les vraies informations de carte sont enregistrés côté
+        // serveur par le webhook `setup_intent.succeeded` : le client ne doit
+        // pas pouvoir déclarer lui-même qu'un mandat existe.
         setIsSaved(true);
         toast({
           title: "Carte enregistrée !",

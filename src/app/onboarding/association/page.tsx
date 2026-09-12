@@ -95,17 +95,26 @@ export default function AssociationOnboardingPage() {
       return;
     }
 
-    startTransition(() => {
-      const associationProfile = {
-        id: user.uid, 
-        ...values
-      };
-      
-      const associationDocRef = doc(firestore, "associations", user.uid);
-      setDocumentNonBlocking(associationDocRef, associationProfile, { merge: true });
+    startTransition(async () => {
+      try {
+        // L'enregistrement passe par le serveur, qui re-vérifie le RNA :
+        // le contrôle ci-dessus n'est qu'une aide à la saisie.
+        const response = await authedFetch("/api/association/register", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(values),
+        });
 
-      toast({ title: "Profil complété !", description: "Les informations de votre association ont été enregistrées." });
-      router.push("/dashboard/association");
+        const data = await response.json();
+        if (!response.ok) {
+          throw new Error(data.error || "L'enregistrement a échoué.");
+        }
+
+        toast({ title: "Profil complété !", description: "Les informations de votre association ont été enregistrées." });
+        router.push("/dashboard/association");
+      } catch (error: any) {
+        toast({ title: "Erreur", description: error.message, variant: "destructive" });
+      }
     });
   }
 

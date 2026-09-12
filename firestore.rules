@@ -50,10 +50,10 @@ service cloud.firestore {
       // Les profils sont lisibles par tout le monde pour permettre la découverte.
       allow get, list: if true;
       
-      // Une association peut créer et modifier son propre profil.
-      allow create: if isOwner(associationId);
-      allow update: if isOwner(associationId);
-      allow delete: if isOwner(associationId);
+      // Création et mise à jour passent par /api/association/register, qui
+      // vérifie le RNA côté serveur. Une écriture directe depuis le client
+      // permettrait de se déclarer « vérifiée » sans l'être.
+      allow write: if false;
     }
     
     // -------------------------------------------------------------------------
@@ -73,6 +73,31 @@ service cloud.firestore {
 
     match /associations/{associationId}/taxReceipts/{receiptId} {
       allow read: if isOwner(associationId);
+    }
+
+    // -------------------------------------------------------------------------
+    // Collections d'orchestration (batches de prélèvement, exécutions du cron,
+    // registre d'idempotence Stripe).
+    //
+    // Écrites exclusivement par le serveur via l'Admin SDK, qui contourne ces
+    // règles. Aucun accès client : elles portent l'état financier.
+    // -------------------------------------------------------------------------
+    match /monthly_batches/{batchId} {
+      allow read, write: if false;
+    }
+
+    match /settlement_runs/{runId} {
+      allow read, write: if false;
+    }
+
+    match /stripe_events/{eventId} {
+      allow read, write: if false;
+    }
+
+    // Échecs de prélèvement : le donateur peut consulter les siens.
+    match /users/{userId}/payment_failures/{failureId} {
+      allow read: if isOwner(userId);
+      allow write: if false;
     }
   }
 }

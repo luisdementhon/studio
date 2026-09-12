@@ -20,38 +20,30 @@ import { format, subDays } from "date-fns";
 import { fr } from "date-fns/locale";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { toDate } from "@/lib/utils";
 
 export default function AssociationDonorsPage() {
   const { user } = useUser();
   const firestore = useFirestore();
   const [searchQuery, setSearchQuery] = useState("");
   
-  const isDemoMode = !!user?.isAnonymous;
 
   const donationsQuery = useMemo(() => {
-    if (!firestore || !user || isDemoMode) return null;
+    if (!firestore || !user) return null;
     return query(
       collection(firestore, 'associations', user.uid, 'donations'),
       orderBy('transactionDate', 'desc'),
       limit(100)
     );
-  }, [firestore, user, isDemoMode]);
+  }, [firestore, user]);
 
   const { data: donations, isLoading } = useCollection(donationsQuery);
 
   const donorsList = useMemo(() => {
-    if (isDemoMode) {
-      return [
-        { id: '1', name: 'Jean Dupont', amount: 25.50, date: new Date() },
-        { id: '2', name: 'Marie Curie', amount: 42.00, date: subDays(new Date(), 1) },
-        { id: '3', name: 'Pierre Martin', amount: 15.20, date: subDays(new Date(), 3) },
-        { id: '4', name: 'Sophie Lemoine', amount: 120.00, date: subDays(new Date(), 5) },
-      ];
-    }
     if (!donations) return [];
     return donations.map(d => {
       const rawDate = (d as any).transactionDate;
-      const dateObj = (rawDate && typeof rawDate.toDate === 'function') ? rawDate.toDate() : (rawDate instanceof Date ? rawDate : new Date());
+      const dateObj = toDate(rawDate);
       return {
         id: d.id,
         name: "Donateur Anonyme",
@@ -59,7 +51,7 @@ export default function AssociationDonorsPage() {
         date: dateObj
       };
     });
-  }, [donations, isDemoMode]);
+  }, [donations]);
 
   const filteredDonors = donorsList.filter(d => 
     d.name.toLowerCase().includes(searchQuery.toLowerCase())

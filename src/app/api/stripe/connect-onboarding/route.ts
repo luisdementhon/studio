@@ -1,12 +1,14 @@
 import { NextResponse } from 'next/server';
 import { stripe } from '@/lib/stripe';
 import { requireUser, apiAuthErrorResponse } from '@/lib/api-auth';
+import { db } from '@/lib/firebase-admin';
 
 /**
  * Route API pour créer un compte Stripe Connect Express pour une association
  * et générer un lien d'onboarding.
- * Note: L'enregistrement du stripeAccountId dans Firestore doit être fait côté client
- * pour respecter les règles de sécurité.
+ *
+ * Le stripeAccountId est écrit ici, côté serveur : le doc association est en
+ * écriture serveur uniquement, et c'est ce compte qui reçoit les fonds.
  */
 export async function POST(request: Request) {
   try {
@@ -15,15 +17,26 @@ export async function POST(request: Request) {
     const decoded = await requireUser(request);
     const associationId = decoded.uid;
 
-    // 1. Création du compte Stripe Connect Express
-    const account = await stripe.accounts.create({
-      country: 'FR',
-      type: 'express',
-      capabilities: {
-        card_payments: { requested: true },
-        transfers: { requested: true },
-      },
-    });
+    const associationRef = db.collection('associations').doc(associationId);
+    const existingAccountId = (await associationRef.get()).data()?.stripeAccountId;
+
+    // 1. Création du compte Stripe Connect Express — ou réutilisation, si
+    // l'association avait abandonné l'onboarding en cours de route.
+    const account = existingAccountId
+      ? await stripe.accounts.retrieve(existingAccountId)
+      : await stripe.accounts.create({
+          country: 'FR',
+          type: 'express',
+          capabilities: {
+            card_payments: { requested: true },
+            transfers: { requested: true },
+          },
+          metadata: { associationId },
+        });
+
+    if (!existingAccountId) {
+      await associationRef.set({ stripeAccountId: account.id }, { merge: true });
+    }
 
     // 2. Génération du lien d'onboarding Stripe
     const origin = request.headers.get('origin') || 'http://localhost:9002';

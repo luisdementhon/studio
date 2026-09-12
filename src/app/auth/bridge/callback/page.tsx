@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { BrandPattern } from '@/components/brand-pattern';
 import { useUser, useFirestore } from '@/firebase';
-import { doc } from 'firebase/firestore';
+import { doc, serverTimestamp } from 'firebase/firestore';
 import { setDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { authedFetch } from '@/lib/api-client';
 
@@ -55,7 +55,7 @@ function BridgeCallbackContent() {
             bankName: data.bankName,
             bridgeItemId: data.bridgeItemId,
             bridgeUserUuid: data.bridgeUserUuid,
-            connectedAt: new Date().toISOString(),
+            connectedAt: serverTimestamp(),
           }, { merge: true });
           
           setStatus('success');

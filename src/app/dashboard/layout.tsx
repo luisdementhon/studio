@@ -5,13 +5,35 @@ import { DashboardSidebar } from '@/components/dashboard-sidebar';
 import { SidebarTrigger } from '@/components/ui/sidebar';
 import Link from 'next/link';
 import { DotlyBrand } from '@/components/ui/dotly-brand';
-
+import { useUser } from '@/firebase';
+import { useRouter } from 'next/navigation';
+import { useEffect } from 'react';
+import { Loader2 } from 'lucide-react';
 
 export default function DashboardLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const { user, isUserLoading } = useUser();
+  const router = useRouter();
+
+  // Les données sont déjà protégées par les règles Firestore ; cette garde
+  // évite simplement d'afficher une coquille vide à un visiteur déconnecté.
+  useEffect(() => {
+    if (!isUserLoading && !user) {
+      router.replace('/login');
+    }
+  }, [isUserLoading, user, router]);
+
+  if (isUserLoading || !user) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <Loader2 className="h-10 w-10 animate-spin text-brand-coral" />
+      </div>
+    );
+  }
+
   return (
     <SidebarProvider>
       <DashboardSidebar />

@@ -1,6 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireUser, apiAuthErrorResponse } from '@/lib/api-auth';
+import { verifyRna } from '@/lib/rna';
 
+/**
+ * Vérification interactive pendant la saisie du formulaire d'inscription.
+ *
+ * Purement indicative : c'est /api/association/register qui re-vérifie et
+ * fait foi au moment de l'enregistrement.
+ */
 export async function GET(request: NextRequest) {
   // Authentification requise : évite que la route serve de proxy ouvert
   // vers l'API entreprises de l'État.
@@ -12,64 +19,20 @@ export async function GET(request: NextRequest) {
     throw error;
   }
 
-  const { searchParams } = new URL(request.url);
-  const rna = searchParams.get('rna');
+  const rna = new URL(request.url).searchParams.get('rna');
 
   if (!rna) {
     return NextResponse.json({ error: 'Le numéro RNA est requis.' }, { status: 400 });
   }
 
-  // Validate RNA format: W followed by 9 digits
-  const rnaRegex = /^W\d{9}$/;
-  if (!rnaRegex.test(rna.toUpperCase())) {
-    return NextResponse.json({ 
-      valid: false, 
-      error: 'Format invalide. Le numéro RNA doit commencer par W suivi de 9 chiffres (ex: W751000001).' 
-    }, { status: 400 });
+  const result = await verifyRna(rna);
+
+  if (result.valid) {
+    return NextResponse.json({ valid: true, association: result.association });
   }
 
-  try {
-    const response = await fetch(
-      `https://recherche-entreprises.api.gouv.fr/search?q=${rna.toUpperCase()}`,
-      { 
-        headers: { 'Accept': 'application/json' },
-        next: { revalidate: 86400 } // Cache 24h
-      }
-    );
-
-    if (!response.ok) {
-      return NextResponse.json({ 
-        valid: false, 
-        error: 'Erreur lors de la vérification. Veuillez réessayer.' 
-      }, { status: 502 });
-    }
-
-    const data = await response.json();
-    
-    // Check if we have results and if the RNA matches exactly
-    if (!data.results || data.results.length === 0 || data.results[0].complements?.identifiant_association !== rna.toUpperCase()) {
-      return NextResponse.json({ 
-        valid: false, 
-        error: 'Aucune association trouvée avec ce numéro RNA.' 
-      });
-    }
-
-    const asso = data.results[0];
-
-    return NextResponse.json({
-      valid: true,
-      association: {
-        titre: asso.nom_complet || 'Association vérifiée',
-        objet: asso.activite_principale || '',
-        adresse_siege: asso.siege?.adresse ? `${asso.siege.adresse} ${asso.siege.code_postal} ${asso.siege.libelle_commune}` : '',
-        date_creation: asso.date_creation || '',
-      }
-    });
-  } catch (error) {
-    console.error('RNA verification error:', error);
-    return NextResponse.json({ 
-      valid: false, 
-      error: 'Service de vérification indisponible.' 
-    }, { status: 503 });
-  }
+  return NextResponse.json(
+    { valid: false, error: result.error },
+    result.status ? { status: result.status } : undefined
+  );
 }

@@ -26,26 +26,18 @@ export default function AssociationTaxReceiptsPage() {
   const firestore = useFirestore();
   const [searchQuery, setSearchQuery] = useState("");
   
-  const isDemoMode = !!user?.isAnonymous;
 
   const taxReceiptsQuery = useMemo(() => {
-    if (!firestore || !user || isDemoMode) return null;
+    if (!firestore || !user) return null;
     return query(
       collection(firestore, 'associations', user.uid, 'taxReceipts'),
       orderBy('year', 'desc')
     );
-  }, [firestore, user, isDemoMode]);
+  }, [firestore, user]);
 
   const { data: taxReceipts, isLoading } = useCollection(taxReceiptsQuery);
 
   const taxReceiptsList = useMemo(() => {
-    if (isDemoMode) {
-      return [
-        { id: '1', donorName: 'Jean Dupont', year: 2025, totalAmount: 450.00, status: 'generated' },
-        { id: '2', donorName: 'Marie Curie', year: 2025, totalAmount: 120.00, status: 'generated' },
-        { id: '3', donorName: 'Pierre Martin', year: 2024, totalAmount: 300.00, status: 'generated' },
-      ];
-    }
     if (!taxReceipts) return [];
     return taxReceipts.map(r => ({
       id: r.id,
@@ -54,7 +46,7 @@ export default function AssociationTaxReceiptsPage() {
       totalAmount: Number(r.totalAmount || 0),
       status: r.status || 'generated'
     }));
-  }, [taxReceipts, isDemoMode]);
+  }, [taxReceipts]);
 
   const filteredReceipts = taxReceiptsList.filter(r => 
     r.donorName.toLowerCase().includes(searchQuery.toLowerCase())

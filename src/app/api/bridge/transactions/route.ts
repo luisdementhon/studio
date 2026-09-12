@@ -2,17 +2,7 @@ import { NextResponse } from 'next/server';
 import { requireUser, apiAuthErrorResponse } from '@/lib/api-auth';
 import { getBridgeCredentials } from '@/lib/bridge-server';
 import { db } from '@/lib/firebase-admin';
-
-/**
- * Calcule l'arrondi pour un montant donné
- */
-function calculateRoundup(amount: number) {
-  const absAmount = Math.abs(amount);
-  const nextEuro = Math.ceil(absAmount);
-  const diff = nextEuro - absAmount;
-  // On arrondit à 2 décimales pour éviter les erreurs de flottants
-  return Math.round(diff * 100) / 100;
-}
+import { calculateRoundup, applyMultiplier } from '@/lib/roundup';
 
 export async function POST(request: Request) {
   try {
@@ -80,7 +70,7 @@ export async function POST(request: Request) {
       .map((t: any) => {
         const amount = Math.abs(t.amount);
         const roundup = calculateRoundup(amount);
-        const finalDonation = Math.round(roundup * multiplier * 100) / 100;
+        const finalDonation = applyMultiplier(roundup, multiplier);
 
         return {
           id: t.id,

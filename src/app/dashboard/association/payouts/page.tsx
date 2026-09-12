@@ -19,6 +19,7 @@ import { CreditCard, ArrowDownRight, CheckCircle2, Clock, Info } from "lucide-re
 import { format, subDays, startOfDay, isAfter, isValid } from "date-fns";
 import { fr } from "date-fns/locale";
 import { Badge } from "@/components/ui/badge";
+import { toDate } from "@/lib/utils";
 
 // Safe date formatting helper
 const safeFormat = (date: any, formatStr: string, options?: any) => {
@@ -35,31 +36,23 @@ export default function AssociationPayoutsPage() {
   const { user } = useUser();
   const firestore = useFirestore();
   
-  const isDemoMode = !!user?.isAnonymous;
 
   const payoutsQuery = useMemo(() => {
-    if (!firestore || !user || isDemoMode) return null;
+    if (!firestore || !user) return null;
     return query(
       collection(firestore, 'associations', user.uid, 'payouts'),
       orderBy('date', 'desc'),
       limit(50)
     );
-  }, [firestore, user, isDemoMode]);
+  }, [firestore, user]);
 
   const { data: payouts, isLoading } = useCollection(payoutsQuery);
 
   const payoutsList = useMemo(() => {
-    if (isDemoMode) {
-      return [
-        { id: '1', amount: 1250.00, date: new Date(), status: 'completed', reference: 'PAY-2026-001' },
-        { id: '2', amount: 980.50, date: subDays(new Date(), 30), status: 'completed', reference: 'PAY-2026-002' },
-        { id: '3', amount: 1100.20, date: subDays(new Date(), 60), status: 'completed', reference: 'PAY-2026-003' },
-      ];
-    }
     if (!payouts) return [];
     return payouts.map(p => {
       const rawDate = (p as any).date;
-      const dateObj = (rawDate && typeof rawDate.toDate === 'function') ? rawDate.toDate() : (rawDate instanceof Date ? rawDate : new Date());
+      const dateObj = toDate(rawDate);
       return {
         id: p.id,
         amount: Number(p.amount || 0),
@@ -68,7 +61,7 @@ export default function AssociationPayoutsPage() {
         reference: p.reference || 'N/A'
       };
     });
-  }, [payouts, isDemoMode]);
+  }, [payouts]);
 
   return (
     <div className="flex flex-col gap-10 pb-16">

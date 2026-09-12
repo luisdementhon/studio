@@ -22,7 +22,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Badge } from "@/components/ui/badge";
 import { useUser, useFirestore, useDoc } from "@/firebase";
 import { doc } from "firebase/firestore";
-import { setDocumentNonBlocking } from "@/firebase/non-blocking-updates";
+import { authedFetch } from "@/lib/api-client";
 import { Skeleton } from "@/components/ui/skeleton";
 
 export default function AssociationProfilePage() {
@@ -58,13 +58,28 @@ export default function AssociationProfilePage() {
   }, [associationData, form]);
 
   function onSubmit(values: z.infer<typeof AssociationOnboardingSchema>) {
-    if (!associationDocRef) return;
-    startTransition(() => {
-      setDocumentNonBlocking(associationDocRef, values, { merge: true });
-      toast({
-        title: "Profil mis à jour",
-        description: "Les informations de l'association ont été enregistrées.",
-      });
+    startTransition(async () => {
+      try {
+        // Même route que l'inscription : le RNA est re-vérifié côté serveur à
+        // chaque enregistrement, y compris en cas de modification.
+        const response = await authedFetch("/api/association/register", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(values),
+        });
+
+        const data = await response.json();
+        if (!response.ok) {
+          throw new Error(data.error || "L'enregistrement a échoué.");
+        }
+
+        toast({
+          title: "Profil mis à jour",
+          description: "Les informations de l'association ont été enregistrées.",
+        });
+      } catch (error: any) {
+        toast({ title: "Erreur", description: error.message, variant: "destructive" });
+      }
     });
   }
 

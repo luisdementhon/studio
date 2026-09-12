@@ -1,19 +1,29 @@
 import { NextResponse } from 'next/server';
 import { db, admin } from '@/lib/firebase-admin';
 import { getBridgeCredentials, verifyBridgeSignature } from '@/lib/bridge-server';
+import { calculateRoundup, applyMultiplier, pickAssociation } from '@/lib/roundup';
 
 // Désactiver le cache pour cette route
 export const dynamic = 'force-dynamic';
 
 /**
- * Calcule l'arrondi pour un montant donné
+ * Somme des arrondis déjà en attente de prélèvement pour le mois en cours.
+ * Sert à faire respecter le plafond mensuel du mandat.
  */
-function calculateRoundup(amount: number) {
-  const absAmount = Math.abs(amount);
-  const nextEuro = Math.ceil(absAmount);
-  const diff = nextEuro - absAmount;
-  // On arrondit à 2 décimales pour éviter les erreurs de flottants
-  return Math.round(diff * 100) / 100;
+async function sumPendingThisMonth(userId: string): Promise<number> {
+  const now = new Date();
+  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+
+  const snapshot = await db
+    .collection('users')
+    .doc(userId)
+    .collection('donations')
+    .where('type', '==', 'roundup')
+    .where('status', '==', 'pending')
+    .where('transactionDate', '>=', admin.firestore.Timestamp.fromDate(startOfMonth))
+    .get();
+
+  return snapshot.docs.reduce((total, doc) => total + Number(doc.data().amount || 0), 0);
 }
 
 /**
@@ -122,14 +132,14 @@ export async function POST(request: Request) {
 
       const amount = Math.abs(t.amount);
       const roundup = calculateRoundup(amount);
-      
+
       if (roundup > 0) {
         const multiplier = userData.donationMultiplier || 1;
-        const finalDonation = Math.round(roundup * multiplier * 100) / 100;
+        const finalDonation = applyMultiplier(roundup, multiplier);
 
         const donationId = `roundup_${t.id}`;
         const donationRef = db.collection('users').doc(userId).collection('donations').doc(donationId);
-        
+
         // On vérifie si on n'a pas déjà traité cette transaction
         const existingDoc = await donationRef.get();
         if (existingDoc.exists) {
@@ -137,24 +147,57 @@ export async function POST(request: Request) {
             continue;
         }
 
+        // Bénéficiaire : un seul par arrondi, par rotation sur les
+        // associations soutenues (cf. src/lib/roundup.ts).
+        const picked = pickAssociation(userData.associations, userData.roundupRotationIndex ?? 0);
+
+        if (!picked) {
+          console.log(`Utilisateur ${userId} sans association : arrondi ignoré.`);
+          continue;
+        }
+
+        // Plafond mensuel : c'est la borne du mandat signé. On somme ce qui
+        // est déjà en attente ce mois-ci avant d'accepter un arrondi de plus.
+        const ceiling = Number(userData.donationCeiling ?? 0);
+        const pendingTotal = await sumPendingThisMonth(userId);
+        const exceedsCeiling = ceiling > 0 && pendingTotal + finalDonation > ceiling;
+
         await donationRef.set({
-          id: donationId,
           userId: userId,
+          associationId: picked.associationId,
           amount: finalDonation,
           originalAmount: amount,
           roundup: roundup,
           multiplier: multiplier,
           description: t.description || t.raw_description || 'Arrondi automatique',
           category: t.category?.name || 'Divers',
-          transactionDate: t.date || new Date().toISOString(),
-          status: 'pending',
+          // Timestamp Firestore, jamais une string : les dashboards appellent
+          // .toDate() sur ce champ.
+          transactionDate: admin.firestore.Timestamp.fromDate(
+            t.date ? new Date(t.date) : new Date()
+          ),
+          // 'skipped_ceiling' reste traçable pour le donateur, mais n'est
+          // jamais prélevé.
+          status: exceedsCeiling ? 'skipped_ceiling' : 'pending',
           type: 'roundup',
           bankName: userData.bankName || 'Banque connectée',
           bridgeTransactionId: t.id,
           createdAt: admin.firestore.FieldValue.serverTimestamp()
         });
 
-        console.log(`SUCCESS: Roundup of ${finalDonation}€ saved for user ${userId}`);
+        // La rotation n'avance que si l'arrondi compte réellement.
+        if (!exceedsCeiling) {
+          await userDoc.ref.set(
+            { roundupRotationIndex: picked.nextRotationIndex },
+            { merge: true }
+          );
+        }
+
+        console.log(
+          exceedsCeiling
+            ? `PLAFOND: arrondi de ${finalDonation}€ non retenu pour ${userId} (plafond ${ceiling}€)`
+            : `SUCCESS: Roundup of ${finalDonation}€ saved for user ${userId} -> ${picked.associationId}`
+        );
       }
     }
 

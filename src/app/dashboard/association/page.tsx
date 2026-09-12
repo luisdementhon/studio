@@ -26,13 +26,14 @@ import {
   ChartConfig,
 } from '@/components/ui/chart';
 import { AreaChart, XAxis, YAxis, Area, CartesianGrid, ResponsiveContainer } from 'recharts';
-import { useUser, useFirestore, useDoc, useCollection, updateDocumentNonBlocking, setDocumentNonBlocking } from '@/firebase';
+import { useUser, useFirestore, useDoc, useCollection } from '@/firebase';
 import { authedFetch } from '@/lib/api-client';
 import { doc, collection, query, orderBy, limit } from 'firebase/firestore';
 import { useEffect, useMemo, useState } from 'react';
 import { subDays, format, isValid } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { Skeleton } from '@/components/ui/skeleton';
+import { toDate } from '@/lib/utils';
 
 // Safe date formatting helper
 const safeFormat = (date: any, formatStr: string, options?: any) => {
@@ -53,44 +54,24 @@ const chartConfig = {
   },
 } satisfies ChartConfig;
 
-const demoChartData = [
-    { date: format(subDays(new Date(), 6), 'dd/MM', { locale: fr }), total: 150 },
-    { date: format(subDays(new Date(), 5), 'dd/MM', { locale: fr }), total: 120 },
-    { date: format(subDays(new Date(), 4), 'dd/MM', { locale: fr }), total: 200 },
-    { date: format(subDays(new Date(), 3), 'dd/MM', { locale: fr }), total: 180 },
-    { date: format(subDays(new Date(), 2), 'dd/MM', { locale: fr }), total: 250 },
-    { date: format(subDays(new Date(), 1), 'dd/MM', { locale: fr }), total: 230 },
-    { date: format(new Date(), 'dd/MM', { locale: fr }), total: 300 },
-];
-
-const demoRecentDonors = [
-    { id: '1', name: 'Jean Dupont', amount: 2.50, date: format(new Date(), 'dd/MM/yyyy') },
-    { id: '2', name: 'Marie Curie', amount: 5.00, date: format(subDays(new Date(), 1), 'dd/MM/yyyy') },
-    { id: '3', name: 'Pierre Martin', amount: 1.20, date: format(subDays(new Date(), 1), 'dd/MM/yyyy') },
-    { id: '4', name: 'Sophie Lemoine', amount: 10.00, date: format(subDays(new Date(), 2), 'dd/MM/yyyy') },
-    { id: '5', name: 'Luc Durand', amount: 0.80, date: format(subDays(new Date(), 3), 'dd/MM/yyyy') },
-];
-
 export default function AssociationDashboardPage() {
   const { user, isUserLoading } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
   const [nextPayout, setNextPayout] = useState({ date: '', amount: '' });
   const [isOnboardingStripe, setIsOnboardingStripe] = useState(false);
-  const [isInitializing, setIsInitializing] = useState(false);
   const [activePeriod, setActivePeriod] = useState('30j');
   
-  const isDemoMode = !!user?.isAnonymous;
 
   const associationDocRef = useMemo(() => {
-    if (!firestore || !user || user.isAnonymous) return null;
+    if (!firestore || !user) return null;
     return doc(firestore, 'associations', user.uid);
   }, [firestore, user]);
   
   const { data: associationData, isLoading: isAssociationLoading } = useDoc(associationDocRef);
   
   const donationsQuery = useMemo(() => {
-    if (!firestore || !user || user.isAnonymous) return null;
+    if (!firestore || !user) return null;
     return query(
       collection(firestore, 'associations', user.uid, 'donations'),
       orderBy('transactionDate', 'desc'),
@@ -116,10 +97,7 @@ export default function AssociationDashboardPage() {
         throw new Error(data.error || "Impossible de générer le lien Stripe.");
       }
 
-      if (data.stripeAccountId) {
-        updateDocumentNonBlocking(associationDocRef, { stripeAccountId: data.stripeAccountId });
-      }
-
+      // Le stripeAccountId est enregistré côté serveur par la route.
       if (data.url) {
         window.location.href = data.url;
       }
@@ -134,32 +112,6 @@ export default function AssociationDashboardPage() {
     }
   };
 
-  const handleInitTestData = () => {
-    if (!associationDocRef || !user) return;
-    setIsInitializing(true);
-    
-    const testData = {
-      id: user.uid,
-      associationName: "Association Test",
-      representativeName: "Test Admin",
-      contactEmail: user.email || "test@example.com",
-      rnaNumber: "W123456789",
-      description: "Ceci est une association de test pour vérifier l'intégration Stripe Connect.",
-      fundraisingGoal: 5000,
-      currentMissions: "Phase de test technique",
-      logoUrl: "",
-      stripeAccountId: ""
-    };
-
-    setDocumentNonBlocking(associationDocRef, testData, { merge: true });
-    
-    toast({
-      title: "Profil test créé",
-      description: "Le document d'association a été initialisé dans Firestore.",
-    });
-    setIsInitializing(false);
-  };
-
   const {
     monthlyFunds,
     monthlyFundsGrowth,
@@ -169,17 +121,6 @@ export default function AssociationDashboardPage() {
     chartData,
     recentDonors
   } = useMemo(() => {
-    if (isDemoMode) {
-        return {
-            monthlyFunds: 5430.21,
-            monthlyFundsGrowth: 15.2,
-            uniqueDonors: 124,
-            averageDonation: 4.38,
-            totalFunds: 35230.90,
-            chartData: demoChartData,
-            recentDonors: demoRecentDonors,
-        };
-    }
     if (!donations) return {
         monthlyFunds: 0,
         monthlyFundsGrowth: 0,
@@ -210,7 +151,7 @@ export default function AssociationDashboardPage() {
     donations.forEach(donation => {
       const amount = Number(donation.amount || 0);
       const rawDate = (donation as any).transactionDate;
-      const donationDate = (rawDate && typeof rawDate.toDate === 'function') ? rawDate.toDate() : (rawDate instanceof Date ? rawDate : new Date());
+      const donationDate = toDate(rawDate);
       totalFunds += amount;
       donorIds.add(donation.userId);
       
@@ -240,7 +181,7 @@ export default function AssociationDashboardPage() {
 
     const recentDonors = donations.slice(0, 5).map(d => {
         const rawDate = (d as any).transactionDate;
-        const dateObj = (rawDate && typeof rawDate.toDate === 'function') ? rawDate.toDate() : (rawDate instanceof Date ? rawDate : new Date());
+        const dateObj = toDate(rawDate);
         return {
             id: d.id,
             name: "Donateur Anonyme",
@@ -250,7 +191,7 @@ export default function AssociationDashboardPage() {
     });
 
     return { monthlyFunds, monthlyFundsGrowth, uniqueDonors: donorIds.size, averageDonation, totalFunds, chartData, recentDonors };
-  }, [donations, isDemoMode]);
+  }, [donations]);
 
   useEffect(() => {
     const nextPayoutDate = new Date();
@@ -262,10 +203,10 @@ export default function AssociationDashboardPage() {
     });
   }, [monthlyFunds]);
 
-  const fundraisingGoal = isDemoMode ? 100000 : (associationData?.fundraisingGoal || 10000);
+  const fundraisingGoal = associationData?.fundraisingGoal || 10000;
   const progressPercentage = (totalFunds / fundraisingGoal) * 100;
 
-  const isLoading = !isDemoMode && (isUserLoading || isAssociationLoading || isDonationsLoading);
+  const isLoading = isUserLoading || isAssociationLoading || isDonationsLoading;
 
   if (isLoading) {
     return (
@@ -307,7 +248,7 @@ export default function AssociationDashboardPage() {
           <span className="text-[10px] font-extrabold uppercase tracking-[0.2em] opacity-60">FONDS RÉCOLTÉS CE MOIS-CI</span>
           <div>
             <div className="text-4xl md:text-5xl font-extrabold mb-2 truncate">{(monthlyFunds || 0).toLocaleString('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 })}</div>
-            {isDemoMode && monthlyFundsGrowth > 0 && (
+            {monthlyFundsGrowth > 0 && (
               <div className="flex items-center gap-2 text-xs font-bold bg-white/20 w-fit px-3 py-1 rounded-full">
                 <span className="opacity-100">↑ {monthlyFundsGrowth.toFixed(1)}%</span>
                 <span className="opacity-60">vs mois dernier</span>
@@ -320,11 +261,6 @@ export default function AssociationDashboardPage() {
           <span className="text-[10px] font-extrabold uppercase tracking-[0.2em] opacity-40">DONATEURS UNIQUES</span>
           <div>
             <div className="text-4xl md:text-5xl font-extrabold mb-2 truncate">{uniqueDonors}</div>
-            {isDemoMode && (
-              <div className="flex items-center gap-2 text-xs font-bold bg-black/5 w-fit px-3 py-1 rounded-full">
-                <span>↑ 8 nouveaux</span>
-              </div>
-            )}
           </div>
         </div>
 
@@ -340,11 +276,6 @@ export default function AssociationDashboardPage() {
           <span className="text-[10px] font-extrabold uppercase tracking-[0.2em] opacity-40">DON MOYEN</span>
           <div>
             <div className="text-4xl md:text-5xl font-extrabold mb-2 truncate">{(averageDonation || 0).toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' })}</div>
-            {isDemoMode && (
-              <div className="flex items-center gap-2 text-xs font-bold bg-black/5 w-fit px-3 py-1 rounded-full">
-                <span>↑ 0,45 €</span>
-              </div>
-            )}
           </div>
         </div>
       </div>

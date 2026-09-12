@@ -18,13 +18,13 @@ const steps = [
   {
     num: '02',
     title: 'Choisissez vos causes.',
-    desc: 'Sélectionnez vos associations préférées parmi nos partenaires. Toutes vérifiées, toutes en France. Vous pouvez en changer à tout moment.',
+    desc: 'Sélectionnez vos associations préférées parmi nos partenaires. Chacune est vérifiée auprès du Répertoire National des Associations. Vous pouvez en changer à tout moment.',
     color: 'bg-brand-mint/40',
   },
   {
     num: '03',
     title: 'Ne vous en occupez plus.',
-    desc: 'Chaque paiement est arrondi à l\'euro supérieur. Le surplus est versé chaque mois aux associations. Vous recevez un reçu fiscal annuel.',
+    desc: 'Chaque paiement est arrondi à l\'euro supérieur. Le cumul du mois est prélevé en une fois et versé à votre association. Vous recevez un reçu fiscal annuel, cumulant tous vos dons de l\'année.',
     color: 'bg-brand-lavender/40',
   },
 ];

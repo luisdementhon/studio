@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
-import { db } from '@/lib/firebase-admin';
+import { db, admin } from '@/lib/firebase-admin';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: '2024-06-20',
@@ -33,8 +33,20 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Webhook signature verification failed' }, { status: 400 });
   }
 
+  // Stripe re-livre les events en cas de timeout ou d'erreur : sans ce garde,
+  // un même paiement serait comptabilisé plusieurs fois.
+  const alreadyHandled = await claimEvent(event);
+  if (alreadyHandled) {
+    return NextResponse.json({ received: true, duplicate: true });
+  }
+
   try {
     switch (event.type) {
+      case 'setup_intent.succeeded': {
+        await handleSetupIntentSucceeded(event.data.object as Stripe.SetupIntent);
+        break;
+      }
+
       case 'payment_intent.succeeded': {
         const paymentIntent = event.data.object as Stripe.PaymentIntent;
         await handlePaymentSucceeded(paymentIntent);
@@ -59,6 +71,8 @@ export async function POST(request: NextRequest) {
     }
   } catch (error) {
     console.error(`Error handling event ${event.type}:`, error);
+    // On libère le verrou : l'event doit pouvoir être rejoué par Stripe.
+    await db.collection('stripe_events').doc(event.id).delete().catch(() => {});
     return NextResponse.json({ error: 'Webhook handler failed' }, { status: 500 });
   }
 
@@ -66,49 +80,195 @@ export async function POST(request: NextRequest) {
 }
 
 /**
+ * Pose un verrou d'idempotence sur l'event.
+ *
+ * La création du document est faite en transaction : si deux livraisons du
+ * même event arrivent en parallèle, une seule obtient le verrou.
+ *
+ * @returns true si l'event a déjà été traité (il faut sortir).
+ */
+async function claimEvent(event: Stripe.Event): Promise<boolean> {
+  const eventRef = db.collection('stripe_events').doc(event.id);
+
+  return db.runTransaction(async (tx) => {
+    const existing = await tx.get(eventRef);
+    if (existing.exists) return true;
+
+    tx.set(eventRef, {
+      type: event.type,
+      receivedAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
+    return false;
+  });
+}
+
+/**
+ * Mandat signé : on enregistre la preuve côté serveur.
+ *
+ * C'est ce document qui atteste qu'un donateur a autorisé les prélèvements,
+ * à quelle date et sous quel plafond. Le client ne peut pas l'écrire.
+ */
+async function handleSetupIntentSucceeded(setupIntent: Stripe.SetupIntent) {
+  const userId = setupIntent.metadata?.userId;
+  if (!userId) {
+    console.warn('SetupIntent succeeded sans userId en metadata:', setupIntent.id);
+    return;
+  }
+
+  const paymentMethodId =
+    typeof setupIntent.payment_method === 'string'
+      ? setupIntent.payment_method
+      : setupIntent.payment_method?.id;
+
+  if (!paymentMethodId) {
+    console.warn('SetupIntent succeeded sans payment_method:', setupIntent.id);
+    return;
+  }
+
+  // Les vraies informations de carte, au lieu des valeurs codées en dur
+  // qu'écrivait le client.
+  const paymentMethod = await stripe.paymentMethods.retrieve(paymentMethodId);
+
+  await db.collection('users').doc(userId).set(
+    {
+      paymentMethodLinked: true,
+      stripeSetupIntentId: setupIntent.id,
+      stripePaymentMethodId: paymentMethodId,
+      cardBrand: paymentMethod.card?.brand ?? null,
+      cardLast4: paymentMethod.card?.last4 ?? null,
+      mandateSignedAt: admin.firestore.FieldValue.serverTimestamp(),
+      mandateCeiling: Number(setupIntent.metadata?.mandateCeiling ?? 0) || null,
+      mandateNeedsReauth: false,
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    },
+    { merge: true }
+  );
+
+  console.log(`✅ Mandat enregistré pour ${userId} (${paymentMethod.card?.brand} ••••${paymentMethod.card?.last4})`);
+}
+
+/**
  * Handle successful payment — record the donation in Firestore
  */
 async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent) {
   const { metadata } = paymentIntent;
-  
+
   if (!metadata?.userId || !metadata?.associationId) {
     console.warn('Payment succeeded but missing userId or associationId in metadata:', paymentIntent.id);
     return;
   }
 
+  const amount = paymentIntent.amount / 100;
+  const assoRef = db.collection('associations').doc(metadata.associationId);
+
   const donationData = {
     stripePaymentIntentId: paymentIntent.id,
-    amount: paymentIntent.amount / 100, // Convert from cents
+    amount,
     currency: paymentIntent.currency,
     status: 'succeeded',
     userId: metadata.userId,
     associationId: metadata.associationId,
     associationName: metadata.associationName || '',
-    type: metadata.type || 'one-time', // 'one-time' | 'roundup'
-    transactionDate: new Date(),
-    createdAt: new Date(),
+    type: metadata.type || 'one-time', // 'one-time' | 'roundup_batch'
+    transactionDate: admin.firestore.FieldValue.serverTimestamp(),
+    createdAt: admin.firestore.FieldValue.serverTimestamp(),
   };
 
-  // Write to user's donations subcollection
-  const donationRef = db.collection('users').doc(metadata.userId).collection('donations').doc(paymentIntent.id);
-  await donationRef.set(donationData);
-
-  // Mirror into the association's own donations subcollection (dashboard/association reads this)
-  const assoRef = db.collection('associations').doc(metadata.associationId);
-  await assoRef.collection('donations').doc(paymentIntent.id).set(donationData);
-
-  // Update the association's received donations total
-  const assoSnap = await assoRef.get();
-
-  if (assoSnap.exists) {
-    const currentTotal = assoSnap.data()?.totalReceived || 0;
-    await assoRef.update({
-      totalReceived: currentTotal + donationData.amount,
-      lastDonationDate: new Date(),
-    });
+  if (metadata.type === 'roundup_batch') {
+    // Les arrondis individuels existent déjà côté donateur : en créer un de
+    // plus ferait doublon dans son historique. On les solde à la place.
+    await settleRoundupBatch(paymentIntent, metadata, donationData, assoRef);
+  } else {
+    await db
+      .collection('users')
+      .doc(metadata.userId)
+      .collection('donations')
+      .doc(paymentIntent.id)
+      .set(donationData);
   }
 
-  console.log(`✅ Donation recorded: ${donationData.amount}€ from ${metadata.userId} to ${metadata.associationId}`);
+  // Miroir côté association (lu par les dashboards association)
+  await assoRef.collection('donations').doc(paymentIntent.id).set(donationData);
+
+  // Incrément atomique : un read-then-write double-comptait en cas de
+  // livraisons concurrentes.
+  await assoRef.set(
+    {
+      totalReceived: admin.firestore.FieldValue.increment(amount),
+      lastDonationDate: admin.firestore.FieldValue.serverTimestamp(),
+    },
+    { merge: true }
+  );
+
+  console.log(`✅ Donation recorded: ${amount}€ from ${metadata.userId} to ${metadata.associationId}`);
+}
+
+/**
+ * Solde un batch d'arrondis : marque les arrondis concernés comme versés et
+ * crée le versement correspondant pour l'association.
+ */
+async function settleRoundupBatch(
+  paymentIntent: Stripe.PaymentIntent,
+  metadata: Stripe.Metadata,
+  donationData: Record<string, unknown>,
+  assoRef: FirebaseFirestore.DocumentReference
+) {
+  const batchId = metadata.batchId;
+  if (!batchId) {
+    console.warn('roundup_batch sans batchId:', paymentIntent.id);
+    return;
+  }
+
+  const batchRef = db.collection('monthly_batches').doc(batchId);
+  const batchSnap = await batchRef.get();
+  const roundupIds: string[] = batchSnap.data()?.roundupIds ?? [];
+
+  const donationsRef = db.collection('users').doc(metadata.userId!).collection('donations');
+
+  // Firestore limite un batch d'écritures à 500 opérations.
+  for (let i = 0; i < roundupIds.length; i += 400) {
+    const chunk = roundupIds.slice(i, i + 400);
+    const writer = db.batch();
+    for (const id of chunk) {
+      writer.set(
+        donationsRef.doc(id),
+        {
+          status: 'succeeded',
+          settledAt: admin.firestore.FieldValue.serverTimestamp(),
+          stripePaymentIntentId: paymentIntent.id,
+          batchId,
+        },
+        { merge: true }
+      );
+    }
+    await writer.commit();
+  }
+
+  await batchRef.set(
+    {
+      status: 'succeeded',
+      stripePaymentIntentId: paymentIntent.id,
+      settledAt: admin.firestore.FieldValue.serverTimestamp(),
+    },
+    { merge: true }
+  );
+
+  // Versement : la page Versements trie sur `date` et n'affiche le badge
+  // « Transféré » que pour le statut 'completed'.
+  const period = metadata.period ?? '';
+  await assoRef
+    .collection('payouts')
+    .doc(paymentIntent.id)
+    .set({
+      date: admin.firestore.FieldValue.serverTimestamp(),
+      amount: (donationData.amount as number) - (paymentIntent.application_fee_amount ?? 0) / 100,
+      grossAmount: donationData.amount,
+      feeAmount: (paymentIntent.application_fee_amount ?? 0) / 100,
+      status: 'completed',
+      reference: `PAY-${period || new Date().getFullYear()}-${paymentIntent.id.slice(-6).toUpperCase()}`,
+      userId: metadata.userId,
+      period,
+    });
 }
 
 /**
@@ -116,10 +276,9 @@ async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent) {
  */
 async function handlePaymentFailed(paymentIntent: Stripe.PaymentIntent) {
   const { metadata } = paymentIntent;
-  
+
   if (!metadata?.userId) return;
 
-  // Log the failed payment for the user
   const failureData = {
     stripePaymentIntentId: paymentIntent.id,
     amount: paymentIntent.amount / 100,
@@ -127,11 +286,36 @@ async function handlePaymentFailed(paymentIntent: Stripe.PaymentIntent) {
     userId: metadata.userId,
     associationId: metadata.associationId || '',
     failureReason: paymentIntent.last_payment_error?.message || 'Unknown error',
-    transactionDate: new Date(),
+    failureCode: paymentIntent.last_payment_error?.code || null,
+    transactionDate: admin.firestore.FieldValue.serverTimestamp(),
   };
 
-  await db.collection('users').doc(metadata.userId).collection('payment_failures').doc(paymentIntent.id).set(failureData);
-  
+  await db
+    .collection('users')
+    .doc(metadata.userId)
+    .collection('payment_failures')
+    .doc(paymentIntent.id)
+    .set(failureData);
+
+  if (metadata.type === 'roundup_batch' && metadata.batchId) {
+    await db.collection('monthly_batches').doc(metadata.batchId).set(
+      {
+        status: 'failed',
+        failureReason: failureData.failureReason,
+        failedAt: admin.firestore.FieldValue.serverTimestamp(),
+      },
+      { merge: true }
+    );
+
+    // La carte demande une ré-authentification : le mandat doit être resigné.
+    if (paymentIntent.last_payment_error?.code === 'authentication_required') {
+      await db
+        .collection('users')
+        .doc(metadata.userId)
+        .set({ mandateNeedsReauth: true }, { merge: true });
+    }
+  }
+
   console.warn(`❌ Payment failed: ${paymentIntent.id} — ${failureData.failureReason}`);
 }
 
@@ -142,16 +326,21 @@ async function handleChargeRefunded(charge: Stripe.Charge) {
   const paymentIntentId = charge.payment_intent as string;
   if (!paymentIntentId) return;
 
-  // Find and update the donation across all users
-  const usersSnapshot = await db.collectionGroup('donations')
+  // Requête collection-group : nécessite l'index déclaré dans
+  // firestore.indexes.json.
+  const snapshot = await db
+    .collectionGroup('donations')
     .where('stripePaymentIntentId', '==', paymentIntentId)
     .get();
 
-  for (const doc of usersSnapshot.docs) {
-    await doc.ref.update({ 
-      status: 'refunded',
-      refundedAt: new Date(),
-    });
+  for (const doc of snapshot.docs) {
+    await doc.ref.set(
+      {
+        status: 'refunded',
+        refundedAt: admin.firestore.FieldValue.serverTimestamp(),
+      },
+      { merge: true }
+    );
   }
 
   console.log(`🔄 Refund processed for payment: ${paymentIntentId}`);

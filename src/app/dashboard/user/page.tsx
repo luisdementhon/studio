@@ -39,6 +39,7 @@ import { format, subDays, startOfDay, isAfter } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { Button } from '@/components/ui/button';
 import { DotlyBrand } from '@/components/ui/dotly-brand';
+import { toDate } from '@/lib/utils';
 
 const chartConfig = {
   dons: {
@@ -59,21 +60,6 @@ const causesLabels: { [key: string]: string } = {
   'autre': 'Autre'
 };
 
-const demoChartData = [
-  { date: format(subDays(new Date(), 5), 'dd MMM', { locale: fr }), dons: 12.5 },
-  { date: format(subDays(new Date(), 4), 'dd MMM', { locale: fr }), dons: 15.8 },
-  { date: format(subDays(new Date(), 3), 'dd MMM', { locale: fr }), dons: 11.2 },
-  { date: format(subDays(new Date(), 2), 'dd MMM', { locale: fr }), dons: 21.4 },
-  { date: format(subDays(new Date(), 1), 'dd MMM', { locale: fr }), dons: 18.9 },
-  { date: format(new Date(), 'dd MMM', { locale: fr }), dons: 25.6 },
-];
-
-const demoRecentDonations = [
-    { id: 'd1', associationName: 'Les Restos du Coeur', amount: 15.00, transactionDate: subDays(new Date(), 2) },
-    { id: 'd2', associationName: 'WWF France', amount: 25.00, transactionDate: subDays(new Date(), 10) },
-    { id: 'd3', associationName: 'Greenpeace', amount: 10.00, transactionDate: subDays(new Date(), 25) },
-];
-
 type Period = '7j' | '30j' | '1an';
 
 export default function UserDashboardPage() {
@@ -84,36 +70,26 @@ export default function UserDashboardPage() {
   const [period, setPeriod] = useState<Period>('30j');
   const [weeklyRoundups, setWeeklyRoundups] = useState(0);
 
-  const isDemoMode = !!user?.isAnonymous;
 
   // 1. Fetch user profile
   const userDocRef = useMemo(() => {
-    if (!firestore || !user || isDemoMode) return null;
+    if (!firestore || !user) return null;
     return doc(firestore, 'users', user.uid);
-  }, [firestore, user, isDemoMode]);
+  }, [firestore, user]);
   const { data: userData, isLoading: isProfileLoading } = useDoc(userDocRef);
 
   // 2. Fetch user's donations
   const donationsQuery = useMemo(() => {
-    if (!firestore || !user || isDemoMode) return null;
+    if (!firestore || !user) return null;
     return query(
       collection(firestore, 'users', user.uid, 'donations'),
       orderBy('transactionDate', 'desc')
     );
-  }, [firestore, user, isDemoMode]);
+  }, [firestore, user]);
   const { data: donations, isLoading: isDonationsLoading } = useCollection(donationsQuery);
   
   // 3. Fetch associations
   useEffect(() => {
-    if (isDemoMode) {
-      setAssociations([
-        { id: '1', associationName: 'Les Restos du Coeur' } as Association,
-        { id: '2', associationName: 'WWF France' } as Association,
-        { id: '3', associationName: 'Greenpeace' } as Association,
-      ]);
-      setAssociationsLoading(false);
-      return;
-    }
     async function fetchAssociations() {
         if (!firestore) return;
         setAssociationsLoading(true);
@@ -123,10 +99,7 @@ export default function UserDashboardPage() {
             const querySnapshot = await getDocs(q);
             const assos: Association[] = [];
             querySnapshot.forEach((doc) => {
-                const data = doc.data();
-                if (data.associationName?.toLowerCase() !== 'prout') {
-                    assos.push({ id: doc.id, ...data } as Association);
-                }
+                assos.push({ id: doc.id, ...doc.data() } as Association);
             });
             setAssociations(assos);
         } catch (error) {
@@ -136,14 +109,14 @@ export default function UserDashboardPage() {
         }
     }
     fetchAssociations();
-  }, [firestore, isDemoMode]);
+  }, [firestore]);
 
   const [bridgeData, setBridgeData] = useState<{ totalDonations: number, transactions: any[] } | null>(null);
   const [bridgeLoading, setBridgeLoading] = useState(false);
 
   // 4. Fetch real bridge transactions for roundups
   useEffect(() => {
-    if (user?.email && userData?.bankConnected && !isDemoMode) {
+    if (user?.email && userData?.bankConnected) {
       async function fetchBridgeTransactions() {
         setBridgeLoading(true);
         try {
@@ -164,7 +137,7 @@ export default function UserDashboardPage() {
       }
       fetchBridgeTransactions();
     }
-  }, [user, userData, isDemoMode]);
+  }, [user, userData]);
 
   // 5. Calculate KPIs and Chart Data based on period
   const {
@@ -175,16 +148,6 @@ export default function UserDashboardPage() {
     recentDonations,
     userCauses
   } = useMemo(() => {
-    if (isDemoMode) {
-        return {
-            totalDonations: period === '7j' ? 42.50 : period === '30j' ? 128.40 : 1450.00,
-            pendingRoundups: 15.42,
-            taxDeductibleAmount: (period === '7j' ? 42.50 : period === '30j' ? 128.40 : 1450.00) * 0.66,
-            chartData: demoChartData,
-            recentDonations: demoRecentDonations,
-            userCauses: { causes: ['environnement', 'animaux'], selectedAssociations: ['1', '2', '3'] }
-        }
-    }
 
     const bridgeTotal = bridgeData?.totalDonations || 0;
 
@@ -202,7 +165,7 @@ export default function UserDashboardPage() {
 
     const filteredDonations = donations.filter(d => {
       const rawDate = (d as any).transactionDate;
-      const donationDate = (rawDate && typeof rawDate.toDate === 'function') ? rawDate.toDate() : (rawDate instanceof Date ? rawDate : new Date());
+      const donationDate = toDate(rawDate);
       return isAfter(donationDate, startOfDay(startDate));
     });
 
@@ -211,7 +174,7 @@ export default function UserDashboardPage() {
     // Group for chart
     const dailyData: { [key: string]: number } = {};
     filteredDonations.forEach(d => {
-      const dateKey = format(d.transactionDate.toDate(), 'dd MMM', { locale: fr });
+      const dateKey = format(toDate((d as any).transactionDate), 'dd MMM', { locale: fr });
       dailyData[dateKey] = (dailyData[dateKey] || 0) + d.amount;
     });
 
@@ -223,7 +186,7 @@ export default function UserDashboardPage() {
     const recent = donations.slice(0, 5).map(d => {
         const asso = associations.find(a => a.id === d.associationId);
         const rawDate = (d as any).transactionDate;
-        const dateObj = (rawDate && typeof rawDate.toDate === 'function') ? rawDate.toDate() : (rawDate instanceof Date ? rawDate : new Date());
+        const dateObj = toDate(rawDate);
         return {
             ...d,
             associationName: asso?.associationName || 'Association inconnue',
@@ -240,13 +203,13 @@ export default function UserDashboardPage() {
       userCauses: userData 
     };
 
-  }, [donations, associations, isDemoMode, userData, period]);
+  }, [donations, associations, userData, period]);
 
   useEffect(() => {
-    setWeeklyRoundups(isDemoMode ? 5.82 : (totalDonations / 4) * 0.8);
-  }, [totalDonations, isDemoMode]);
+    setWeeklyRoundups((totalDonations / 4) * 0.8);
+  }, [totalDonations]);
 
-  const isLoading = !isDemoMode && (isUserLoading || isProfileLoading || isDonationsLoading);
+  const isLoading = isUserLoading || isProfileLoading || isDonationsLoading;
 
   return (
     <div className="flex flex-col gap-10 pb-16">
@@ -292,7 +255,7 @@ export default function UserDashboardPage() {
         {[
           { title: 'Dons Versés', value: totalDonations, icon: PiggyBank, color: 'mint', sub: 'Total déjà reversé' },
           { title: 'Arrondis en cours', value: pendingRoundups, icon: Coins, color: 'coral', sub: 'Calculé en temps réel', isLoading: bridgeLoading },
-          { title: 'Associations', value: isDemoMode ? 3 : userCauses?.selectedAssociations?.length || 0, icon: Heart, color: 'teal', sub: 'Soutenues activement' },
+          { title: 'Associations', value: userCauses?.associations?.length || 0, icon: Heart, color: 'teal', sub: 'Soutenues activement' },
           { title: 'Réduction Fiscale', value: taxDeductibleAmount, icon: ShieldCheck, color: 'lavender', sub: 'Potentiel déductible (66%)' },
         ].map((kpi, i) => (
           i === 1 ? (

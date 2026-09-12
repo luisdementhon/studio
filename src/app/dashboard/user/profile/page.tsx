@@ -24,6 +24,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useUser, useFirestore, useDoc } from "@/firebase";
 import { authedFetch } from "@/lib/api-client";
+import { resizeToAvatarDataUrl } from "@/lib/image";
 import { doc } from "firebase/firestore";
 import { setDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -82,30 +83,39 @@ export default function UserProfilePage() {
     }
   }, [userData, form]);
 
-  const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handlePhotoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (file.size > 2 * 1024 * 1024) {
+
+    if (!file.type.startsWith('image/')) {
       toast({
-        title: "Fichier trop volumineux",
-        description: "Veuillez choisir une image de moins de 2 Mo.",
+        title: "Fichier invalide",
+        description: "Veuillez choisir une image.",
         variant: "destructive",
       });
       return;
     }
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      const result = reader.result as string;
-      setPhotoURL(result);
+
+    try {
+      // Redimensionnement obligatoire : la photo est stockée dans le document
+      // Firestore, plafonné à 1 Mo.
+      const dataUrl = await resizeToAvatarDataUrl(file);
+      setPhotoURL(dataUrl);
+
       if (userDocRef) {
-        setDocumentNonBlocking(userDocRef, { photoURL: result }, { merge: true });
+        setDocumentNonBlocking(userDocRef, { photoURL: dataUrl }, { merge: true });
         toast({
           title: "Photo mise à jour",
           description: "Votre photo de profil a bien été enregistrée.",
         });
       }
-    };
-    reader.readAsDataURL(file);
+    } catch {
+      toast({
+        title: "Erreur",
+        description: "Impossible de traiter cette image.",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleRemovePhoto = () => {
