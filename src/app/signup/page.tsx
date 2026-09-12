@@ -6,6 +6,7 @@ import type { z } from "zod";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createUserWithEmailAndPassword, GoogleAuthProvider, signInWithPopup } from "firebase/auth";
+import { authedFetch } from "@/lib/api-client";
 import { useEffect, useState } from "react";
 
 import { SignupSchema } from "@/lib/schemas";
@@ -59,6 +60,8 @@ export default function SignupPage() {
     if (!auth) return;
     try {
       await createUserWithEmailAndPassword(auth, values.email, values.password);
+      // Email de bienvenue : en échec, l'inscription se poursuit quand même.
+      await authedFetch('/api/account/welcome', { method: 'POST' }).catch(() => {});
       router.push('/auth/loading');
     } catch (error: any) {
       if (error.code === 'auth/email-already-in-use') {
@@ -89,6 +92,7 @@ export default function SignupPage() {
     try {
       const provider = new GoogleAuthProvider();
       await signInWithPopup(auth, provider);
+      await authedFetch('/api/account/welcome', { method: 'POST' }).catch(() => {});
       router.push('/auth/loading');
     } catch (error: any) {
       console.error("Google Sign-In Error:", error);

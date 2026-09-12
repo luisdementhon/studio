@@ -37,3 +37,19 @@ env:
   # et aucun don n'est enregistré.
   - variable: STRIPE_WEBHOOK_SECRET
     secret: STRIPE_WEBHOOK_SECRET
+
+  # Protège /api/cron/* (règlement mensuel, reçus fiscaux), appelées par
+  # Cloud Scheduler. Sans lui, les jobs refusent tout appel.
+  - variable: CRON_SECRET
+    secret: CRON_SECRET
+
+  # Emails transactionnels.
+  - variable: RESEND_API_KEY
+    secret: RESEND_API_KEY
+
+  # Commission dotly, en pourcentage. Valeur de pilotage, non secrète.
+  - variable: PLATFORM_FEE_PERCENT
+    value: "15"
+
+  - variable: EMAIL_FROM
+    value: "dotly <bonjour@dotly-app.fr>"

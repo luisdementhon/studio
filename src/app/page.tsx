@@ -282,10 +282,14 @@ export default function Home() {
         </section>
       </main>
 
-      <footer className="px-8 py-12 border-t border-black/[0.05] text-center">
+      <footer className="px-8 py-12 border-t border-black/[0.05] text-center space-y-4">
         <p className="text-foreground/40 font-headline font-light uppercase tracking-widest text-[10px] flex items-center justify-center gap-1">
           © 2026 <DotlyBrand className="text-[10px] font-bold" /> Tous droits réservés.
         </p>
+        <div className="flex items-center justify-center gap-6 text-[10px] font-bold uppercase tracking-widest text-foreground/40">
+          <Link href="/cgu" className="hover:text-foreground transition-colors">CGU</Link>
+          <Link href="/confidentialite" className="hover:text-foreground transition-colors">Confidentialité</Link>
+        </div>
       </footer>
     </div>
   );

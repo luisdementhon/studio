@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { db, admin } from '@/lib/firebase-admin';
 import { verifyCronSecret } from '@/lib/cron-auth';
+import { sendTaxReceiptEmail } from '@/lib/email';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 300;
@@ -76,6 +77,14 @@ export async function POST(request: Request) {
             },
             { merge: true }
           );
+
+        if (userData?.email) {
+          await sendTaxReceiptEmail(userData.email, {
+            year,
+            totalAmount: Math.round(totalAmount * 100) / 100,
+            associationName: association.data()?.associationName ?? 'votre association',
+          });
+        }
 
         report.receiptsWritten++;
       }

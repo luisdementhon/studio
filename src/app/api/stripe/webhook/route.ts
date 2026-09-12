@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import { db, admin } from '@/lib/firebase-admin';
+import {
+  sendMandateConfirmedEmail,
+  sendMonthlyRecapEmail,
+  sendPaymentFailedEmail,
+} from '@/lib/email';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: '2024-06-20',
@@ -145,6 +150,16 @@ async function handleSetupIntentSucceeded(setupIntent: Stripe.SetupIntent) {
   );
 
   console.log(`✅ Mandat enregistré pour ${userId} (${paymentMethod.card?.brand} ••••${paymentMethod.card?.last4})`);
+
+  const userSnap = await db.collection('users').doc(userId).get();
+  const email = userSnap.data()?.email;
+  if (email) {
+    await sendMandateConfirmedEmail(
+      email,
+      Number(setupIntent.metadata?.mandateCeiling ?? 0),
+      paymentMethod.card?.last4
+    );
+  }
 }
 
 /**
@@ -269,6 +284,19 @@ async function settleRoundupBatch(
       userId: metadata.userId,
       period,
     });
+
+  // Le récapitulatif mensuel : c'est le moment où des centimes abstraits
+  // deviennent un impact concret pour le donateur.
+  const userSnap = await db.collection('users').doc(metadata.userId!).get();
+  const email = userSnap.data()?.email;
+  if (email) {
+    await sendMonthlyRecapEmail(email, {
+      amount: donationData.amount as number,
+      associationName: metadata.associationName || 'votre association',
+      period,
+      roundupCount: roundupIds.length,
+    });
+  }
 }
 
 /**
@@ -308,11 +336,18 @@ async function handlePaymentFailed(paymentIntent: Stripe.PaymentIntent) {
     );
 
     // La carte demande une ré-authentification : le mandat doit être resigné.
-    if (paymentIntent.last_payment_error?.code === 'authentication_required') {
+    const needsReauth = paymentIntent.last_payment_error?.code === 'authentication_required';
+    if (needsReauth) {
       await db
         .collection('users')
         .doc(metadata.userId)
         .set({ mandateNeedsReauth: true }, { merge: true });
+    }
+
+    const userSnap = await db.collection('users').doc(metadata.userId).get();
+    const email = userSnap.data()?.email;
+    if (email) {
+      await sendPaymentFailedEmail(email, failureData.failureReason, needsReauth);
     }
   }
 

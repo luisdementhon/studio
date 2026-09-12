@@ -25,6 +25,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useUser, useFirestore, useDoc } from "@/firebase";
 import { authedFetch } from "@/lib/api-client";
 import { resizeToAvatarDataUrl } from "@/lib/image";
+import { DataRightsSection } from "@/components/profile/data-rights";
 import { doc } from "firebase/firestore";
 import { setDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -447,6 +448,20 @@ export default function UserProfilePage() {
                     <Input value={user?.email || ''} disabled className="h-14 rounded-2xl bg-muted/10 border-none px-6 text-base font-medium text-muted-foreground/60 cursor-not-allowed" />
                     <p className="text-xs text-muted-foreground ml-1">L'adresse email ne peut pas être modifiée.</p>
                   </div>
+                </CardContent>
+              </Card>
+
+              <Card className="rounded-[2.5rem] border-none bg-white shadow-xl shadow-black/[0.02] mt-8">
+                <CardHeader className="p-10 pb-6">
+                  <CardTitle className="text-2xl font-headline font-extrabold tracking-tight">
+                    Mes données
+                  </CardTitle>
+                  <CardDescription className="text-base font-headline font-light">
+                    Exportez ou supprimez l'ensemble de vos données personnelles.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="p-10 pt-0">
+                  <DataRightsSection />
                 </CardContent>
               </Card>
             </TabsContent>
