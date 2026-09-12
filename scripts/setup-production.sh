@@ -45,6 +45,20 @@ ok "Authentifié"
 # --- Secrets --------------------------------------------------------------
 step "2/5  Secrets"
 
+# `secrets:set --force` accorde les permissions au compte de service, ce que
+# l'on veut, mais ajoute aussi l'entrée dans apphosting.yaml — où elles
+# figurent déjà. On conserve donc le fichier et on le restaure ensuite,
+# plutôt que de se retrouver avec des variables en double.
+YAML_BACKUP="$(mktemp)"
+cp apphosting.yaml "$YAML_BACKUP"
+restore_yaml() {
+  if ! cmp -s apphosting.yaml "$YAML_BACKUP"; then
+    cp "$YAML_BACKUP" apphosting.yaml
+  fi
+  rm -f "$YAML_BACKUP"
+}
+trap restore_yaml EXIT
+
 # Saisie masquée : la valeur ne s'affiche pas et ne va pas dans l'historique.
 set_secret() {
   local name="$1" prompt="$2" value
@@ -79,6 +93,10 @@ set_secret STRIPE_WEBHOOK_SECRET  "Secret de signature du webhook Stripe (whsec_
 set_secret BRIDGE_CLIENT_SECRET   "Client secret Bridge (à régénérer : l'ancien est dans l'historique git)"
 set_secret BRIDGE_WEBHOOK_SECRET  "Secret de signature du webhook Bridge"
 set_secret RESEND_API_KEY         "Clé API Resend (re_...) — laisser vide pour désactiver les emails"
+
+restore_yaml
+trap - EXIT
+ok "apphosting.yaml préservé (pas de variables en double)"
 
 # --- Firestore ------------------------------------------------------------
 step "3/5  Règles et index Firestore"
