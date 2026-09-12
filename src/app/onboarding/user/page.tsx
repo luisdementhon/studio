@@ -51,7 +51,7 @@ export default function UserOnboardingPage() {
   const [isConnecting, setIsConnecting] = useState(false);
   const { toast } = useToast();
   const router = useRouter();
-  const searchParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null;
+
   const firestore = useFirestore();
   const { user } = useUser();
   const [dbUser, setDbUser] = useState<any>(null);
@@ -72,10 +72,17 @@ export default function UserOnboardingPage() {
       .catch(() => setAvailableAssociations([]));
   }, [firestore]);
 
+  // Lu UNE SEULE FOIS au montage. Recréer URLSearchParams à chaque rendu
+  // faisait redéclencher cet effet en boucle : cliquer « Étape précédente »
+  // remettait aussitôt l'étape de l'URL, rendant la navigation impossible.
   useEffect(() => {
-    const s = searchParams?.get('step');
-    if (s) setStep(parseInt(s));
-  }, [searchParams]);
+    if (typeof window === 'undefined') return;
+    const raw = new URLSearchParams(window.location.search).get('step');
+    const parsed = Number(raw);
+    if (Number.isInteger(parsed) && parsed >= 1 && parsed <= 3) {
+      setStep(parsed);
+    }
+  }, []);
 
   useEffect(() => {
     if (user && firestore) {

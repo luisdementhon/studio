@@ -26,7 +26,11 @@ export default function DashboardRoot() {
         // 1. Check if user profile exists
         const userDocRef = doc(firestore, 'users', user.uid);
         const userSnap = await getDoc(userDocRef);
-        if (userSnap.exists()) {
+
+        // Même piège qu'en /auth/loading : le document existe dès
+        // l'inscription (email de bienvenue), bien avant l'onboarding.
+        // On teste donc la complétude du profil, pas son existence.
+        if (userSnap.exists() && userSnap.data()?.firstName) {
           router.replace('/dashboard/user');
           return;
         }

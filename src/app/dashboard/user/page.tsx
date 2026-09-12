@@ -196,7 +196,12 @@ export default function UserDashboardPage() {
         dons: parseFloat(dons.toFixed(2)),
       }));
 
-    const recent = donations.slice(0, 5).map(d => {
+    // Même exigence que pour les totaux : un arrondi en attente n'est pas une
+    // « générosité » déjà effectuée, il ne doit pas figurer dans l'historique.
+    const recent = donations
+      .filter(d => (d as any).status === 'succeeded')
+      .slice(0, 5)
+      .map(d => {
         const asso = associations.find(a => a.id === d.associationId);
         const rawDate = (d as any).transactionDate;
         const dateObj = toDate(rawDate);
@@ -502,7 +507,7 @@ export default function UserDashboardPage() {
           {recentDonations.length > 0 && (
             <div className="p-12 pt-8 text-center border-t border-black/[0.03]">
               <p className="text-sm text-muted-foreground font-medium">
-                Vous avez soutenu <span className="text-brand-coral font-bold">{recentDonations.length}</span> associations sur cette période.
+                Vos <span className="text-brand-coral font-bold">{recentDonations.length}</span> derniers dons versés.
               </p>
             </div>
           )}

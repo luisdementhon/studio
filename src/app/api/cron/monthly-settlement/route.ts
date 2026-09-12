@@ -75,7 +75,10 @@ export async function POST(request: Request) {
         .collection('donations')
         .where('type', '==', 'roundup')
         .where('status', '==', 'pending')
-        .where('transactionDate', '>=', admin.firestore.Timestamp.fromDate(start))
+        // Pas de borne basse : une transaction datée d'un mois déjà réglé peut
+        // remonter en retard (les banques ont 1 à 2 jours de délai). La borner
+        // au seul mois courant la laisserait `pending` à vie, puisque la
+        // période précédente est verrouillée et ne sera jamais rejouée.
         .where('transactionDate', '<', admin.firestore.Timestamp.fromDate(end))
         .get();
 

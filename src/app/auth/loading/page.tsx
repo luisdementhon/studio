@@ -39,7 +39,12 @@ export default function AuthLoadingPage() {
         // 1. Check if a "user" profile exists
         const userDocRef = doc(firestore, 'users', user.uid);
         const userDocSnap = await getDoc(userDocRef);
-        if (userDocSnap.exists()) {
+
+        // L'existence du document ne suffit PAS : il est créé dès
+        // l'inscription par /api/account/welcome, avant tout onboarding.
+        // S'y fier enverrait chaque nouvel inscrit directement sur un
+        // dashboard vide, sans jamais lui proposer de configurer son compte.
+        if (userDocSnap.exists() && userDocSnap.data()?.firstName) {
           router.replace('/dashboard/user');
           return;
         }

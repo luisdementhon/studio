@@ -9,6 +9,18 @@
 /** Taux par défaut, en pourcentage. Surchargeable par association. */
 const DEFAULT_FEE_PERCENT = 15;
 
+/**
+ * Taux effectif de la plateforme, pour l'affichage.
+ *
+ * Exporté pour que l'interface n'invente pas son propre pourcentage : le
+ * dashboard association annonçait 5 % de commission là où le serveur en
+ * retenait 15, surestimant chaque virement d'environ 12 %.
+ */
+export const PLATFORM_FEE_PERCENT = (() => {
+  const configured = Number(process.env.NEXT_PUBLIC_PLATFORM_FEE_PERCENT);
+  return Number.isFinite(configured) && configured > 0 ? configured : DEFAULT_FEE_PERCENT;
+})();
+
 function resolveFeePercent(association?: { commissionRate?: number } | null): number {
   if (association?.commissionRate !== undefined && association.commissionRate !== null) {
     return Number(association.commissionRate);

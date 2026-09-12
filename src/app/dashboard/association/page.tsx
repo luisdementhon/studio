@@ -33,7 +33,9 @@ import { useEffect, useMemo, useState } from 'react';
 import { subDays, format, isValid } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { Skeleton } from '@/components/ui/skeleton';
+import Link from 'next/link';
 import { toDate } from '@/lib/utils';
+import { PLATFORM_FEE_PERCENT } from '@/lib/fees';
 
 // Safe date formatting helper
 const safeFormat = (date: any, formatStr: string, options?: any) => {
@@ -60,6 +62,7 @@ export default function AssociationDashboardPage() {
   const { toast } = useToast();
   const [nextPayout, setNextPayout] = useState({ date: '', amount: '' });
   const [isOnboardingStripe, setIsOnboardingStripe] = useState(false);
+  const [stripeReady, setStripeReady] = useState<boolean | null>(null);
   const [activePeriod, setActivePeriod] = useState('30j');
   
 
@@ -80,6 +83,18 @@ export default function AssociationDashboardPage() {
   }, [firestore, user]);
 
   const { data: donations, isLoading: isDonationsLoading } = useCollection(donationsQuery);
+
+  // Posséder un stripeAccountId ne veut pas dire pouvoir encaisser : le compte
+  // est créé dès le premier clic. On interroge donc Stripe pour connaître
+  // l'état réel, sinon une association ayant abandonné l'onboarding ne voit
+  // plus aucune alerte et perd tous ses dons sans le savoir.
+  useEffect(() => {
+    if (!associationData?.stripeAccountId) return;
+    authedFetch('/api/stripe/connect-status', { method: 'POST' })
+      .then((r) => r.json())
+      .then((s) => setStripeReady(Boolean(s?.chargesEnabled)))
+      .catch(() => setStripeReady(false));
+  }, [associationData?.stripeAccountId]);
 
   const handleStripeOnboarding = async () => {
     if (!user || !associationDocRef) return;
@@ -149,11 +164,15 @@ export default function AssociationDashboardPage() {
     }
 
     donations.forEach(donation => {
+      // Un don remboursé n'est plus un don reçu : l'inclure gonflerait les
+      // fonds récoltés, le don moyen et le nombre de donateurs.
+      if ((donation as any).status === 'refunded') return;
+
       const amount = Number(donation.amount || 0);
       const rawDate = (donation as any).transactionDate;
       const donationDate = toDate(rawDate);
       totalFunds += amount;
-      donorIds.add(donation.userId);
+      if ((donation as any).userId) donorIds.add((donation as any).userId);
       
       if (donationDate >= startOfMonth) {
         monthlyFunds += amount;
@@ -169,7 +188,8 @@ export default function AssociationDashboardPage() {
     });
 
     const monthlyFundsGrowth = lastMonthFunds > 0 ? ((monthlyFunds - lastMonthFunds) / lastMonthFunds) * 100 : monthlyFunds > 0 ? 100 : 0;
-    const averageDonation = donations.length > 0 ? totalFunds / donations.length : 0;
+    const countedDonations = donations.filter(d => (d as any).status !== 'refunded').length;
+    const averageDonation = countedDonations > 0 ? totalFunds / countedDonations : 0;
 
     const chartData = Object.keys(donationsByDay).map(dateKey => {
         const dateObj = new Date(dateKey);
@@ -194,17 +214,25 @@ export default function AssociationDashboardPage() {
   }, [donations]);
 
   useEffect(() => {
+    // setDate(1) AVANT setMonth : sinon le 31 janvier + 1 mois donne un
+    // 31 février, que JS normalise en 3 mars, et le virement est annoncé
+    // avec un mois de retard.
     const nextPayoutDate = new Date();
-    nextPayoutDate.setMonth(nextPayoutDate.getMonth() + 1);
     nextPayoutDate.setDate(1);
+    nextPayoutDate.setMonth(nextPayoutDate.getMonth() + 1);
     setNextPayout({
         date: safeFormat(nextPayoutDate, 'dd/MM/yyyy'),
-        amount: `~${(monthlyFunds * 0.95).toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' })}`
+        amount: `~${(monthlyFunds * (1 - PLATFORM_FEE_PERCENT / 100)).toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' })}`
     });
   }, [monthlyFunds]);
 
   const fundraisingGoal = associationData?.fundraisingGoal || 10000;
-  const progressPercentage = (totalFunds / fundraisingGoal) * 100;
+
+  // `totalReceived` est incrémenté atomiquement par le webhook Stripe et
+  // couvre TOUS les dons. La somme locale ne porte que sur les 50 derniers :
+  // l'afficher comme « total depuis le début » le figeait dès le 51e don.
+  const lifetimeTotal = Number(associationData?.totalReceived ?? totalFunds);
+  const progressPercentage = (lifetimeTotal / fundraisingGoal) * 100;
 
   const isLoading = isUserLoading || isAssociationLoading || isDonationsLoading;
 
@@ -246,7 +274,7 @@ export default function AssociationDashboardPage() {
       {/* Sans compte Stripe connecté, l'association ne peut recevoir aucun don :
           les dons ponctuels sont refusés et le règlement mensuel l'ignore.
           C'est donc la première chose à régler, avant tout le reste. */}
-      {!associationData?.stripeAccountId && (
+      {(!associationData?.stripeAccountId || stripeReady === false) && (
         <div className="rounded-[2.5rem] border-2 border-brand-coral/20 bg-brand-coral/5 p-8 md:p-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div className="flex items-start gap-5">
             <div className="h-12 w-12 shrink-0 rounded-2xl bg-brand-coral/10 flex items-center justify-center">
@@ -254,12 +282,14 @@ export default function AssociationDashboardPage() {
             </div>
             <div className="space-y-1">
               <h2 className="text-xl font-headline font-extrabold tracking-tight">
-                Configurez votre compte de paiement
+                {associationData?.stripeAccountId
+                  ? 'Terminez la configuration de votre compte'
+                  : 'Configurez votre compte de paiement'}
               </h2>
               <p className="text-sm text-foreground/60 font-headline font-light leading-relaxed max-w-xl">
-                Tant que votre compte Stripe n'est pas connecté, vous ne pouvez recevoir
-                aucun don. La configuration prend quelques minutes et se fait directement
-                chez Stripe.
+                {associationData?.stripeAccountId
+                  ? "Votre inscription chez Stripe n'est pas finalisée : tant qu'elle ne l'est pas, aucun don ne peut vous être versé. Reprenez là où vous vous étiez arrêté."
+                  : "Tant que votre compte Stripe n'est pas connecté, vous ne pouvez recevoir aucun don. La configuration prend quelques minutes et se fait directement chez Stripe."}
               </p>
             </div>
           </div>
@@ -276,7 +306,7 @@ export default function AssociationDashboardPage() {
               </>
             ) : (
               <>
-                Connecter mon compte
+                {associationData?.stripeAccountId ? 'Reprendre la configuration' : 'Connecter mon compte'}
                 <ArrowRight className="ml-2 h-4 w-4" />
               </>
             )}
@@ -325,7 +355,7 @@ export default function AssociationDashboardPage() {
         <div className="lg:col-span-4 space-y-6">
           <div className="bg-white border border-black/[0.05] rounded-[2.5rem] p-10 flex flex-col justify-between min-h-[200px] shadow-sm">
             <span className="text-[10px] font-extrabold uppercase tracking-[0.2em] opacity-40">TOTAL DEPUIS LE DÉBUT</span>
-            <div className="text-4xl md:text-5xl font-extrabold truncate">{(totalFunds || 0).toLocaleString('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 })}</div>
+            <div className="text-4xl md:text-5xl font-extrabold truncate">{lifetimeTotal.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 })}</div>
           </div>
           
           <div className="bg-white border border-black/[0.05] rounded-[2.5rem] p-10 space-y-8 shadow-sm">
@@ -389,7 +419,7 @@ export default function AssociationDashboardPage() {
             <h3 className="text-2xl font-headline font-extrabold tracking-tight">Donateurs récents</h3>
             <p className="text-foreground/40 text-sm font-headline font-light mt-1">Dernières contributions à <span className="font-serif italic font-bold">{(associationData as any)?.associationName || 'votre association'}</span></p>
           </div>
-          <Button variant="outline" className="rounded-full border-black font-extrabold px-6">Voir tout</Button>
+          <Button asChild variant="outline" className="rounded-full border-black font-extrabold px-6"><Link href="/dashboard/association/donors">Voir tout</Link></Button>
         </div>
         
         <div className="overflow-x-auto">

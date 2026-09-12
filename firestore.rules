@@ -57,8 +57,11 @@ service cloud.firestore {
       allow create: if isOwner(userId)
                     && request.resource.data.id == userId
                     && !request.resource.data.keys().toSet().hasAny(serverOwnedUserFields().toSet());
+      // `get('id', userId)` plutôt que `.id` : un document créé côté serveur
+      // avant l'onboarding pourrait ne pas porter ce champ, et l'accès direct
+      // ferait échouer toute écriture cliente.
       allow update: if isExistingOwner(userId)
-                    && request.resource.data.id == resource.data.id
+                    && request.resource.data.get('id', userId) == userId
                     && keepsServerFields();
       allow delete: if isExistingOwner(userId);
     }

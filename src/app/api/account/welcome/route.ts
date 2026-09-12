@@ -26,6 +26,12 @@ export async function POST(request: Request) {
       tx.set(
         userRef,
         {
+          // `id` et `email` sont indispensables : les règles Firestore
+          // comparent `id` à chaque écriture cliente, et ce document est créé
+          // ici avant tout passage par l'onboarding. Sans eux, l'utilisateur
+          // ne pourrait plus rien enregistrer dans son profil.
+          id: decoded.uid,
+          email: decoded.email ?? null,
           welcomeEmailSentAt: admin.firestore.FieldValue.serverTimestamp(),
           // Trace du consentement : date et version des conditions acceptées
           // au moment de la création du compte (RGPD, preuve du consentement).

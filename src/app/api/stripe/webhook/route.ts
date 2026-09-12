@@ -163,6 +163,37 @@ async function handleSetupIntentSucceeded(setupIntent: Stripe.SetupIntent) {
 }
 
 /**
+ * Écrit le versement correspondant à un paiement, côté association.
+ *
+ * Montant NET : ce que l'association touche réellement, une fois la
+ * commission retenue par Stripe. Le brut et la commission sont conservés
+ * séparément pour que l'association puisse rapprocher ses comptes.
+ */
+async function writePayout(
+  assoRef: FirebaseFirestore.DocumentReference,
+  paymentIntent: Stripe.PaymentIntent,
+  params: { amount: number; userId: string; period: string }
+) {
+  const feeAmount = (paymentIntent.application_fee_amount ?? 0) / 100;
+
+  await assoRef
+    .collection('payouts')
+    .doc(paymentIntent.id)
+    .set({
+      date: admin.firestore.FieldValue.serverTimestamp(),
+      amount: Math.round((params.amount - feeAmount) * 100) / 100,
+      grossAmount: params.amount,
+      feeAmount,
+      status: 'completed',
+      reference: `PAY-${params.period || new Date().getFullYear()}-${paymentIntent.id
+        .slice(-6)
+        .toUpperCase()}`,
+      userId: params.userId,
+      period: params.period,
+    });
+}
+
+/**
  * Handle successful payment — record the donation in Firestore
  */
 async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent) {
@@ -200,6 +231,16 @@ async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent) {
       .collection('donations')
       .doc(paymentIntent.id)
       .set(donationData);
+
+    // Un don ponctuel est lui aussi transféré à l'association par Stripe :
+    // il doit donc apparaître dans ses versements. Sans cela, une association
+    // ne recevant que des dons ponctuels voyait « Aucun versement » et un
+    // total à 0 €, alors que l'argent était bien arrivé.
+    await writePayout(assoRef, paymentIntent, {
+      amount,
+      userId: metadata.userId,
+      period: '',
+    });
   }
 
   // Miroir côté association (lu par les dashboards association)
@@ -270,20 +311,13 @@ async function settleRoundupBatch(
 
   // Versement : la page Versements trie sur `date` et n'affiche le badge
   // « Transféré » que pour le statut 'completed'.
+  await writePayout(assoRef, paymentIntent, {
+    amount: donationData.amount as number,
+    userId: metadata.userId!,
+    period: metadata.period ?? '',
+  });
+
   const period = metadata.period ?? '';
-  await assoRef
-    .collection('payouts')
-    .doc(paymentIntent.id)
-    .set({
-      date: admin.firestore.FieldValue.serverTimestamp(),
-      amount: (donationData.amount as number) - (paymentIntent.application_fee_amount ?? 0) / 100,
-      grossAmount: donationData.amount,
-      feeAmount: (paymentIntent.application_fee_amount ?? 0) / 100,
-      status: 'completed',
-      reference: `PAY-${period || new Date().getFullYear()}-${paymentIntent.id.slice(-6).toUpperCase()}`,
-      userId: metadata.userId,
-      period,
-    });
 
   // Le récapitulatif mensuel : c'est le moment où des centimes abstraits
   // deviennent un impact concret pour le donateur.
@@ -368,14 +402,51 @@ async function handleChargeRefunded(charge: Stripe.Charge) {
     .where('stripePaymentIntentId', '==', paymentIntentId)
     .get();
 
+  // Montant réellement remboursé : `charge.refunded` se déclenche aussi sur
+  // un remboursement PARTIEL, qu'il ne faut pas traiter comme un don annulé.
+  const refundedAmount = (charge.amount_refunded ?? 0) / 100;
+  const fullyRefunded = charge.amount_refunded >= charge.amount;
+
+  const associationIds = new Set<string>();
+
   for (const doc of snapshot.docs) {
     await doc.ref.set(
       {
-        status: 'refunded',
+        status: fullyRefunded ? 'refunded' : 'partially_refunded',
+        refundedAmount,
         refundedAt: admin.firestore.FieldValue.serverTimestamp(),
       },
       { merge: true }
     );
+
+    const assoId = doc.data()?.associationId;
+    if (assoId && doc.ref.path.startsWith('associations/')) {
+      associationIds.add(assoId);
+    }
+  }
+
+  // Le compteur cumulé doit refléter le remboursement, sinon les fonds
+  // récoltés affichés à l'association ne redescendent jamais.
+  for (const assoId of associationIds) {
+    await db
+      .collection('associations')
+      .doc(assoId)
+      .set(
+        { totalReceived: admin.firestore.FieldValue.increment(-refundedAmount) },
+        { merge: true }
+      );
+
+    // Le versement correspondant n'est plus « transféré ».
+    await db
+      .collection('associations')
+      .doc(assoId)
+      .collection('payouts')
+      .doc(paymentIntentId)
+      .set(
+        { status: fullyRefunded ? 'refunded' : 'partially_refunded', refundedAmount },
+        { merge: true }
+      )
+      .catch(() => {});
   }
 
   console.log(`🔄 Refund processed for payment: ${paymentIntentId}`);
