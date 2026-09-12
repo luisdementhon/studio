@@ -47,19 +47,40 @@ export async function POST(request: Request) {
     const body = JSON.parse(rawBody);
 
     const eventType = body.type || body.event;
-    
+
+    // Révocation de l'accès bancaire, côté Bridge ou par l'utilisateur depuis
+    // sa banque. Sans ce traitement, l'application continuerait d'afficher
+    // « banque connectée » pour un accès qui n'existe plus.
+    if (eventType === 'item.deleted' || eventType === 'user.deleted') {
+      const revokedUuid =
+        body.user_uuid || body.content?.user_uuid || body.resource?.user_uuid || body.resource?.user?.uuid;
+
+      if (revokedUuid) {
+        const revoked = await db
+          .collection('users')
+          .where('bridgeUserUuid', '==', revokedUuid)
+          .limit(1)
+          .get();
+
+        for (const doc of revoked.docs) {
+          await doc.ref.set(
+            {
+              bankConnected: false,
+              bankDisconnectedAt: admin.firestore.FieldValue.serverTimestamp(),
+            },
+            { merge: true }
+          );
+        }
+      }
+
+      return NextResponse.json({ received: true, status: 'bank_access_revoked' });
+    }
+
     // 1. Déterminer les transactions à traiter
     let transactionsToProcess = [];
     let bridgeUserUuid = null;
 
-    if (eventType === 'transaction.created' || eventType === 'transactions.created') {
-      transactionsToProcess = body.resources || (body.resource ? [body.resource] : []);
-      if (transactionsToProcess.length > 0) {
-        const first = transactionsToProcess[0];
-        bridgeUserUuid = first.user_uuid || first.content?.user_uuid || first.resource?.user_uuid || first.account?.user?.uuid || first.user?.uuid;
-      }
-    } 
-    else if (eventType === 'item.account.updated' || eventType === 'item.refreshed' || eventType === 'item.updated') {
+    if (eventType === 'item.account.updated' || eventType === 'item.refreshed' || eventType === 'item.updated') {
       // Pour ces événements, Bridge ne nous envoie pas forcément les transactions dans le payload.
       // On doit aller les chercher nous-mêmes.
       bridgeUserUuid = body.user_uuid || body.content?.user_uuid || body.resource?.user_uuid || body.resource?.user?.uuid;
