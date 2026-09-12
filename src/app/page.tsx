@@ -35,8 +35,14 @@ function ScrollStep({ step, index }: { step: typeof steps[0]; index: number }) {
 
   useEffect(() => {
     const observer = new IntersectionObserver(
-      ([entry]) => { if (entry.isIntersecting) setVisible(true); },
-      { threshold: 0.2 }
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setVisible(true);
+          // L'animation ne joue qu'une fois : inutile de continuer à observer.
+          observer.disconnect();
+        }
+      },
+      { threshold: 0.1 }
     );
     if (ref.current) observer.observe(ref.current);
     return () => observer.disconnect();

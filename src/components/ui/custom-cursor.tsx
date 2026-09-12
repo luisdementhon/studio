@@ -37,6 +37,11 @@ export function CustomCursor() {
       }
     };
 
+    // Masque le curseur natif : la règle correspondante vit dans globals.css
+    // (.custom-cursor-active). Posée ici seulement, donc jamais sur tactile,
+    // où l'on ne veut pas priver l'utilisateur de son curseur.
+    document.documentElement.classList.add("custom-cursor-active");
+
     document.addEventListener("mousemove", onMouseMove);
     document.addEventListener("mouseover", onMouseOver);
 
@@ -55,6 +60,7 @@ export function CustomCursor() {
     rafId = requestAnimationFrame(animate);
 
     return () => {
+      document.documentElement.classList.remove("custom-cursor-active");
       document.removeEventListener("mousemove", onMouseMove);
       document.removeEventListener("mouseover", onMouseOver);
       cancelAnimationFrame(rafId);

@@ -1,46 +1,54 @@
 'use client';
-import { useEffect, useMemo } from 'react';
+import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Skeleton } from '@/components/ui/skeleton';
-import { useUser, useFirestore, useDoc } from '@/firebase';
-import { doc } from 'firebase/firestore';
+import { useUser, useFirestore } from '@/firebase';
+import { doc, getDoc } from 'firebase/firestore';
 
 export default function DashboardRoot() {
   const router = useRouter();
   const { user, isUserLoading } = useUser();
   const firestore = useFirestore();
 
-  const userDocRef = useMemo(() => {
-    if (!firestore || !user) return null;
-    return doc(firestore, 'users', user.uid);
-  }, [firestore, user]);
-
-  const { data: userData, isLoading: isProfileLoading } = useDoc(userDocRef);
-
   useEffect(() => {
-    if (isUserLoading || (user && isProfileLoading)) {
+    if (isUserLoading) {
       return;
     }
 
-    if (user) {
-      if (userData) {
-        router.replace('/dashboard/user');
-      } else {
-        // If user exists but has no profile data, they might be an association
-        // or need to go through onboarding.
-        // For simplicity, we'll try checking for an association profile.
-        // A more robust solution might use custom claims or a 'role' field.
-        const associationDocRef = doc(firestore, 'associations', user.uid);
-        // This is a simplified check. We're not using useDoc here to avoid complexity
-        // in this redirect logic. A full check would be better.
-        // For now, if user profile is missing, we send to user dashboard,
-        // they can switch via sidebar. A better check for association could be done here.
-        router.replace('/dashboard/user');
-      }
-    } else {
+    if (!user) {
       router.replace('/login');
+      return;
     }
-  }, [user, userData, isUserLoading, isProfileLoading, router, firestore]);
+
+    const checkRedirect = async () => {
+      if (!firestore) return;
+      try {
+        // 1. Check if user profile exists
+        const userDocRef = doc(firestore, 'users', user.uid);
+        const userSnap = await getDoc(userDocRef);
+        if (userSnap.exists()) {
+          router.replace('/dashboard/user');
+          return;
+        }
+
+        // 2. Check if association profile exists
+        const associationDocRef = doc(firestore, 'associations', user.uid);
+        const associationSnap = await getDoc(associationDocRef);
+        if (associationSnap.exists()) {
+          router.replace('/dashboard/association');
+          return;
+        }
+
+        // 3. Fallback to onboarding if neither profile exists
+        router.replace('/onboarding');
+      } catch (e) {
+        console.error("Dashboard routing error:", e);
+        router.replace('/onboarding');
+      }
+    };
+
+    checkRedirect();
+  }, [user, isUserLoading, router, firestore]);
 
   return (
     <div className="flex h-[80vh] w-full items-center justify-center">

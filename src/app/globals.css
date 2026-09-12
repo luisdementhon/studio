@@ -88,12 +88,14 @@
 @layer base {
   * {
     @apply border-border;
-    cursor: none;
   }
   body {
     @apply bg-background text-foreground;
     font-family: 'Bricolage Grotesque', sans-serif;
-    cursor: none;
+  }
+  .custom-cursor-active,
+  .custom-cursor-active * {
+    cursor: none !important;
   }
   h1, h2, h3, h4, h5, h6 {
     font-family: 'Bricolage Grotesque', sans-serif;

@@ -15,7 +15,7 @@ import { collection, query, onSnapshot } from "firebase/firestore";
 
 interface Association {
   id: string;
-  name: string;
+  associationName: string;
   description: string;
   logo: string;
   cause: string;
@@ -98,7 +98,7 @@ export default function AssociationsPage() {
   };
 
   const filteredAssociations = allAssociations.filter(assoc => {
-    const name = assoc.name || "";
+    const name = assoc.associationName || "";
     const description = assoc.description || "";
     const matchesSearch = name.toLowerCase().includes(searchQuery.toLowerCase()) || 
                          description.toLowerCase().includes(searchQuery.toLowerCase());
@@ -235,7 +235,7 @@ function AssociationCard({ assoc, isSupported, onToggle }: { assoc: Association,
           </Badge>
         </div>
         <CardTitle className="text-2xl font-headline font-extrabold tracking-tight group-hover:text-brand-coral transition-colors">
-          {assoc.name || "Sans nom"}
+          {assoc.associationName || "Sans nom"}
         </CardTitle>
       </CardHeader>
       <CardContent className="p-8 pt-0 flex-1">
