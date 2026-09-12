@@ -12,7 +12,9 @@
 
 set -euo pipefail
 
-PROJECT_ID="$(node -p "require('./.firebaserc').projects.default" 2>/dev/null || echo '')"
+# `.firebaserc` n'a pas d'extension : require() le chargerait comme du
+# JavaScript et échouerait. On le lit donc explicitement comme du JSON.
+PROJECT_ID="$(node -e "process.stdout.write(JSON.parse(require('fs').readFileSync('.firebaserc','utf8')).projects.default)" 2>/dev/null || echo '')"
 REGION="europe-west1"
 
 bold() { printf "\033[1m%s\033[0m\n" "$1"; }
@@ -21,7 +23,13 @@ warn() { printf "  \033[33m!\033[0m %s\n" "$1"; }
 step() { printf "\n\033[1m%s\033[0m\n" "$1"; }
 
 if [ -z "$PROJECT_ID" ]; then
-  echo "Impossible de lire le projet depuis .firebaserc. Lancez ce script depuis la racine du dépôt."
+  if [ ! -f .firebaserc ]; then
+    echo "Fichier .firebaserc introuvable dans $(pwd)."
+    echo "Lancez ce script depuis la racine du dépôt."
+  else
+    echo "Le fichier .firebaserc a été trouvé mais son contenu n'a pas pu être lu."
+    echo "Vérifiez qu'il contient bien un JSON valide avec projects.default."
+  fi
   exit 1
 fi
 
