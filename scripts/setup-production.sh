@@ -38,15 +38,20 @@ bold "Configuration de production — projet $PROJECT_ID"
 # --- Outils ---------------------------------------------------------------
 step "1/5  Outils"
 
-if ! command -v firebase >/dev/null 2>&1; then
-  warn "Firebase CLI absent, installation..."
-  npm install -g firebase-tools
+# On évite `npm install -g` : sur macOS, /usr/local/lib/node_modules
+# n'appartient pas à l'utilisateur et l'installation échoue en EACCES.
+# npx exécute le CLI sans rien installer globalement, donc sans sudo.
+if command -v firebase >/dev/null 2>&1; then
+  FIREBASE="firebase"
+  ok "Firebase CLI présent"
+else
+  FIREBASE="npx --yes firebase-tools@latest"
+  ok "Firebase CLI exécuté via npx (aucune installation globale requise)"
 fi
-ok "Firebase CLI présent"
 
-if ! firebase projects:list >/dev/null 2>&1; then
-  warn "Connexion Google requise, une fenêtre va s'ouvrir."
-  firebase login
+if ! $FIREBASE projects:list >/dev/null 2>&1; then
+  warn "Connexion Google requise, une fenêtre va s'ouvrir dans votre navigateur."
+  $FIREBASE login
 fi
 ok "Authentifié"
 
@@ -70,7 +75,7 @@ trap restore_yaml EXIT
 # Saisie masquée : la valeur ne s'affiche pas et ne va pas dans l'historique.
 set_secret() {
   local name="$1" prompt="$2" value
-  if firebase apphosting:secrets:describe "$name" --project "$PROJECT_ID" >/dev/null 2>&1; then
+  if $FIREBASE apphosting:secrets:describe "$name" --project "$PROJECT_ID" >/dev/null 2>&1; then
     ok "$name existe déjà (ignoré)"
     return
   fi
@@ -81,17 +86,17 @@ set_secret() {
     warn "$name ignoré (valeur vide) — à créer plus tard"
     return
   fi
-  printf '%s' "$value" | firebase apphosting:secrets:set "$name" \
+  printf '%s' "$value" | $FIREBASE apphosting:secrets:set "$name" \
     --project "$PROJECT_ID" --data-file - --force >/dev/null
   ok "$name enregistré"
 }
 
 # Généré localement : aucune raison de vous le faire saisir.
 CRON_SECRET_VALUE="$(openssl rand -hex 32)"
-if firebase apphosting:secrets:describe CRON_SECRET --project "$PROJECT_ID" >/dev/null 2>&1; then
+if $FIREBASE apphosting:secrets:describe CRON_SECRET --project "$PROJECT_ID" >/dev/null 2>&1; then
   ok "CRON_SECRET existe déjà (ignoré)"
 else
-  printf '%s' "$CRON_SECRET_VALUE" | firebase apphosting:secrets:set CRON_SECRET \
+  printf '%s' "$CRON_SECRET_VALUE" | $FIREBASE apphosting:secrets:set CRON_SECRET \
     --project "$PROJECT_ID" --data-file - --force >/dev/null
   ok "CRON_SECRET généré et enregistré"
 fi
@@ -108,7 +113,7 @@ ok "apphosting.yaml préservé (pas de variables en double)"
 
 # --- Firestore ------------------------------------------------------------
 step "3/5  Règles et index Firestore"
-firebase deploy --only firestore --project "$PROJECT_ID" --non-interactive
+$FIREBASE deploy --only firestore --project "$PROJECT_ID" --non-interactive
 ok "Règles et index déployés"
 
 # --- Jobs planifiés -------------------------------------------------------
@@ -162,7 +167,7 @@ else
 fi
 
 step "Terminé"
-echo "  Déployez avec : firebase deploy --project $PROJECT_ID"
+echo "  Déployez avec : $FIREBASE deploy --project $PROJECT_ID"
 echo
 echo "  Il reste à faire, hors de portée de ce script :"
 echo "   • Créer le webhook Stripe vers https://dotly-app.fr/api/stripe/webhook"
