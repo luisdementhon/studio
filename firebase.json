@@ -6,9 +6,16 @@
       ".git",
       ".agents",
       ".idx",
+      ".next",
       "firebase-debug.log",
       "firebase-debug.*.log",
-      "functions"
+      "functions",
+      "dotly-mobile",
+      "scripts",
+      "docs",
+      "debug_deploy*.txt",
+      "build_log*.txt",
+      "server.log"
     ]
   },
   "firestore": {
