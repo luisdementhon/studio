@@ -12,6 +12,25 @@
 
 set -euo pipefail
 
+# Mode ciblé : `bash scripts/setup-production.sh BRIDGE_CLIENT_SECRET [...]`
+# ne (re)définit que les secrets nommés, en écrasant la valeur existante, et
+# s'arrête là. Utile pour corriger une valeur saisie par erreur ou en ajouter
+# une plus tard, sans rejouer tout le parcours.
+TARGETED="false"
+TARGET_SECRETS=("$@")
+if [ ${#TARGET_SECRETS[@]} -gt 0 ]; then
+  TARGETED="true"
+fi
+
+wanted() {
+  [ "$TARGETED" = "false" ] && return 0
+  local name="$1" target
+  for target in "${TARGET_SECRETS[@]}"; do
+    [ "$target" = "$name" ] && return 0
+  done
+  return 1
+}
+
 # `.firebaserc` n'a pas d'extension : require() le chargerait comme du
 # JavaScript et échouerait. On le lit donc explicitement comme du JSON.
 PROJECT_ID="$(node -e "process.stdout.write(JSON.parse(require('fs').readFileSync('.firebaserc','utf8')).projects.default)" 2>/dev/null || echo '')"
@@ -75,7 +94,10 @@ trap restore_yaml EXIT
 # Saisie masquée : la valeur ne s'affiche pas et ne va pas dans l'historique.
 set_secret() {
   local name="$1" prompt="$2" value
-  if $FIREBASE apphosting:secrets:describe "$name" --project "$PROJECT_ID" >/dev/null 2>&1; then
+  # En mode ciblé (noms passés en argument), on remplace même si le secret
+  # existe : c'est précisément le cas d'une valeur saisie par erreur.
+  if [ "$TARGETED" = "false" ] \
+     && $FIREBASE apphosting:secrets:describe "$name" --project "$PROJECT_ID" >/dev/null 2>&1; then
     ok "$name existe déjà (ignoré)"
     return
   fi
@@ -92,24 +114,41 @@ set_secret() {
 }
 
 # Généré localement : aucune raison de vous le faire saisir.
-CRON_SECRET_VALUE="$(openssl rand -hex 32)"
+#
+# S'il existe déjà, on le RELIT au lieu d'en générer un nouveau : les jobs
+# Cloud Scheduler embarquent cette valeur dans leur en-tête Authorization.
+# Générer une valeur non enregistrée créerait des jobs dont tous les appels
+# seraient rejetés en 401.
 if $FIREBASE apphosting:secrets:describe CRON_SECRET --project "$PROJECT_ID" >/dev/null 2>&1; then
-  ok "CRON_SECRET existe déjà (ignoré)"
+  CRON_SECRET_VALUE="$($FIREBASE apphosting:secrets:access CRON_SECRET --project "$PROJECT_ID" 2>/dev/null | tr -d '\n')"
+  if [ -z "$CRON_SECRET_VALUE" ]; then
+    warn "CRON_SECRET existe mais n'a pas pu être relu — les jobs planifiés seront ignorés."
+  else
+    ok "CRON_SECRET existant relu"
+  fi
 else
+  CRON_SECRET_VALUE="$(openssl rand -hex 32)"
   printf '%s' "$CRON_SECRET_VALUE" | $FIREBASE apphosting:secrets:set CRON_SECRET \
     --project "$PROJECT_ID" --data-file - --force >/dev/null
   ok "CRON_SECRET généré et enregistré"
 fi
 
-set_secret STRIPE_SECRET_KEY      "Clé secrète Stripe (Dashboard Stripe > Développeurs > Clés API, sk_...)"
-set_secret STRIPE_WEBHOOK_SECRET  "Secret de signature du webhook Stripe (whsec_...)"
-set_secret BRIDGE_CLIENT_SECRET   "Client secret Bridge (à régénérer : l'ancien est dans l'historique git)"
-set_secret BRIDGE_WEBHOOK_SECRET  "Secret de signature du webhook Bridge"
-set_secret RESEND_API_KEY         "Clé API Resend (re_...) — laisser vide pour désactiver les emails"
+wanted STRIPE_SECRET_KEY     && set_secret STRIPE_SECRET_KEY     "Clé secrète Stripe (Dashboard Stripe > Développeurs > Clés API, sk_...)"
+wanted STRIPE_WEBHOOK_SECRET && set_secret STRIPE_WEBHOOK_SECRET "Secret de signature du webhook Stripe (whsec_...)"
+wanted BRIDGE_CLIENT_SECRET  && set_secret BRIDGE_CLIENT_SECRET  "Client secret Bridge — celui de l'APPLICATION (Configuration > Paramètres), PAS celui du webhook"
+wanted BRIDGE_WEBHOOK_SECRET && set_secret BRIDGE_WEBHOOK_SECRET "Secret de signature du WEBHOOK Bridge"
+wanted RESEND_API_KEY        && set_secret RESEND_API_KEY        "Clé API Resend (re_...) — laisser vide pour désactiver les emails"
 
 restore_yaml
 trap - EXIT
 ok "apphosting.yaml préservé (pas de variables en double)"
+
+if [ "$TARGETED" = "true" ]; then
+  step "Terminé"
+  echo "  Secret(s) mis à jour. Redéployez pour que la nouvelle valeur soit prise en compte :"
+  echo "    $FIREBASE deploy --project $PROJECT_ID"
+  exit 0
+fi
 
 # --- Firestore ------------------------------------------------------------
 step "3/5  Règles et index Firestore"
