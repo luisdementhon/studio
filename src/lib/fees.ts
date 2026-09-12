@@ -17,7 +17,8 @@ const DEFAULT_FEE_PERCENT = 15;
  * retenait 15, surestimant chaque virement d'environ 12 %.
  */
 export const PLATFORM_FEE_PERCENT = (() => {
-  const configured = Number(process.env.NEXT_PUBLIC_PLATFORM_FEE_PERCENT);
+  const raw = process.env.NEXT_PUBLIC_PLATFORM_FEE_PERCENT;
+  const configured = raw && raw.trim() !== '' ? Number(raw) : NaN;
   return Number.isFinite(configured) && configured > 0 ? configured : DEFAULT_FEE_PERCENT;
 })();
 
@@ -26,8 +27,12 @@ function resolveFeePercent(association?: { commissionRate?: number } | null): nu
     return Number(association.commissionRate);
   }
 
-  const configured = Number(process.env.PLATFORM_FEE_PERCENT);
-  return Number.isFinite(configured) ? configured : DEFAULT_FEE_PERCENT;
+  // Attention : Number('') vaut 0, un nombre fini. Sans le test sur la
+  // chaîne vide, une variable définie mais vide annulerait silencieusement
+  // toute commission.
+  const raw = process.env.PLATFORM_FEE_PERCENT;
+  const configured = raw && raw.trim() !== '' ? Number(raw) : NaN;
+  return Number.isFinite(configured) && configured >= 0 ? configured : DEFAULT_FEE_PERCENT;
 }
 
 /**

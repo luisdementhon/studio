@@ -69,9 +69,10 @@ export async function POST(request: Request) {
           [userData?.firstName, userData?.lastName].filter(Boolean).join(' ') || 'Donateur Anonyme';
 
         // Id déterministe : régénérer une année met à jour sans dupliquer.
-        await association.ref
-          .collection('taxReceipts')
-          .doc(`${userId}_${year}`)
+        const receiptRef = association.ref.collection('taxReceipts').doc(`${userId}_${year}`);
+        const receiptSnap = await receiptRef.get();
+
+        await receiptRef
           .set(
             {
               // `year` doit être numérique : la page trie dessus, un doc sans
@@ -87,12 +88,19 @@ export async function POST(request: Request) {
             { merge: true }
           );
 
-        if (userData?.email) {
+        // Garde d'idempotence : une erreur en fin de parcours fait rejouer
+        // tout le job. Sans ce drapeau, chaque donateur déjà traité recevrait
+        // un second reçu fiscal — une pièce à valeur légale.
+        if (userData?.email && !receiptSnap?.data()?.emailSentAt) {
           await sendTaxReceiptEmail(userData.email, {
             year,
             totalAmount: Math.round(totalAmount * 100) / 100,
             associationName: association.data()?.associationName ?? 'votre association',
           });
+          await receiptRef.set(
+            { emailSentAt: admin.firestore.FieldValue.serverTimestamp() },
+            { merge: true }
+          );
         }
 
         report.receiptsWritten++;

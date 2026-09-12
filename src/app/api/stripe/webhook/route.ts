@@ -81,6 +81,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Webhook handler failed' }, { status: 500 });
   }
 
+  await completeEvent(event);
+
   return NextResponse.json({ received: true });
 }
 
@@ -92,19 +94,42 @@ export async function POST(request: NextRequest) {
  *
  * @returns true si l'event a déjà été traité (il faut sortir).
  */
+const CLAIM_STALE_AFTER_MS = 15 * 60 * 1000;
+
 async function claimEvent(event: Stripe.Event): Promise<boolean> {
   const eventRef = db.collection('stripe_events').doc(event.id);
 
   return db.runTransaction(async (tx) => {
     const existing = await tx.get(eventRef);
-    if (existing.exists) return true;
+
+    if (existing.exists) {
+      const data = existing.data();
+
+      // Déjà traité jusqu'au bout : rien à refaire.
+      if (data?.status === 'done') return true;
+
+      // Verrou posé mais jamais soldé. Si le process est mort entre les deux
+      // (OOM, éviction, déploiement), le `catch` n'a pas pu le libérer et
+      // l'event serait perdu définitivement. Passé un délai, on le reprend.
+      const startedAt = data?.receivedAt?.toMillis?.() ?? 0;
+      if (Date.now() - startedAt < CLAIM_STALE_AFTER_MS) return true;
+    }
 
     tx.set(eventRef, {
       type: event.type,
+      status: 'processing',
       receivedAt: admin.firestore.FieldValue.serverTimestamp(),
     });
     return false;
   });
+}
+
+/** Marque l'event comme définitivement traité. */
+async function completeEvent(event: Stripe.Event) {
+  await db.collection('stripe_events').doc(event.id).set(
+    { status: 'done', completedAt: admin.firestore.FieldValue.serverTimestamp() },
+    { merge: true }
+  );
 }
 
 /**
@@ -404,8 +429,15 @@ async function handleChargeRefunded(charge: Stripe.Charge) {
 
   // Montant réellement remboursé : `charge.refunded` se déclenche aussi sur
   // un remboursement PARTIEL, qu'il ne faut pas traiter comme un don annulé.
-  const refundedAmount = (charge.amount_refunded ?? 0) / 100;
-  const fullyRefunded = charge.amount_refunded >= charge.amount;
+  // `charge.amount_refunded` est CUMULATIF : il porte le total remboursé sur
+  // la charge, pas le montant de ce remboursement-ci. Décrémenter cette
+  // valeur à chaque event compterait deux fois le premier remboursement.
+  // On calcule donc le delta par rapport à ce qui est déjà enregistré.
+  const totalRefunded = (charge.amount_refunded ?? 0) / 100;
+  const fullyRefunded = (charge.amount_refunded ?? 0) >= charge.amount;
+
+  const previouslyRefunded = Number(snapshot.docs[0]?.data()?.refundedAmount ?? 0);
+  const refundDelta = Math.round((totalRefunded - previouslyRefunded) * 100) / 100;
 
   const associationIds = new Set<string>();
 
@@ -413,7 +445,7 @@ async function handleChargeRefunded(charge: Stripe.Charge) {
     await doc.ref.set(
       {
         status: fullyRefunded ? 'refunded' : 'partially_refunded',
-        refundedAmount,
+        refundedAmount: totalRefunded,
         refundedAt: admin.firestore.FieldValue.serverTimestamp(),
       },
       { merge: true }
@@ -432,7 +464,7 @@ async function handleChargeRefunded(charge: Stripe.Charge) {
       .collection('associations')
       .doc(assoId)
       .set(
-        { totalReceived: admin.firestore.FieldValue.increment(-refundedAmount) },
+        { totalReceived: admin.firestore.FieldValue.increment(-refundDelta) },
         { merge: true }
       );
 
@@ -443,7 +475,7 @@ async function handleChargeRefunded(charge: Stripe.Charge) {
       .collection('payouts')
       .doc(paymentIntentId)
       .set(
-        { status: fullyRefunded ? 'refunded' : 'partially_refunded', refundedAmount },
+        { status: fullyRefunded ? 'refunded' : 'partially_refunded', refundedAmount: totalRefunded },
         { merge: true }
       )
       .catch(() => {});

@@ -8,6 +8,9 @@ export const dynamic = 'force-dynamic';
 // Le job itère sur tous les donateurs : il lui faut plus que les 10s par défaut.
 export const maxDuration = 300;
 
+/** Au-delà, un verrou « running » est considéré comme orphelin. */
+const RUN_STALE_AFTER_MS = 60 * 60 * 1000;
+
 interface RoundupDoc {
   id: string;
   amount: number;
@@ -39,7 +42,22 @@ export async function POST(request: Request) {
   const runRef = db.collection('settlement_runs').doc(period);
   const claimed = await db.runTransaction(async (tx) => {
     const existing = await tx.get(runRef);
-    if (existing.exists) return false;
+
+    if (existing.exists) {
+      const data = existing.data();
+
+      // Période déjà réglée : on ne rejoue pas.
+      if (data?.status === 'completed') return false;
+
+      // Verrou « running » orphelin : si le job a été tué (dépassement de
+      // maxDuration, OOM, éviction), aucun catch n'a pu le libérer et le mois
+      // ne serait JAMAIS réglé, chaque relance répondant « already_settled ».
+      // Passé ce délai, on reprend — c'est sans risque, la requête ne
+      // reprend que les arrondis restés `pending`.
+      const startedAt = data?.startedAt?.toMillis?.() ?? 0;
+      if (Date.now() - startedAt < RUN_STALE_AFTER_MS) return false;
+    }
+
     tx.set(runRef, {
       period,
       status: 'running',
@@ -92,8 +110,18 @@ export async function POST(request: Request) {
       for (const doc of roundups.docs) {
         const data = doc.data();
         if (!data.associationId) continue;
+
+        // Un montant NaN ou négatif empoisonnerait tout le groupe : NaN rend
+        // fausse TOUTE comparaison, donc le plafond cesserait de filtrer quoi
+        // que ce soit et Stripe recevrait un montant NaN.
+        const amount = Number(data.amount);
+        if (!Number.isFinite(amount) || amount <= 0) {
+          console.warn(`Arrondi ${doc.id} au montant invalide (${data.amount}) : ignoré.`);
+          continue;
+        }
+
         const list = byAssociation.get(data.associationId) ?? [];
-        list.push({ id: doc.id, amount: Number(data.amount || 0), associationId: data.associationId });
+        list.push({ id: doc.id, amount, associationId: data.associationId });
         byAssociation.set(data.associationId, list);
       }
 
@@ -172,7 +200,7 @@ export async function POST(request: Request) {
           );
 
           report.batchesCreated++;
-          remaining -= chargeable;
+          remaining = Math.round((remaining - chargeable) * 100) / 100;
         } catch (error: any) {
           report.batchesFailed++;
 

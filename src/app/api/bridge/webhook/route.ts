@@ -136,7 +136,11 @@ export async function POST(request: Request) {
 
     // 2. Traiter chaque transaction
     for (const t of transactionsToProcess) {
-      if (t.amount >= 0) continue;
+      // Isolé volontairement : sans cela, une seule transaction malformée
+      // (date invalide, montant illisible) faisait échouer tout le lot, et
+      // Bridge rejouait indéfiniment le même paquet.
+      try {
+      if (typeof t?.amount !== 'number' || !Number.isFinite(t.amount) || t.amount >= 0) continue;
 
       const currentBridgeUserUuid = t.user_uuid || t.content?.user_uuid || t.resource?.user_uuid || t.account?.user?.uuid || t.user?.uuid || bridgeUserUuid;
       
@@ -155,7 +159,10 @@ export async function POST(request: Request) {
       const roundup = calculateRoundup(amount);
 
       if (roundup > 0) {
-        const multiplier = userData.donationMultiplier || 1;
+        // Écrivable par le client : un multiplicateur non numérique
+        // produirait un montant NaN qui contaminerait tout le règlement.
+        const rawMultiplier = Number(userData.donationMultiplier);
+        const multiplier = Number.isFinite(rawMultiplier) && rawMultiplier >= 1 ? rawMultiplier : 1;
         const finalDonation = applyMultiplier(roundup, multiplier);
 
         const donationId = `roundup_${t.id}`;
@@ -194,8 +201,13 @@ export async function POST(request: Request) {
           category: t.category?.name || 'Divers',
           // Timestamp Firestore, jamais une string : les dashboards appellent
           // .toDate() sur ce champ.
+          // Une date invalide ferait lever Timestamp.fromDate et,
+          // auparavant, tomber tout le lot.
           transactionDate: admin.firestore.Timestamp.fromDate(
-            t.date ? new Date(t.date) : new Date()
+            (() => {
+              const parsed = t.date ? new Date(t.date) : new Date();
+              return isNaN(parsed.getTime()) ? new Date() : parsed;
+            })()
           ),
           // 'skipped_ceiling' reste traçable pour le donateur, mais n'est
           // jamais prélevé.
@@ -218,6 +230,11 @@ export async function POST(request: Request) {
           exceedsCeiling
             ? `PLAFOND: arrondi de ${finalDonation}€ non retenu pour ${userId} (plafond ${ceiling}€)`
             : `SUCCESS: Roundup of ${finalDonation}€ saved for user ${userId} -> ${picked.associationId}`
+        );
+      }
+      } catch (itemError: any) {
+        console.error(
+          `Transaction Bridge ${t?.id ?? 'inconnue'} ignorée : ${itemError?.message}`
         );
       }
     }

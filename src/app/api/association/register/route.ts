@@ -31,7 +31,19 @@ export async function POST(request: Request) {
     const rnaResult = await verifyRna(profile.rnaNumber);
 
     if (!rnaResult.valid) {
-      return NextResponse.json({ error: rnaResult.error }, { status: 400 });
+      // Une panne de l'annuaire de l'État n'est pas une erreur de saisie :
+      // renvoyer 400 présentait l'indisponibilité comme un RNA invalide et
+      // bloquait toute inscription pendant l'incident.
+      const unavailable = rnaResult.status === 502 || rnaResult.status === 503;
+      return NextResponse.json(
+        {
+          error: unavailable
+            ? "La vérification des associations est momentanément indisponible. Réessayez dans quelques minutes."
+            : rnaResult.error,
+          retryable: unavailable,
+        },
+        { status: unavailable ? 503 : 400 }
+      );
     }
 
     await db

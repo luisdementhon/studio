@@ -63,7 +63,10 @@ service cloud.firestore {
       allow update: if isExistingOwner(userId)
                     && request.resource.data.get('id', userId) == userId
                     && keepsServerFields();
-      allow delete: if isExistingOwner(userId);
+      // Suppression réservée à /api/account/delete : une suppression directe
+      // depuis le client laisserait le Customer Stripe et l'accès bancaire
+      // Bridge actifs, sans plus aucun moyen de les retrouver.
+      allow delete: if false;
     }
 
     // -------------------------------------------------------------------------
