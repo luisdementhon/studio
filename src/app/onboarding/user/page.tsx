@@ -5,7 +5,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import type { z } from "zod";
 import { useTransition, useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { doc, getDoc } from "firebase/firestore";
+import { doc, getDoc, collection, getDocs, query, limit } from "firebase/firestore";
 import Link from "next/link";
 
 import { useToast } from "@/hooks/use-toast";
@@ -55,6 +55,22 @@ export default function UserOnboardingPage() {
   const firestore = useFirestore();
   const { user } = useUser();
   const [dbUser, setDbUser] = useState<any>(null);
+  const [availableAssociations, setAvailableAssociations] = useState<{ id: string; name: string }[]>([]);
+
+  // Sans association choisie, le webhook Bridge écarte chaque arrondi : le
+  // donateur n'en génère jamais aucun. Ce choix est donc indispensable ici.
+  useEffect(() => {
+    if (!firestore) return;
+    getDocs(query(collection(firestore, "associations"), limit(50)))
+      .then((snap) => {
+        setAvailableAssociations(
+          snap.docs
+            .map((d) => ({ id: d.id, name: (d.data() as any).associationName as string }))
+            .filter((a) => Boolean(a.name))
+        );
+      })
+      .catch(() => setAvailableAssociations([]));
+  }, [firestore]);
 
   useEffect(() => {
     const s = searchParams?.get('step');
@@ -82,10 +98,22 @@ export default function UserOnboardingPage() {
   });
 
   const watchedCauses = form.watch("causes", []) ?? [];
+  const watchedAssociations = form.watch("associations", []) ?? [];
 
   function onProfileSubmit(values: z.infer<typeof UserOnboardingSchema>) {
     if (!user || !firestore) {
       toast({ title: "Erreur", description: "Vous devez être connecté.", variant: "destructive" });
+      return;
+    }
+
+    // Garde-fou : le reste du parcours (banque, carte) n'a aucun effet si
+    // aucune association n'est désignée — les arrondis seraient tous écartés.
+    if (!values.associations?.length && availableAssociations.length > 0) {
+      toast({
+        title: "Choisissez une association",
+        description: "Vos arrondis ont besoin d'un bénéficiaire pour être collectés.",
+        variant: "destructive",
+      });
       return;
     }
 
@@ -261,6 +289,58 @@ export default function UserOnboardingPage() {
                             />
                           </div>
                         )}
+                      </FormItem>
+                    )}
+                  />
+
+                  {/* Bénéficiaires : sans ce choix, aucun arrondi n'est créé. */}
+                  <FormField
+                    control={form.control}
+                    name="associations"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-base font-semibold">
+                          Vos associations bénéficiaires
+                        </FormLabel>
+                        <FormDescription className="text-xs">
+                          Vos arrondis leur seront reversés, à tour de rôle. Vous pourrez en
+                          changer à tout moment.
+                        </FormDescription>
+
+                        {availableAssociations.length === 0 ? (
+                          <div className="mt-3 rounded-2xl border-2 border-dashed border-muted p-6 text-center text-sm text-muted-foreground">
+                            Aucune association partenaire n'est disponible pour le moment.
+                            Revenez très bientôt.
+                          </div>
+                        ) : (
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3">
+                            {availableAssociations.map((asso) => {
+                              const selected = field.value?.includes(asso.id);
+                              return (
+                                <button
+                                  key={asso.id}
+                                  type="button"
+                                  aria-pressed={selected}
+                                  onClick={() =>
+                                    field.onChange(
+                                      selected
+                                        ? field.value?.filter((v) => v !== asso.id)
+                                        : [...(field.value ?? []), asso.id]
+                                    )
+                                  }
+                                  className={`flex items-center justify-center gap-3 px-4 py-4 rounded-2xl border-2 text-sm font-bold transition-all association-chip ${
+                                    selected
+                                      ? 'border-brand-mint bg-brand-mint/5 text-brand-mint shadow-lg shadow-brand-mint/5'
+                                      : 'border-muted bg-muted/20 text-muted-foreground hover:border-brand-mint/20'
+                                  }`}
+                                >
+                                  {asso.name}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        )}
+                        <FormMessage />
                       </FormItem>
                     )}
                   />

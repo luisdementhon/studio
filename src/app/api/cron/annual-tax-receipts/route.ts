@@ -22,8 +22,17 @@ export async function POST(request: Request) {
   }
 
   const url = new URL(request.url);
-  const requested = Number(url.searchParams.get('year'));
-  const year = Number.isInteger(requested) ? requested : new Date().getFullYear() - 1;
+
+  // Attention au piège : `searchParams.get` renvoie null quand le paramètre
+  // est absent, et `Number(null)` vaut 0 — un entier. Tester `isInteger` sur
+  // la conversion rendait donc le repli inatteignable, et le job tournait sur
+  // l'an 0. On teste la présence du paramètre, pas sa conversion.
+  const rawYear = url.searchParams.get('year');
+  const parsedYear = rawYear === null ? NaN : Number(rawYear);
+  const year =
+    Number.isInteger(parsedYear) && parsedYear >= 2000 && parsedYear <= 2100
+      ? parsedYear
+      : new Date().getFullYear() - 1;
 
   const start = admin.firestore.Timestamp.fromDate(new Date(year, 0, 1));
   const end = admin.firestore.Timestamp.fromDate(new Date(year + 1, 0, 1));

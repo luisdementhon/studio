@@ -243,6 +243,47 @@ export default function AssociationDashboardPage() {
         </div>
       </div>
 
+      {/* Sans compte Stripe connecté, l'association ne peut recevoir aucun don :
+          les dons ponctuels sont refusés et le règlement mensuel l'ignore.
+          C'est donc la première chose à régler, avant tout le reste. */}
+      {!associationData?.stripeAccountId && (
+        <div className="rounded-[2.5rem] border-2 border-brand-coral/20 bg-brand-coral/5 p-8 md:p-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+          <div className="flex items-start gap-5">
+            <div className="h-12 w-12 shrink-0 rounded-2xl bg-brand-coral/10 flex items-center justify-center">
+              <AlertCircle className="h-6 w-6 text-brand-coral" />
+            </div>
+            <div className="space-y-1">
+              <h2 className="text-xl font-headline font-extrabold tracking-tight">
+                Configurez votre compte de paiement
+              </h2>
+              <p className="text-sm text-foreground/60 font-headline font-light leading-relaxed max-w-xl">
+                Tant que votre compte Stripe n'est pas connecté, vous ne pouvez recevoir
+                aucun don. La configuration prend quelques minutes et se fait directement
+                chez Stripe.
+              </p>
+            </div>
+          </div>
+          <Button
+            onClick={handleStripeOnboarding}
+            disabled={isOnboardingStripe}
+            variant="vibrant"
+            className="h-14 shrink-0 rounded-2xl px-8 font-bold shadow-lg shadow-brand-coral/20"
+          >
+            {isOnboardingStripe ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Redirection…
+              </>
+            ) : (
+              <>
+                Connecter mon compte
+                <ArrowRight className="ml-2 h-4 w-4" />
+              </>
+            )}
+          </Button>
+        </div>
+      )}
+
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <div className="bg-brand-coral text-white rounded-[2.5rem] p-8 flex flex-col justify-between min-h-[220px]">
           <span className="text-[10px] font-extrabold uppercase tracking-[0.2em] opacity-60">FONDS RÉCOLTÉS CE MOIS-CI</span>

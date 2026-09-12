@@ -26,7 +26,7 @@ import { useUser, useFirestore, useDoc } from "@/firebase";
 import { authedFetch } from "@/lib/api-client";
 import { resizeToAvatarDataUrl } from "@/lib/image";
 import { DataRightsSection } from "@/components/profile/data-rights";
-import { doc } from "firebase/firestore";
+import { doc, setDoc } from "firebase/firestore";
 import { setDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Banknote, CheckCircle2, Link2, CreditCard, Clock, Upload, Trash2 } from "lucide-react";
@@ -73,13 +73,21 @@ export default function UserProfilePage() {
 
   useEffect(() => {
     if (userData) {
-      const { firstName, lastName, photoURL: existingPhoto, ...rest } = userData;
+      const { firstName, lastName, photoURL: existingPhoto } = userData as any;
       if (existingPhoto) {
         setPhotoURL(existingPhoto);
       }
+      // On ne réinjecte QUE les champs du formulaire. Étaler le document
+      // entier ferait entrer des valeurs serveur (Timestamps, identifiants
+      // Stripe) dans l'état du formulaire, qui les renverrait à l'écriture —
+      // écriture que les règles Firestore refusent désormais.
       form.reset({
         fullName: `${firstName || ''} ${lastName || ''}`.trim(),
-        ...rest
+        causes: (userData as any).causes ?? [],
+        associations: (userData as any).associations ?? [],
+        donationCeiling: (userData as any).donationCeiling ?? 50,
+        donationMultiplier: (userData as any).donationMultiplier ?? 1,
+        otherCause: (userData as any).otherCause ?? '',
       });
     }
   }, [userData, form]);
@@ -137,11 +145,11 @@ export default function UserProfilePage() {
       toast({ title: "Erreur", description: "Vous n'êtes pas connecté.", variant: "destructive" });
       return;
     }
-    startTransition(() => {
+    startTransition(async () => {
       const { fullName, ...preferences } = values;
       const [firstName, ...lastNameParts] = fullName.split(' ');
       const lastName = lastNameParts.join(' ');
-      
+
       const userProfile = {
         id: user.uid,
         email: user.email,
@@ -151,11 +159,22 @@ export default function UserProfilePage() {
         ...preferences
       };
 
-      setDocumentNonBlocking(userDocRef!, userProfile, { merge: true });
-      toast({
-        title: "Profil mis à jour",
-        description: "Vos informations ont été enregistrées avec succès.",
-      });
+      // Écriture attendue, pas « non bloquante » : annoncer un succès avant
+      // confirmation laisserait l'utilisateur croire que son plafond est
+      // enregistré alors que l'écriture a pu être refusée.
+      try {
+        await setDoc(userDocRef!, userProfile, { merge: true });
+        toast({
+          title: "Profil mis à jour",
+          description: "Vos informations ont été enregistrées avec succès.",
+        });
+      } catch {
+        toast({
+          title: "Enregistrement impossible",
+          description: "Vos modifications n'ont pas pu être enregistrées. Réessayez.",
+          variant: "destructive",
+        });
+      }
     });
   }
 

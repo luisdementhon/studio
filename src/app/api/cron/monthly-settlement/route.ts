@@ -100,11 +100,20 @@ export async function POST(request: Request) {
       let remaining = ceiling > 0 ? ceiling : Number.POSITIVE_INFINITY;
 
       for (const [associationId, items] of byAssociation) {
-        const total = items.reduce((sum, item) => sum + item.amount, 0);
-        const chargeable = Math.min(total, remaining);
+        // On ne prélève que des arrondis ENTIERS, dans la limite du plafond.
+        // Écrêter un montant tout en soldant la totalité des arrondis
+        // marquerait comme versé de l'argent jamais encaissé : l'historique
+        // du donateur ne correspondrait plus à son relevé bancaire.
+        const affordable: RoundupDoc[] = [];
+        let chargeable = 0;
+        for (const item of items) {
+          if (chargeable + item.amount > remaining) continue;
+          affordable.push(item);
+          chargeable = Math.round((chargeable + item.amount) * 100) / 100;
+        }
 
-        // Stripe refuse en dessous de 0,50 €. On laisse les arrondis en
-        // `pending` : ils seront repris le mois suivant.
+        // Stripe refuse en dessous de 0,50 €. Les arrondis restent `pending`
+        // et seront repris par un prochain règlement.
         if (chargeable < 0.5) continue;
 
         const association = await db.collection('associations').doc(associationId).get();
@@ -127,7 +136,8 @@ export async function POST(request: Request) {
           associationId,
           period,
           amount: chargeable,
-          roundupIds: items.map((item) => item.id),
+          // Uniquement les arrondis réellement couverts par ce paiement.
+          roundupIds: affordable.map((item) => item.id),
           status: 'processing',
           createdAt: admin.firestore.FieldValue.serverTimestamp(),
         });
@@ -193,11 +203,20 @@ export async function POST(request: Request) {
 
     return NextResponse.json(report);
   } catch (error: any) {
-    // Le verrou est libéré pour permettre une reprise après correction.
-    await runRef.set(
-      { status: 'error', error: error?.message ?? 'Erreur inconnue' },
-      { merge: true }
-    );
+    // Le verrou est RÉELLEMENT libéré : on supprime le document, sinon toute
+    // relance ressortirait en `already_settled` et les donateurs non encore
+    // traités ne seraient jamais prélevés pour ce mois.
+    //
+    // Rejouer est sans danger : la requête ne reprend que les arrondis restés
+    // `pending`, ceux déjà soldés par le webhook Stripe en sont exclus.
+    await db.collection('settlement_failures').doc(`${period}_${Date.now()}`).set({
+      period,
+      error: error?.message ?? 'Erreur inconnue',
+      partialReport: report,
+      failedAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
+    await runRef.delete().catch(() => {});
+
     console.error('Échec du règlement mensuel:', error);
     return NextResponse.json({ error: 'Le règlement a échoué.', period }, { status: 500 });
   }

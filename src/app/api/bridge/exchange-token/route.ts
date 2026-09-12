@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { requireUser, apiAuthErrorResponse } from '@/lib/api-auth';
 import { getBridgeCredentials } from '@/lib/bridge-server';
+import { db, admin } from '@/lib/firebase-admin';
 
 export async function POST(request: Request) {
   try {
@@ -73,9 +74,23 @@ export async function POST(request: Request) {
       console.warn("Could not fetch item details in V3", e);
     }
 
+    // Écriture côté serveur : `bridgeUserUuid` est la clé qui relie un compte
+    // bancaire à un utilisateur. Écrite depuis le client, elle permettrait
+    // d'inscrire l'UUID d'un tiers sur son propre profil et de détourner le
+    // flux de ses transactions.
+    await db.collection('users').doc(externalUserId).set(
+      {
+        bankConnected: true,
+        bankName,
+        bridgeItemId: finalItemId ? String(finalItemId) : null,
+        bridgeUserUuid,
+        connectedAt: admin.firestore.FieldValue.serverTimestamp(),
+      },
+      { merge: true }
+    );
+
     return NextResponse.json({
       bridgeItemId: finalItemId,
-      bridgeUserUuid: bridgeUserUuid,
       bankName: bankName,
       status: 'success'
     });

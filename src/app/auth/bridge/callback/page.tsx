@@ -7,16 +7,13 @@ import { CheckCircle2, Loader2, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { BrandPattern } from '@/components/brand-pattern';
-import { useUser, useFirestore } from '@/firebase';
-import { doc, serverTimestamp } from 'firebase/firestore';
-import { setDocumentNonBlocking } from '@/firebase/non-blocking-updates';
+import { useUser } from '@/firebase';
 import { authedFetch } from '@/lib/api-client';
 
 function BridgeCallbackContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { user } = useUser();
-  const firestore = useFirestore();
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
   const [error, setError] = useState<string | null>(null);
   const hasCalled = useRef(false);
@@ -48,20 +45,9 @@ function BridgeCallbackContent() {
           throw new Error(data.error || "L'échange du token a échoué.");
         }
 
-        if (user && firestore) {
-          const userRef = doc(firestore, 'users', user.uid);
-          setDocumentNonBlocking(userRef, {
-            bankConnected: true,
-            bankName: data.bankName,
-            bridgeItemId: data.bridgeItemId,
-            bridgeUserUuid: data.bridgeUserUuid,
-            connectedAt: serverTimestamp(),
-          }, { merge: true });
-          
-          setStatus('success');
-        } else {
-          throw new Error("Utilisateur non authentifié.");
-        }
+        // Le rattachement du compte bancaire est désormais écrit par la route
+        // elle-même : le client ne fait que constater le résultat.
+        setStatus('success');
       } catch (err: any) {
         console.error(err);
         setStatus('error');
@@ -73,7 +59,7 @@ function BridgeCallbackContent() {
         hasCalled.current = true;
         finalizeConnection();
     }
-  }, [searchParams, user, firestore]);
+  }, [searchParams, user]);
 
   return (
     <div className="relative flex min-h-screen flex-col items-center justify-center p-4">

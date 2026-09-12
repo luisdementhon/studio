@@ -256,7 +256,7 @@ export default function Home() {
               </span>
               <h2 className="text-6xl md:text-[7rem] font-headline font-extrabold tracking-tight leading-[0.85]">
                 Vu de<br />
-                l'<span className="text-brand-coral font-serif italic font-bold">intérieur</span>.
+                <span className="text-brand-coral font-serif italic font-bold">l'intérieur</span>.
               </h2>
             </div>
             <p className="text-foreground/60 font-headline font-light text-base md:text-lg max-w-sm">

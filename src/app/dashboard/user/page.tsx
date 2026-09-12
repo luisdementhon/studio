@@ -152,7 +152,7 @@ export default function UserDashboardPage() {
     const bridgeTotal = bridgeData?.totalDonations || 0;
 
     if (!donations) {
-        return { totalDonations: 0, pendingRoundups: bridgeTotal, taxDeductibleAmount: 0, chartData: [], recentDonations: [], userCauses: null };
+        return { totalDonations: 0, pendingRoundups: 0, taxDeductibleAmount: 0, chartData: [], recentDonations: [], userCauses: null };
     }
 
     const now = new Date();
@@ -163,25 +163,38 @@ export default function UserDashboardPage() {
       case '1an': startDate = subDays(now, 365); break;
     }
 
+    // Seuls les dons réellement prélevés comptent. Un arrondi `pending`
+    // n'a pas quitté le compte du donateur, et un `skipped_ceiling` ne le
+    // quittera jamais : les additionner afficherait comme « versé » de
+    // l'argent qui ne l'est pas — et fausserait la déduction fiscale.
     const filteredDonations = donations.filter(d => {
-      const rawDate = (d as any).transactionDate;
-      const donationDate = toDate(rawDate);
+      if ((d as any).status !== 'succeeded') return false;
+      const donationDate = toDate((d as any).transactionDate);
       return isAfter(donationDate, startOfDay(startDate));
     });
 
     const total = filteredDonations.reduce((acc, d) => acc + Number(d.amount || 0), 0);
 
-    // Group for chart
+    // Somme des arrondis en attente, lue en base : c'est ce que le
+    // prélèvement mensuel encaissera réellement.
+    const pendingTotal = donations
+      .filter(d => (d as any).status === 'pending')
+      .reduce((acc, d) => acc + Number((d as any).amount || 0), 0);
+
+    // Regroupement pour le graphe, avec une clé triable (la clé affichée
+    // « dd MMM » fusionnerait deux années différentes sur la période 1 an).
     const dailyData: { [key: string]: number } = {};
     filteredDonations.forEach(d => {
-      const dateKey = format(toDate((d as any).transactionDate), 'dd MMM', { locale: fr });
-      dailyData[dateKey] = (dailyData[dateKey] || 0) + d.amount;
+      const dateKey = format(toDate((d as any).transactionDate), 'yyyy-MM-dd');
+      dailyData[dateKey] = (dailyData[dateKey] || 0) + Number((d as any).amount || 0);
     });
 
-    const chartData = Object.entries(dailyData).map(([date, dons]) => ({
-      date,
-      dons: parseFloat(dons.toFixed(2))
-    })).sort((a, b) => 0); // Need proper sort if needed
+    const chartData = Object.entries(dailyData)
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([date, dons]) => ({
+        date: format(new Date(date), 'dd MMM', { locale: fr }),
+        dons: parseFloat(dons.toFixed(2)),
+      }));
 
     const recent = donations.slice(0, 5).map(d => {
         const asso = associations.find(a => a.id === d.associationId);
@@ -196,7 +209,10 @@ export default function UserDashboardPage() {
 
     return { 
       totalDonations: total, 
-      pendingRoundups: bridgeTotal,
+      // Les arrondis en attente viennent de Firestore, pas d'un recalcul à
+      // la volée sur l'API Bridge : ce chiffre doit retomber à zéro après
+      // un prélèvement, ce que le recalcul ne faisait jamais.
+      pendingRoundups: pendingTotal,
       taxDeductibleAmount: total * 0.66, 
       chartData, 
       recentDonations: recent, 

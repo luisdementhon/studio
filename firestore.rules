@@ -24,12 +24,42 @@ service cloud.firestore {
 
     // -------------------------------------------------------------------------
     // User Profiles (/users/{userId})
+    //
+    // Le document utilisateur pilote directement le prélèvement : il porte le
+    // plafond du mandat, les identifiants Stripe et le lien Bridge. Autoriser
+    // le client à écrire n'importe lequel de ses champs reviendrait à le
+    // laisser relever son propre plafond, ou désigner la carte d'un tiers.
+    //
+    // Ces champs-là sont donc réservés au serveur (Admin SDK, qui contourne
+    // ces règles). Le client ne peut écrire que ses préférences.
     // -------------------------------------------------------------------------
+    function serverOwnedUserFields() {
+      return [
+        'stripeCustomerId', 'stripePaymentMethodId', 'stripeSetupIntentId',
+        'cardBrand', 'cardLast4', 'paymentMethodLinked',
+        'mandateSignedAt', 'mandateCeiling', 'mandateNeedsReauth',
+        'roundupRotationIndex', 'bankDisconnectedAt',
+        'bankConnected', 'bankName', 'bridgeItemId', 'bridgeUserUuid', 'connectedAt',
+        'consentedAt', 'consentVersion', 'welcomeEmailSentAt'
+      ];
+    }
+
+    // Aucun champ réservé ne doit être ajouté ni modifié par cette écriture.
+    function keepsServerFields() {
+      return !request.resource.data.diff(resource.data)
+        .affectedKeys()
+        .hasAny(serverOwnedUserFields().toSet());
+    }
+
     match /users/{userId} {
       allow get: if isOwner(userId);
       allow list: if false;
-      allow create: if isOwner(userId) && request.resource.data.id == userId;
-      allow update: if isExistingOwner(userId) && request.resource.data.id == resource.data.id;
+      allow create: if isOwner(userId)
+                    && request.resource.data.id == userId
+                    && !request.resource.data.keys().toSet().hasAny(serverOwnedUserFields().toSet());
+      allow update: if isExistingOwner(userId)
+                    && request.resource.data.id == resource.data.id
+                    && keepsServerFields();
       allow delete: if isExistingOwner(userId);
     }
 
@@ -87,6 +117,10 @@ service cloud.firestore {
     }
 
     match /settlement_runs/{runId} {
+      allow read, write: if false;
+    }
+
+    match /settlement_failures/{failureId} {
       allow read, write: if false;
     }
 

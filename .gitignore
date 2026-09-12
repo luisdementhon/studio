@@ -47,3 +47,8 @@ firebase-debug.log
 firestore-debug.log
 # Masters vidéo à la racine (les versions compressées servies sont dans public/videos/)
 /*.mp4
+
+# Journaux de debug : ils ont contenu des secrets
+debug_deploy*.txt
+build_log*.txt
+server.log
