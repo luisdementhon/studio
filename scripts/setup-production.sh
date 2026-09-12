@@ -55,7 +55,7 @@ fi
 bold "Configuration de production — projet $PROJECT_ID"
 
 # --- Outils ---------------------------------------------------------------
-step "1/5  Outils"
+step "1/6  Outils"
 
 # On évite `npm install -g` : sur macOS, /usr/local/lib/node_modules
 # n'appartient pas à l'utilisateur et l'installation échoue en EACCES.
@@ -75,7 +75,7 @@ fi
 ok "Authentifié"
 
 # --- Secrets --------------------------------------------------------------
-step "2/5  Secrets"
+step "2/6  Secrets"
 
 # `secrets:set --force` accorde les permissions au compte de service, ce que
 # l'on veut, mais ajoute aussi l'entrée dans apphosting.yaml — où elles
@@ -150,13 +150,38 @@ if [ "$TARGETED" = "true" ]; then
   exit 0
 fi
 
+# --- Cohérence de apphosting.yaml -----------------------------------------
+# Une référence `secret:` vers un secret absent de Secret Manager fait
+# échouer l'intégralité du déploiement, avec un message qui ne désigne pas
+# le secret fautif. On vérifie donc avant, pendant qu'on peut nommer
+# précisément le problème.
+step "3/6  Cohérence de apphosting.yaml"
+
+MISSING_SECRETS=""
+while IFS= read -r name; do
+  [ -z "$name" ] && continue
+  if ! $FIREBASE apphosting:secrets:describe "$name" --project "$PROJECT_ID" >/dev/null 2>&1; then
+    MISSING_SECRETS="$MISSING_SECRETS $name"
+  fi
+done < <(grep -E '^[[:space:]]*secret:' apphosting.yaml | sed -E 's/.*secret:[[:space:]]*//' | tr -d '"')
+
+if [ -n "$MISSING_SECRETS" ]; then
+  warn "apphosting.yaml référence des secrets inexistants :$MISSING_SECRETS"
+  warn "Le déploiement échouerait. Créez-les, ou commentez la référence dans apphosting.yaml :"
+  for missing in $MISSING_SECRETS; do
+    warn "    bash scripts/setup-production.sh $missing"
+  done
+  exit 1
+fi
+ok "Tous les secrets référencés existent"
+
 # --- Firestore ------------------------------------------------------------
-step "3/5  Règles et index Firestore"
+step "4/6  Règles et index Firestore"
 $FIREBASE deploy --only firestore --project "$PROJECT_ID" --non-interactive
 ok "Règles et index déployés"
 
 # --- Jobs planifiés -------------------------------------------------------
-step "4/5  Jobs planifiés"
+step "5/6  Jobs planifiés"
 
 if ! command -v gcloud >/dev/null 2>&1; then
   warn "gcloud absent : les jobs planifiés doivent être créés à la main."
@@ -192,7 +217,7 @@ else
 fi
 
 # --- Environnement local --------------------------------------------------
-step "5/5  Environnement local"
+step "6/6  Environnement local"
 
 if [ -f .env.local ]; then
   if ! grep -q "^CRON_SECRET=" .env.local; then

@@ -44,8 +44,15 @@ env:
     secret: CRON_SECRET
 
   # Emails transactionnels.
-  - variable: RESEND_API_KEY
-    secret: RESEND_API_KEY
+  #
+  # ⚠️ Décommenter UNIQUEMENT après avoir créé le secret :
+  #      bash scripts/setup-production.sh RESEND_API_KEY
+  #    Une référence `secret:` vers un secret inexistant fait échouer tout le
+  #    déploiement. Sans cette variable, l'application fonctionne : seuls les
+  #    emails ne partent pas.
+  #
+  # - variable: RESEND_API_KEY
+  #   secret: RESEND_API_KEY
 
   # Commission dotly, en pourcentage. Valeur de pilotage, non secrète.
   - variable: PLATFORM_FEE_PERCENT
