@@ -185,6 +185,19 @@ export default function SignupPage() {
                     />
                 </CardContent>
                 <CardFooter className="flex flex-col gap-6 pt-6">
+                    {/* Le consentement n'est opposable que si les conditions sont
+                        accessibles au moment où il est donné. */}
+                    <p className="text-xs text-center text-muted-foreground leading-relaxed max-w-sm">
+                      En créant un compte, vous acceptez nos{" "}
+                      <Link href="/cgu" className="underline underline-offset-2 hover:text-foreground transition-colors">
+                        conditions d'utilisation
+                      </Link>{" "}
+                      et notre{" "}
+                      <Link href="/confidentialite" className="underline underline-offset-2 hover:text-foreground transition-colors">
+                        politique de confidentialité
+                      </Link>
+                      .
+                    </p>
                     <div className="w-full flex justify-center">
                       <Magnetic>
                         <Button type="submit" className="w-full min-w-[300px] h-16 text-xl rounded-2xl shadow-lg shadow-brand-coral/20" disabled={isSubmitting} variant="vibrant">
