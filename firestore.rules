@@ -35,9 +35,12 @@ service cloud.firestore {
 
     // -------------------------------------------------------------------------
     // User Donations (/users/{userId}/donations/{donationId})
+    // Written server-side only (webhooks, Admin SDK bypasses these rules).
+    // Clients must never be able to fabricate a donation record.
     // -------------------------------------------------------------------------
     match /users/{userId}/donations/{donationId} {
-      allow read, write: if isOwner(userId);
+      allow read: if isOwner(userId);
+      allow write: if false;
     }
 
     // -------------------------------------------------------------------------
@@ -58,8 +61,7 @@ service cloud.firestore {
     // -------------------------------------------------------------------------
     match /associations/{associationId}/donations/{donationId} {
       allow read: if isOwner(associationId);
-      allow create: if isSignedIn() && request.auth.uid == request.resource.data.userId;
-      allow update, delete: if false;
+      allow write: if false;
     }
 
     // -------------------------------------------------------------------------

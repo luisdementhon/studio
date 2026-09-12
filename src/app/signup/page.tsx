@@ -32,6 +32,7 @@ import { useToast } from "@/hooks/use-toast";
 import { BrandPattern } from "@/components/brand-pattern";
 import { GoogleIcon } from "@/components/google-icon";
 import { DotlyBrand } from "@/components/ui/dotly-brand";
+import { Magnetic } from "@/components/ui/magnetic";
 
 export default function SignupPage() {
   const auth = useAuth();
@@ -110,11 +111,11 @@ export default function SignupPage() {
         <div className="absolute bottom-[-20%] right-[-10%] w-[60%] h-[60%] bg-brand-mint/5 rounded-full blur-[120px] pointer-events-none" />
         
         <div className="w-full max-w-md relative z-10 flex flex-col items-center">
-            <Link href="/" className="mb-12 group">
+            <Link href="/" className="mb-12 group animate-cascade" style={{ animationDelay: '100ms' }}>
                 <DotlyBrand className="text-5xl transition-transform group-hover:scale-105 inline-block" />
             </Link>
 
-            <Card className="w-full p-4 border-none shadow-2xl shadow-black/[0.03] rounded-[3rem] bg-white/80 backdrop-blur-xl">
+            <Card className="w-full p-4 border-none shadow-2xl shadow-black/[0.03] rounded-[3rem] bg-white/80 backdrop-blur-xl animate-cascade" style={{ animationDelay: '250ms' }}>
             <CardHeader className="text-center pb-6">
                 <CardTitle className="text-4xl font-headline font-bold tracking-tight mb-2">Inscription</CardTitle>
                 <CardDescription className="text-lg text-muted-foreground">
@@ -180,9 +181,13 @@ export default function SignupPage() {
                     />
                 </CardContent>
                 <CardFooter className="flex flex-col gap-6 pt-6">
-                    <Button type="submit" className="w-full h-16 text-xl rounded-2xl shadow-lg shadow-brand-coral/20" disabled={isSubmitting} variant="vibrant">
-                    {isSubmitting ? "Création..." : "Créer mon compte"}
-                    </Button>
+                    <div className="w-full flex justify-center">
+                      <Magnetic>
+                        <Button type="submit" className="w-full min-w-[300px] h-16 text-xl rounded-2xl shadow-lg shadow-brand-coral/20" disabled={isSubmitting} variant="vibrant">
+                          {isSubmitting ? "Création..." : "Créer mon compte"}
+                        </Button>
+                      </Magnetic>
+                    </div>
                     <div className="relative w-full">
                         <div className="absolute inset-0 flex items-center">
                             <span className="w-full border-t border-muted/30" />
@@ -193,10 +198,14 @@ export default function SignupPage() {
                             </span>
                         </div>
                     </div>
-                    <Button variant="outline" type="button" className="w-full h-16 text-lg rounded-2xl bg-white hover:bg-muted/30 border-muted/30 transition-all" onClick={handleGoogleSignIn} disabled={isSubmitting || !isAuthReady}>
-                        <GoogleIcon className="mr-3 h-6 w-6" />
-                        S'inscrire avec Google
-                    </Button>
+                    <div className="w-full flex justify-center">
+                      <Magnetic>
+                        <Button variant="outline" type="button" className="w-full min-w-[300px] h-16 text-lg rounded-2xl bg-white hover:bg-muted/30 border-muted/30 transition-all" onClick={handleGoogleSignIn} disabled={isSubmitting || !isAuthReady}>
+                            <GoogleIcon className="mr-3 h-6 w-6" />
+                            S'inscrire avec Google
+                        </Button>
+                      </Magnetic>
+                    </div>
                     <div className="mt-2 text-base text-center text-muted-foreground">
                     Vous avez déjà un compte ?{" "}
                     <Link href="/login" className="font-semibold text-brand-coral hover:text-brand-coral/80 transition-colors">

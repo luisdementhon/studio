@@ -10,6 +10,7 @@ import { BrandPattern } from '@/components/brand-pattern';
 import { useUser, useFirestore } from '@/firebase';
 import { doc } from 'firebase/firestore';
 import { setDocumentNonBlocking } from '@/firebase/non-blocking-updates';
+import { authedFetch } from '@/lib/api-client';
 
 function BridgeCallbackContent() {
   const router = useRouter();
@@ -35,10 +36,10 @@ function BridgeCallbackContent() {
 
     const finalizeConnection = async () => {
       try {
-        const response = await fetch('/api/bridge/exchange-token', {
+        const response = await authedFetch('/api/bridge/exchange-token', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ userUuid, itemId, email: user?.email, userId: user?.uid }),
+          body: JSON.stringify({ userUuid, itemId }),
         });
 
         const data = await response.json();

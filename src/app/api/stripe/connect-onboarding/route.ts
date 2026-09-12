@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { stripe } from '@/lib/stripe';
+import { requireUser, apiAuthErrorResponse } from '@/lib/api-auth';
 
 /**
  * Route API pour créer un compte Stripe Connect Express pour une association
@@ -9,11 +10,10 @@ import { stripe } from '@/lib/stripe';
  */
 export async function POST(request: Request) {
   try {
-    const { associationId } = await request.json();
-
-    if (!associationId) {
-      return NextResponse.json({ error: 'associationId est requis.' }, { status: 400 });
-    }
+    // Le compte de l'association est toujours celui de l'appelant authentifié :
+    // le doc Firestore d'une association a pour id l'UID de son compte.
+    const decoded = await requireUser(request);
+    const associationId = decoded.uid;
 
     // 1. Création du compte Stripe Connect Express
     const account = await stripe.accounts.create({
@@ -42,6 +42,9 @@ export async function POST(request: Request) {
     });
 
   } catch (error: any) {
+    const authError = apiAuthErrorResponse(error);
+    if (authError) return authError;
+
     console.error("Stripe Connect Onboarding Error:", error);
     return NextResponse.json({ 
       error: error.message || 'Une erreur interne est survenue lors de la création du compte Stripe.' 

@@ -27,6 +27,7 @@ import {
 } from '@/components/ui/chart';
 import { AreaChart, XAxis, YAxis, Area, CartesianGrid, ResponsiveContainer } from 'recharts';
 import { useUser, useFirestore, useDoc, useCollection, updateDocumentNonBlocking, setDocumentNonBlocking } from '@/firebase';
+import { authedFetch } from '@/lib/api-client';
 import { doc, collection, query, orderBy, limit } from 'firebase/firestore';
 import { useEffect, useMemo, useState } from 'react';
 import { subDays, format, isValid } from 'date-fns';
@@ -104,10 +105,10 @@ export default function AssociationDashboardPage() {
     
     setIsOnboardingStripe(true);
     try {
-      const response = await fetch('/api/stripe/connect-onboarding', {
+      const response = await authedFetch('/api/stripe/connect-onboarding', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ associationId: user.uid }),
+        body: JSON.stringify({}),
       });
 
       const data = await response.json();

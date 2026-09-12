@@ -39,7 +39,11 @@ next-env.d.ts
 
 .genkit/*
 .env*
+# Le fichier d'exemple ne contient aucune valeur : il doit être versionné.
+!.env.example
 
 # firebase
 firebase-debug.log
 firestore-debug.log
+# Masters vidéo à la racine (les versions compressées servies sont dans public/videos/)
+/*.mp4

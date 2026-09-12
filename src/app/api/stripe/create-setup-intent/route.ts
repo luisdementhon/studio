@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import Stripe from 'stripe';
+import { requireUser, apiAuthErrorResponse } from '@/lib/api-auth';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: '2024-06-20' as any,
@@ -7,11 +8,8 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
 
 export async function POST(request: Request) {
   try {
-    const { userId, email } = await request.json();
-
-    if (!userId) {
-      return NextResponse.json({ error: 'ID utilisateur manquant' }, { status: 400 });
-    }
+    const decoded = await requireUser(request);
+    const userId = decoded.uid;
 
     // Créer un client Stripe s'il n'existe pas ou le récupérer
     // Pour simplifier ici, on crée un SetupIntent directement
@@ -27,6 +25,9 @@ export async function POST(request: Request) {
       clientSecret: setupIntent.client_secret,
     });
   } catch (error: any) {
+    const authError = apiAuthErrorResponse(error);
+    if (authError) return authError;
+
     console.error('Stripe SetupIntent Error:', error);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }

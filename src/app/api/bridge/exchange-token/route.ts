@@ -1,31 +1,23 @@
 import { NextResponse } from 'next/server';
-import { BRIDGE_CONFIG } from '@/lib/bridge';
-
-// Le Client Secret doit être dans .env.local normalement. 
-// On garde la valeur de test par défaut si absente.
-const BRIDGE_CLIENT_SECRET = process.env.BRIDGE_CLIENT_SECRET || "sandbox_secret_Yv6EdHzK134ZnT3fl5OUpSNNXHMGNsCxrsNEQn20TGAtLqj2Yc61ono0UR1WzZVE";
+import { requireUser, apiAuthErrorResponse } from '@/lib/api-auth';
+import { getBridgeCredentials } from '@/lib/bridge-server';
 
 export async function POST(request: Request) {
-  const clientId = process.env.BRIDGE_CLIENT_ID || "sandbox_id_eb1eb747f61541d68c1f7775ed91278b";
-  const clientSecret = process.env.BRIDGE_CLIENT_SECRET || "sandbox_secret_9Qpn7gTnq1kwfD0mCtL5xSt0dK482tKjH5HZ8Bf1SoQgVH96kT7MtvP1uxq9xWXx";
-
-  if (!clientId || !clientSecret) {
-    return NextResponse.json({ error: 'Configuration Bridge manquante.' }, { status: 500 });
-  }
-
   try {
-    const { userUuid, itemId, email, userId } = await request.json();
-    console.log("DEBUG: Exchange Token Request:", { userUuid, itemId, email, userId });
+    const decoded = await requireUser(request);
+    const { clientId, clientSecret } = getBridgeCredentials();
 
-    const externalUserId = userId || email;
+    const { userUuid, itemId } = await request.json();
 
-    if (!userUuid || !externalUserId) {
-      console.error("ERROR: Missing userUuid or externalUserId", { userUuid, externalUserId });
+    // L'identité vient du jeton vérifié.
+    const externalUserId = decoded.uid;
+
+    if (!userUuid) {
+      console.error("ERROR: Missing userUuid");
       return NextResponse.json({ error: 'Données manquantes pour la finalisation' }, { status: 400 });
     }
 
     // Obtenir un token d'accès permanent pour cet utilisateur
-    console.log("DEBUG: Fetching Bridge Auth Token for:", externalUserId);
     const authResponse = await fetch("https://api.bridgeapi.io/v3/aggregation/authorization/token", {
       method: "POST",
       headers: {
@@ -40,9 +32,9 @@ export async function POST(request: Request) {
     if (!authResponse.ok) {
       const errorData = await authResponse.json();
       console.error("ERROR: Bridge Auth failed:", errorData);
-      return NextResponse.json({ 
-        error: 'Échec d\'autorisation pour la finalisation', 
-        details: errorData 
+      return NextResponse.json({
+        error: 'Échec d\'autorisation pour la finalisation',
+        details: errorData
       }, { status: authResponse.status });
     }
 
@@ -67,7 +59,7 @@ export async function POST(request: Request) {
       if (itemsResponse.ok) {
         const itemsData = await itemsResponse.json();
         const items = itemsData.resources || [];
-        
+
         if (items.length > 0) {
           // On prend soit l'item spécifique, soit le plus récent
           const matchedItem = itemId ? items.find((i: any) => i.id === itemId) : items[0];
@@ -81,7 +73,7 @@ export async function POST(request: Request) {
       console.warn("Could not fetch item details in V3", e);
     }
 
-    return NextResponse.json({ 
+    return NextResponse.json({
       bridgeItemId: finalItemId,
       bridgeUserUuid: bridgeUserUuid,
       bankName: bankName,
@@ -89,6 +81,9 @@ export async function POST(request: Request) {
     });
 
   } catch (error: any) {
+    const authError = apiAuthErrorResponse(error);
+    if (authError) return authError;
+
     console.error("Internal Server Error Bridge Finalize:", error);
     return NextResponse.json({ error: 'Une erreur interne est survenue lors de la finalisation.' }, { status: 500 });
   }

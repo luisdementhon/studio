@@ -4,6 +4,7 @@ export const dynamic = 'force-dynamic';
 
 import { useEffect, useState } from "react";
 import { useUser, useDoc, useFirestore } from "@/firebase";
+import { authedFetch } from "@/lib/api-client";
 import { doc } from "firebase/firestore";
 import { 
   Table, 
@@ -40,10 +41,10 @@ export default function TransactionHistoryPage() {
     setWarning(null);
     
     try {
-      const response = await fetch("/api/bridge/transactions", {
+      const response = await authedFetch("/api/bridge/transactions", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: user.email, userId: user.uid }),
+        body: JSON.stringify({}),
       });
 
       const data = await response.json();
@@ -77,7 +78,7 @@ export default function TransactionHistoryPage() {
         <div className="space-y-4">
           <h1 className="text-5xl md:text-7xl font-headline font-bold tracking-tight text-foreground leading-[0.9]">
             Mes<br />
-            <DotlyBrand />
+            <span className="text-brand-coral">arrondis.</span>
           </h1>
           <p className="text-lg text-muted-foreground font-headline font-light max-w-xl">
             Suivez l'origine de chaque centime collecté pour vos causes via <DotlyBrand className="inline text-base" />

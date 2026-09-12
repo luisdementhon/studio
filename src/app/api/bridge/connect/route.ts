@@ -1,28 +1,31 @@
 import { NextResponse } from "next/server";
+import { requireUser, apiAuthErrorResponse } from "@/lib/api-auth";
+import { getBridgeCredentials } from "@/lib/bridge-server";
 
 /**
  * Route Handler pour l'authentification Bridge (Bankin').
- * Effectue une double requête : 
+ * Effectue une double requête :
  * 1. Authentification de l'utilisateur de test.
  * 2. Création d'une session de connexion.
  */
 export async function POST(request: Request) {
-  const clientId = process.env.BRIDGE_CLIENT_ID || "sandbox_id_eb1eb747f61541d68c1f7775ed91278b";
-  const clientSecret = process.env.BRIDGE_CLIENT_SECRET || "sandbox_secret_9Qpn7gTnq1kwfD0mCtL5xSt0dK482tKjH5HZ8Bf1SoQgVH96kT7MtvP1uxq9xWXx";
-
   // Récupérer l'origine pour la callback_url
   const origin = request.headers.get("origin") || "http://localhost:9002";
-  
-  try {
-    const { email, userId, onboarding, callbackUrl: customCallbackUrl } = await request.json().catch(() => ({ email: null, userId: null, onboarding: false, callbackUrl: null }));
-    
-    // On utilise l'UID s'il est dispo, sinon on dérive de l'email, sinon fallback
-    const externalUserId = userId || (email ? email.replace(/[^a-zA-Z0-9]/g, '_') : `user_${Date.now()}`);
-    console.log(`DEBUG: Bridge Connect for: ${externalUserId} (onboarding: ${onboarding})`);
 
-    const callbackUrl = customCallbackUrl || (onboarding 
-      ? `${origin}/auth/bridge/callback?onboarding=true` 
-      : `${origin}/auth/bridge/callback`);
+  try {
+    const decoded = await requireUser(request);
+    const { clientId, clientSecret } = getBridgeCredentials();
+
+    const { onboarding } = await request.json().catch(() => ({ onboarding: false }));
+
+    // L'identité vient du jeton vérifié, jamais du corps de la requête.
+    const externalUserId = decoded.uid;
+    const email = decoded.email;
+
+    // La callback reste sur notre propre origine : jamais une URL fournie par le client.
+    const callbackUrl = onboarding
+      ? `${origin}/auth/bridge/callback?onboarding=true`
+      : `${origin}/auth/bridge/callback`;
 
     // 1. Tenter d'obtenir un jeton d'autorisation directement
     let authResponse = await fetch("https://api.bridgeapi.io/v3/aggregation/authorization/token", {
@@ -94,7 +97,7 @@ export async function POST(request: Request) {
         "Authorization": `Bearer ${access_token}`,
       },
       body: JSON.stringify({
-        user_email: email || "user_dotly_test@example.com",
+        user_email: email,
         callback_url: callbackUrl,
       }),
     });
@@ -109,11 +112,14 @@ export async function POST(request: Request) {
     }
 
     const sessionData = await sessionResponse.json();
-    
+
     // Note: V3 renvoie 'url', pas 'redirect_url'
     return NextResponse.json({ redirect_url: sessionData.url });
 
   } catch (error: any) {
+    const authError = apiAuthErrorResponse(error);
+    if (authError) return authError;
+
     console.error("Bridge API Error:", error);
     return NextResponse.json(
       { error: "Erreur interne du serveur lors de la connexion Bridge" },

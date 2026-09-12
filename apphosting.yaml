@@ -4,14 +4,36 @@
 runConfig:
   maxInstances: 2
 
+# Les valeurs sensibles ne sont JAMAIS écrites ici : ce fichier est versionné
+# dans git. Elles vivent dans Cloud Secret Manager et sont référencées via la
+# clé `secret:` (voir README / commandes firebase apphosting:secrets:set).
+#
+# Seules restent en clair les valeurs publiques par nature : un identifiant
+# client et une clé publiable, qui sont de toute façon exposés au navigateur
+# ou à l'API partenaire.
 env:
+  # Identifiant client Bridge : identifiant, pas secret. À mettre à jour lors
+  # du passage des identifiants sandbox aux identifiants de production.
   - variable: BRIDGE_CLIENT_ID
     value: "sandbox_id_eb1eb747f61541d68c1f7775ed91278b"
-  - variable: BRIDGE_CLIENT_SECRET
-    value: "sandbox_secret_9Qpn7gTnq1kwfD0mCtL5xSt0dK482tKjH5HZ8Bf1SoQgVH96kT7MtvP1uxq9xWXx"
-  - variable: NEXT_PUBLIC_BRIDGE_CLIENT_ID
-    value: "sandbox_id_eb1eb747f61541d68c1f7775ed91278b"
+
+  # Clé publiable Stripe : publique par conception, inlinée dans le bundle.
   - variable: NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
     value: "pk_test_51RsLWg2cs2Ko36FftJwT81VPAZxncV7yeemplfpB720nRZX7BCYqGV4WPTDNhoEXmk3MAP8k8mHshIJUoIHlndT1002U0hYvwk"
+
+  # --- Secrets (Cloud Secret Manager) ---
+
+  - variable: BRIDGE_CLIENT_SECRET
+    secret: BRIDGE_CLIENT_SECRET
+
+  # Signature des webhooks Bridge. Sans lui, /api/bridge/webhook rejette tout.
+  - variable: BRIDGE_WEBHOOK_SECRET
+    secret: BRIDGE_WEBHOOK_SECRET
+
   - variable: STRIPE_SECRET_KEY
-    value: "sk_test_51RsLWg2cs2Ko36FfC6lRnNDb3smV0d7qXE964cEqJw98yMpPmw3h3EK1BB0ssQZ9BlqMxvUSONcbBK79xxSKk9at00ZCSuOUvh"
+    secret: STRIPE_SECRET_KEY
+
+  # Signature des webhooks Stripe. Sans lui, /api/stripe/webhook répond 500
+  # et aucun don n'est enregistré.
+  - variable: STRIPE_WEBHOOK_SECRET
+    secret: STRIPE_WEBHOOK_SECRET

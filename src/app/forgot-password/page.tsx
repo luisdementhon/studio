@@ -27,6 +27,7 @@ import { Input } from "@/components/ui/input";
 import { useAuth } from "@/firebase";
 import { useToast } from "@/hooks/use-toast";
 import { BrandPattern } from "@/components/brand-pattern";
+import { Magnetic } from "@/components/ui/magnetic";
 
 const ForgotPasswordSchema = z.object({
   email: z.string().email({ message: "Veuillez entrer une adresse email valide." }),
@@ -63,7 +64,7 @@ export default function ForgotPasswordPage() {
   return (
     <div className="relative flex min-h-screen flex-col items-center justify-center p-4">
         <BrandPattern />
-        <Card className="w-full max-w-sm z-10">
+        <Card className="w-full max-w-sm z-10 animate-cascade" style={{ animationDelay: '250ms' }}>
         <CardHeader>
             <CardTitle className="text-2xl">Mot de passe oublié</CardTitle>
             <CardDescription>
@@ -92,9 +93,13 @@ export default function ForgotPasswordPage() {
                 />
             </CardContent>
             <CardFooter className="flex flex-col gap-4">
-                <Button type="submit" className="w-full" disabled={form.formState.isSubmitting} variant="vibrant">
-                {form.formState.isSubmitting ? "Envoi..." : "Envoyer le lien"}
-                </Button>
+                <div className="w-full flex justify-center">
+                  <Magnetic>
+                    <Button type="submit" className="w-full min-w-[280px]" disabled={form.formState.isSubmitting} variant="vibrant">
+                      {form.formState.isSubmitting ? "Envoi..." : "Envoyer le lien"}
+                    </Button>
+                  </Magnetic>
+                </div>
                 <div className="text-sm text-muted-foreground">
                 <Link href="/login" className="font-medium text-primary hover:underline">
                     Retour à la connexion

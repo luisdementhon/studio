@@ -29,8 +29,8 @@ import {
 import { STRIPE_PUBLISHABLE_KEY } from '@/lib/stripe';
 import type { Association } from '@/lib/schemas';
 import { Skeleton } from './ui/skeleton';
-import { useUser, useFirestore, setDocumentNonBlocking } from '@/firebase';
-import { collection, serverTimestamp, doc } from 'firebase/firestore';
+import { useUser } from '@/firebase';
+import { authedFetch } from '@/lib/api-client';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 import { Heart } from 'lucide-react';
 
@@ -110,7 +110,6 @@ function CheckoutForm({
 export function DonationForm({ associations, isLoading }: { associations: Association[], isLoading: boolean }) {
   const { toast } = useToast();
   const { user } = useUser();
-  const firestore = useFirestore();
 
   const [amount, setAmount] = useState<number | undefined>();
   const [selectedAssoId, setSelectedAssoId] = useState<string | undefined>();
@@ -124,29 +123,9 @@ export function DonationForm({ associations, isLoading }: { associations: Associ
   };
 
   const handleCreateDonation = () => {
-    if (!amount || !selectedAssoId || !user || !firestore) {
-      toast({ variant: 'destructive', title: 'Erreur interne', description: 'Données manquantes pour l\'enregistrement.' });
-      setProcessing(false);
-      return;
-    }
-
-    const userDonationRef = doc(collection(firestore, 'users', user.uid, 'donations'));
-    const donationId = userDonationRef.id;
-
-    const donationData = {
-        id: donationId,
-        userId: user.uid,
-        associationId: selectedAssoId,
-        amount: amount,
-        transactionDate: serverTimestamp(),
-        isRecurring: false,
-    };
-
-    setDocumentNonBlocking(userDonationRef, donationData, { merge: true });
-    
-    const associationDonationRef = doc(firestore, 'associations', selectedAssoId, 'donations', donationId);
-    setDocumentNonBlocking(associationDonationRef, donationData, { merge: true });
-
+    // Le don lui-même est enregistré côté serveur par le webhook Stripe
+    // (seule source fiable : le client ne doit jamais pouvoir écrire un don).
+    // On se contente ici de confirmer visuellement et de réinitialiser le formulaire.
     toast({
         title: "Paiement réussi !",
         description: "Votre don a bien été enregistré. Merci pour votre générosité !",
@@ -170,7 +149,7 @@ export function DonationForm({ associations, isLoading }: { associations: Associ
     setProcessing(true);
     
     try {
-      const res = await fetch('/api/create-payment-intent', {
+      const res = await authedFetch('/api/create-payment-intent', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

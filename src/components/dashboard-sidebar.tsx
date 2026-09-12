@@ -120,9 +120,11 @@ export function DashboardSidebar() {
       <SidebarFooter className="p-6 mt-auto">
         <div className="bg-black text-white rounded-[2rem] p-5 shadow-xl flex flex-col gap-4">
             <div className="flex items-center gap-4">
-              <Avatar className="h-10 w-10 rounded-full border-2 border-white/10">
-                  <AvatarImage src={`https://picsum.photos/seed/${user?.uid}/100/100`} alt={getProfileName()} />
-                  <AvatarFallback className="rounded-full bg-brand-coral text-white font-extrabold">{getAvatarFallback()}</AvatarFallback>
+              <Avatar className="h-10 w-10 rounded-full border-2 border-white/10 overflow-hidden">
+                {(profileData as any)?.photoURL ? (
+                  <AvatarImage src={(profileData as any).photoURL} alt={getProfileName()} className="object-cover w-full h-full" />
+                ) : null}
+                <AvatarFallback className="rounded-full bg-brand-coral text-white font-extrabold">{getAvatarFallback()}</AvatarFallback>
               </Avatar>
               <div className="flex flex-col text-sm overflow-hidden">
                   <div className="flex items-center gap-1">

@@ -9,6 +9,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { useUser, useFirestore } from "@/firebase";
+import { authedFetch } from "@/lib/api-client";
 import { doc, updateDoc, getDoc } from "firebase/firestore";
 import { CreditCard, Lock, CheckCircle2, Loader2 } from "lucide-react";
 
@@ -52,10 +53,10 @@ export function PaymentMethodSection() {
 
     try {
       // 1. Récupérer le Client Secret depuis notre API
-      const res = await fetch("/api/stripe/create-setup-intent", {
+      const res = await authedFetch("/api/stripe/create-setup-intent", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId: user.uid, email: user.email }),
+        body: JSON.stringify({}),
       });
       const { clientSecret: secret, error } = await res.json();
 

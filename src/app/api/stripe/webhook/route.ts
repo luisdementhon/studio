@@ -93,10 +93,13 @@ async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent) {
   const donationRef = db.collection('users').doc(metadata.userId).collection('donations').doc(paymentIntent.id);
   await donationRef.set(donationData);
 
-  // Update the association's received donations total
+  // Mirror into the association's own donations subcollection (dashboard/association reads this)
   const assoRef = db.collection('associations').doc(metadata.associationId);
+  await assoRef.collection('donations').doc(paymentIntent.id).set(donationData);
+
+  // Update the association's received donations total
   const assoSnap = await assoRef.get();
-  
+
   if (assoSnap.exists) {
     const currentTotal = assoSnap.data()?.totalReceived || 0;
     await assoRef.update({

@@ -3,7 +3,7 @@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import type { z } from "zod";
-import { useEffect, useTransition, useMemo } from "react";
+import { useEffect, useTransition, useMemo, useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { UserOnboardingSchema } from "@/lib/schemas";
 import { Button } from "@/components/ui/button";
@@ -21,12 +21,13 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Slider } from "@/components/ui/slider";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useUser, useFirestore, useDoc } from "@/firebase";
+import { authedFetch } from "@/lib/api-client";
 import { doc } from "firebase/firestore";
 import { setDocumentNonBlocking } from "@/firebase/non-blocking-updates";
-import { getBridgeAuthUrl } from "@/lib/bridge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Banknote, CheckCircle2, Link2, CreditCard, Clock } from "lucide-react";
+import { Banknote, CheckCircle2, Link2, CreditCard, Clock, Upload, Trash2 } from "lucide-react";
 import { DotlyBrand } from "@/components/ui/dotly-brand";
 import { StripeWrapper } from "@/components/providers/stripe-wrapper";
 import { PaymentMethodSection } from "@/components/profile/payment-method";
@@ -44,6 +45,7 @@ const causes = [
 
 export default function UserProfilePage() {
   const [isPending, startTransition] = useTransition();
+  const [photoURL, setPhotoURL] = useState<string | null>(null);
   const { toast } = useToast();
   const { user, isUserLoading } = useUser();
   const firestore = useFirestore();
@@ -69,7 +71,10 @@ export default function UserProfilePage() {
 
   useEffect(() => {
     if (userData) {
-      const { firstName, lastName, ...rest } = userData;
+      const { firstName, lastName, photoURL: existingPhoto, ...rest } = userData;
+      if (existingPhoto) {
+        setPhotoURL(existingPhoto);
+      }
       form.reset({
         fullName: `${firstName || ''} ${lastName || ''}`.trim(),
         ...rest
@@ -77,7 +82,44 @@ export default function UserProfilePage() {
     }
   }, [userData, form]);
 
-  const watchedCauses = form.watch("causes", []);
+  const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 2 * 1024 * 1024) {
+      toast({
+        title: "Fichier trop volumineux",
+        description: "Veuillez choisir une image de moins de 2 Mo.",
+        variant: "destructive",
+      });
+      return;
+    }
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const result = reader.result as string;
+      setPhotoURL(result);
+      if (userDocRef) {
+        setDocumentNonBlocking(userDocRef, { photoURL: result }, { merge: true });
+        toast({
+          title: "Photo mise à jour",
+          description: "Votre photo de profil a bien été enregistrée.",
+        });
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleRemovePhoto = () => {
+    setPhotoURL(null);
+    if (userDocRef) {
+      setDocumentNonBlocking(userDocRef, { photoURL: "" }, { merge: true });
+      toast({
+        title: "Photo supprimée",
+        description: "La photo de profil a été retirée.",
+      });
+    }
+  };
+
+  const watchedCauses = form.watch("causes", []) ?? [];
 
   function onSubmit(values: z.infer<typeof UserOnboardingSchema>) {
     if (!user) {
@@ -94,6 +136,7 @@ export default function UserProfilePage() {
         email: user.email,
         firstName,
         lastName,
+        photoURL: photoURL || "",
         ...preferences
       };
 
@@ -108,10 +151,10 @@ export default function UserProfilePage() {
   const isLoading = isUserLoading || isProfileLoading;
   const handleConnectBank = async () => {
     try {
-      const response = await fetch("/api/bridge/connect", {
+      const response = await authedFetch("/api/bridge/connect", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: user?.email, userId: user?.uid }),
+        body: JSON.stringify({}),
       });
 
       const data = await response.json();
@@ -345,6 +388,37 @@ export default function UserProfilePage() {
                   <CardDescription className="text-base font-headline font-light">Mettez à jour vos informations de contact.</CardDescription>
                 </CardHeader>
                 <CardContent className="p-8 pt-4 space-y-8">
+                  {/* Photo de profil */}
+                  <div className="space-y-3">
+                    <label className="text-sm font-bold uppercase tracking-widest text-muted-foreground ml-1">Photo de profil</label>
+                    <div className="flex flex-col sm:flex-row items-center gap-6 bg-muted/20 p-6 rounded-2xl">
+                      <Avatar className="h-20 w-20 rounded-full border-2 border-brand-coral/20 shadow-md overflow-hidden shrink-0">
+                        {photoURL ? (
+                          <AvatarImage src={photoURL} alt="Photo de profil" className="object-cover w-full h-full" />
+                        ) : null}
+                        <AvatarFallback className="rounded-full bg-brand-coral text-white text-2xl font-extrabold">
+                          {form.watch("fullName") ? form.watch("fullName").charAt(0).toUpperCase() : (user?.email?.charAt(0).toUpperCase() || "U")}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="flex flex-col gap-2 text-center sm:text-left">
+                        <div className="flex flex-wrap items-center justify-center sm:justify-start gap-3">
+                          <label className="cursor-pointer inline-flex items-center gap-2 bg-black text-white hover:bg-black/80 font-bold px-5 py-2.5 rounded-full text-sm transition-all shadow-sm">
+                            <Upload className="w-4 h-4" />
+                            Changer la photo
+                            <input type="file" accept="image/*" onChange={handlePhotoChange} className="hidden" />
+                          </label>
+                          {photoURL && (
+                            <Button type="button" variant="outline" onClick={handleRemovePhoto} className="rounded-full border-black/10 text-muted-foreground hover:text-destructive hover:bg-destructive/5 font-bold h-10 px-4 text-sm">
+                              <Trash2 className="w-4 h-4 mr-1.5" />
+                              Supprimer
+                            </Button>
+                          )}
+                        </div>
+                        <p className="text-xs text-muted-foreground">Format JPG ou PNG. 2 Mo maximum.</p>
+                      </div>
+                    </div>
+                  </div>
+
                   <FormField
                     control={form.control}
                     name="fullName"

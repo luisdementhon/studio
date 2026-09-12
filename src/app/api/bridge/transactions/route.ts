@@ -1,4 +1,7 @@
 import { NextResponse } from 'next/server';
+import { requireUser, apiAuthErrorResponse } from '@/lib/api-auth';
+import { getBridgeCredentials } from '@/lib/bridge-server';
+import { db } from '@/lib/firebase-admin';
 
 /**
  * Calcule l'arrondi pour un montant donné
@@ -12,26 +15,17 @@ function calculateRoundup(amount: number) {
 }
 
 export async function POST(request: Request) {
-  const clientId = process.env.BRIDGE_CLIENT_ID || "sandbox_id_eb1eb747f61541d68c1f7775ed91278b";
-  const clientSecret = process.env.BRIDGE_CLIENT_SECRET || "sandbox_secret_9Qpn7gTnq1kwfD0mCtL5xSt0dK482tKjH5HZ8Bf1SoQgVH96kT7MtvP1uxq9xWXx";
-
-  if (!clientId || !clientSecret) {
-    return NextResponse.json({ error: 'Configuration Bridge manquante.' }, { status: 500 });
-  }
-
   try {
-    const { email, userId, multiplier = 1 } = await request.json().catch(() => ({ email: null, userId: null, multiplier: 1 }));
+    const decoded = await requireUser(request);
+    const { clientId, clientSecret } = getBridgeCredentials();
 
-    if (!email && !userId) {
-      return NextResponse.json({ error: 'Identifiant utilisateur manquant.' }, { status: 400 });
-    }
+    // L'identité vient du jeton : impossible de lire les transactions d'un tiers.
+    const externalUserId = decoded.uid;
 
-    // Même logique que dans /api/bridge/connect pour retrouver le bon utilisateur
-    const externalUserId = userId || (email ? email.replace(/[^a-zA-Z0-9]/g, '_') : null);
-
-    if (!externalUserId) {
-       return NextResponse.json({ error: 'Identifiant utilisateur invalide.' }, { status: 400 });
-    }
+    // Le multiplicateur est lu en base, jamais accepté depuis le client :
+    // il intervient dans le calcul des montants.
+    const userSnap = await db.collection('users').doc(externalUserId).get();
+    const multiplier = userSnap.data()?.donationMultiplier || 1;
 
     // 1. Obtenir un jeton d'autorisation pour l'utilisateur
     const authResponse = await fetch("https://api.bridgeapi.io/v3/aggregation/authorization/token", {
@@ -47,11 +41,11 @@ export async function POST(request: Request) {
 
     if (!authResponse.ok) {
       console.error("Bridge Auth Error:", await authResponse.text());
-      return NextResponse.json({ 
-        transactions: [], 
-        totalDonations: 0, 
+      return NextResponse.json({
+        transactions: [],
+        totalDonations: 0,
         count: 0,
-        warning: 'L\'utilisateur n\'est pas encore authentifié sur Bridge ou la banque n\'est pas connectée.' 
+        warning: 'L\'utilisateur n\'est pas encore authentifié sur Bridge ou la banque n\'est pas connectée.'
       });
     }
 
@@ -69,11 +63,11 @@ export async function POST(request: Request) {
     if (!transactionsResponse.ok) {
       const errorData = await transactionsResponse.json();
       console.warn("Bridge Transactions Fetch Warning:", errorData);
-      return NextResponse.json({ 
-        transactions: [], 
-        totalDonations: 0, 
+      return NextResponse.json({
+        transactions: [],
+        totalDonations: 0,
         count: 0,
-        error: 'Impossible de récupérer les transactions bancaires pour le moment.' 
+        error: 'Impossible de récupérer les transactions bancaires pour le moment.'
       });
     }
 
@@ -111,6 +105,9 @@ export async function POST(request: Request) {
     });
 
   } catch (error: any) {
+    const authError = apiAuthErrorResponse(error);
+    if (authError) return authError;
+
     console.error("Internal Server Error Bridge Transactions:", error);
     return NextResponse.json({ error: 'Une erreur interne est survenue.' }, { status: 500 });
   }

@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { db, admin } from '@/lib/firebase-admin';
+import { getBridgeCredentials, verifyBridgeSignature } from '@/lib/bridge-server';
 
 // Désactiver le cache pour cette route
 export const dynamic = 'force-dynamic';
@@ -20,12 +21,20 @@ function calculateRoundup(amount: number) {
  * Reçoit les notifications de nouvelles transactions et calcule l'arrondi.
  */
 export async function POST(request: Request) {
-  const clientId = process.env.BRIDGE_CLIENT_ID || "sandbox_id_eb1eb747f61541d68c1f7775ed91278b";
-  const clientSecret = process.env.BRIDGE_CLIENT_SECRET || "sandbox_secret_9Qpn7gTnq1kwfD0mCtL5xSt0dK482tKjH5HZ8Bf1SoQgVH96kT7MtvP1uxq9xWXx";
+  // Le corps BRUT doit être lu avant tout parsing : la signature porte sur la
+  // chaîne exacte envoyée par Bridge, qu'un JSON.parse/stringify altérerait.
+  const rawBody = await request.text();
+  const signature = request.headers.get('BridgeApi-Signature');
+
+  if (!verifyBridgeSignature(rawBody, signature)) {
+    console.warn('Signature de webhook Bridge invalide : requête rejetée.');
+    return NextResponse.json({ error: 'Signature invalide.' }, { status: 401 });
+  }
 
   try {
-    const body = await request.json();
-    console.log("DEBUG: Bridge Webhook Received:", JSON.stringify(body, null, 2));
+    const { clientId, clientSecret } = getBridgeCredentials();
+
+    const body = JSON.parse(rawBody);
 
     const eventType = body.type || body.event;
     

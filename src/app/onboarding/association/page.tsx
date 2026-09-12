@@ -14,6 +14,7 @@ import { CheckCircle2, AlertCircle, Loader2 } from "lucide-react";
 
 import { useFirestore, useUser } from "@/firebase";
 import { setDocumentNonBlocking } from "@/firebase/non-blocking-updates";
+import { authedFetch } from "@/lib/api-client";
 import { Button } from "@/components/ui/button";
 import {
   Form,
@@ -65,7 +66,7 @@ export default function AssociationOnboardingPage() {
     setRnaAssociationName('');
 
     try {
-      const response = await fetch(`/api/rna/verify?rna=${encodeURIComponent(rnaNumber)}`);
+      const response = await authedFetch(`/api/rna/verify?rna=${encodeURIComponent(rnaNumber)}`);
       const data = await response.json();
 
       if (data.valid) {
