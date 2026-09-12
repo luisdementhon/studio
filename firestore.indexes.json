@@ -2,13 +2,6 @@
   "indexes": [
     {
       "collectionGroup": "donations",
-      "queryScope": "COLLECTION_GROUP",
-      "fields": [
-        { "fieldPath": "stripePaymentIntentId", "order": "ASCENDING" }
-      ]
-    },
-    {
-      "collectionGroup": "donations",
       "queryScope": "COLLECTION",
       "fields": [
         { "fieldPath": "type", "order": "ASCENDING" },
@@ -25,5 +18,24 @@
       ]
     }
   ],
-  "fieldOverrides": []
+  "fieldOverrides": [
+    {
+      "collectionGroup": "donations",
+      "fieldPath": "stripePaymentIntentId",
+      "indexes": [
+        { "order": "ASCENDING", "queryScope": "COLLECTION" },
+        { "order": "DESCENDING", "queryScope": "COLLECTION" },
+        { "order": "ASCENDING", "queryScope": "COLLECTION_GROUP" }
+      ]
+    },
+    {
+      "collectionGroup": "donations",
+      "fieldPath": "userId",
+      "indexes": [
+        { "order": "ASCENDING", "queryScope": "COLLECTION" },
+        { "order": "DESCENDING", "queryScope": "COLLECTION" },
+        { "order": "ASCENDING", "queryScope": "COLLECTION_GROUP" }
+      ]
+    }
+  ]
 }
