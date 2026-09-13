@@ -55,7 +55,15 @@ env:
   #   secret: RESEND_API_KEY
 
   # Commission dotly, en pourcentage. Valeur de pilotage, non secrète.
+  #
+  # Deux variables pour une seule valeur, à tenir IDENTIQUES : la version
+  # `NEXT_PUBLIC_` est celle que lit le navigateur pour afficher le taux au
+  # dashboard association. Sans elle, l'interface retombait sur son propre
+  # défaut codé en dur et annonçait un chiffre faux dès que le taux changeait.
   - variable: PLATFORM_FEE_PERCENT
+    value: "15"
+
+  - variable: NEXT_PUBLIC_PLATFORM_FEE_PERCENT
     value: "15"
 
   - variable: EMAIL_FROM

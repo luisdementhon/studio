@@ -30,7 +30,17 @@ export async function requireUser(request: Request): Promise<DecodedIdToken> {
 
   try {
     return await auth.verifyIdToken(match[1].trim());
-  } catch {
+  } catch (error: any) {
+    // Une erreur de configuration du serveur (projet introuvable, credentials
+    // absentes) n'est pas une session expirée. Répondre 401 envoyait le
+    // visiteur se reconnecter en boucle pour un problème qui n'est pas le
+    // sien, et masquait la panne côté exploitation.
+    const message = String(error?.message ?? '');
+    if (/Project Id|credential|Could not load the default/i.test(message)) {
+      console.error("Configuration Firebase Admin invalide :", message);
+      throw new ApiAuthError(500, "Le service d'authentification est indisponible.");
+    }
+
     throw new ApiAuthError(401, 'Session invalide ou expirée. Veuillez vous reconnecter.');
   }
 }

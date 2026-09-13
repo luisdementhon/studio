@@ -96,6 +96,9 @@ export async function POST(request: NextRequest) {
  */
 const CLAIM_STALE_AFTER_MS = 15 * 60 * 1000;
 
+/** Plafond de repli, aligné sur la valeur par défaut du formulaire. */
+const DEFAULT_MANDATE_CEILING = 50;
+
 async function claimEvent(event: Stripe.Event): Promise<boolean> {
   const eventRef = db.collection('stripe_events').doc(event.id);
 
@@ -159,7 +162,22 @@ async function handleSetupIntentSucceeded(setupIntent: Stripe.SetupIntent) {
   // qu'écrivait le client.
   const paymentMethod = await stripe.paymentMethods.retrieve(paymentMethodId);
 
-  await db.collection('users').doc(userId).set(
+  const userRef = db.collection('users').doc(userId);
+  const userSnap = await userRef.get();
+  const alreadySigned = userSnap.data()?.mandateSignedAt != null;
+
+  // `mandateCeiling` est le plafond du mandat signé, et la seule borne que le
+  // règlement mensuel accepte. Il doit TOUJOURS porter un nombre : écrire
+  // `null` quand la metadata manque faisait retomber le règlement sur
+  // `donationCeiling`, champ de formulaire modifiable par le donateur — donc
+  // un plafond que le titulaire du mandat pouvait relever lui-même.
+  const metadataCeiling = Number(setupIntent.metadata?.mandateCeiling);
+  const ceiling =
+    Number.isFinite(metadataCeiling) && metadataCeiling > 0
+      ? metadataCeiling
+      : Number(userSnap.data()?.donationCeiling) || DEFAULT_MANDATE_CEILING;
+
+  await userRef.set(
     {
       paymentMethodLinked: true,
       stripeSetupIntentId: setupIntent.id,
@@ -167,7 +185,7 @@ async function handleSetupIntentSucceeded(setupIntent: Stripe.SetupIntent) {
       cardBrand: paymentMethod.card?.brand ?? null,
       cardLast4: paymentMethod.card?.last4 ?? null,
       mandateSignedAt: admin.firestore.FieldValue.serverTimestamp(),
-      mandateCeiling: Number(setupIntent.metadata?.mandateCeiling ?? 0) || null,
+      mandateCeiling: ceiling,
       mandateNeedsReauth: false,
       updatedAt: admin.firestore.FieldValue.serverTimestamp(),
     },
@@ -176,14 +194,11 @@ async function handleSetupIntentSucceeded(setupIntent: Stripe.SetupIntent) {
 
   console.log(`✅ Mandat enregistré pour ${userId} (${paymentMethod.card?.brand} ••••${paymentMethod.card?.last4})`);
 
-  const userSnap = await db.collection('users').doc(userId).get();
   const email = userSnap.data()?.email;
-  if (email) {
-    await sendMandateConfirmedEmail(
-      email,
-      Number(setupIntent.metadata?.mandateCeiling ?? 0),
-      paymentMethod.card?.last4
-    );
+  // Un rejeu de l'event ne doit pas renvoyer une seconde confirmation de
+  // mandat : le verrou `stripe_events` est repris passé 15 min.
+  if (email && !alreadySigned) {
+    await sendMandateConfirmedEmail(email, ceiling, paymentMethod.card?.last4);
   }
 }
 
@@ -268,18 +283,33 @@ async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent) {
     });
   }
 
-  // Miroir côté association (lu par les dashboards association)
-  await assoRef.collection('donations').doc(paymentIntent.id).set(donationData);
+  // Miroir côté association (lu par les dashboards association) et cumul.
+  //
+  // `increment` est atomique mais PAS idempotent : le rejouer ajoute une
+  // seconde fois le montant. Le verrou `stripe_events` ne suffit pas — il est
+  // repris au bout de 15 min pour ne pas perdre un event dont le process est
+  // mort, et la seconde relance de Stripe arrive après ce délai. On
+  // conditionne donc l'incrément à la première écriture du miroir, dans la
+  // même transaction : c'est le miroir, dont l'identifiant est celui du
+  // PaymentIntent, qui porte l'idempotence.
+  const mirrorRef = assoRef.collection('donations').doc(paymentIntent.id);
 
-  // Incrément atomique : un read-then-write double-comptait en cas de
-  // livraisons concurrentes.
-  await assoRef.set(
-    {
-      totalReceived: admin.firestore.FieldValue.increment(amount),
-      lastDonationDate: admin.firestore.FieldValue.serverTimestamp(),
-    },
-    { merge: true }
-  );
+  await db.runTransaction(async (tx) => {
+    const existing = await tx.get(mirrorRef);
+
+    tx.set(mirrorRef, donationData, { merge: true });
+
+    if (existing.exists) return;
+
+    tx.set(
+      assoRef,
+      {
+        totalReceived: admin.firestore.FieldValue.increment(amount),
+        lastDonationDate: admin.firestore.FieldValue.serverTimestamp(),
+      },
+      { merge: true }
+    );
+  });
 
   console.log(`✅ Donation recorded: ${amount}€ from ${metadata.userId} to ${metadata.associationId}`);
 }
@@ -303,6 +333,11 @@ async function settleRoundupBatch(
   const batchRef = db.collection('monthly_batches').doc(batchId);
   const batchSnap = await batchRef.get();
   const roundupIds: string[] = batchSnap.data()?.roundupIds ?? [];
+
+  // Le batch porte la trace du récapitulatif déjà envoyé : le verrou d'event
+  // étant repris au bout de 15 min, un rejeu de Stripe enverrait sinon un
+  // second « vos arrondis ont été prélevés » pour le même prélèvement.
+  const alreadySettled = batchSnap.data()?.recapEmailSentAt != null;
 
   const donationsRef = db.collection('users').doc(metadata.userId!).collection('donations');
 
@@ -348,13 +383,17 @@ async function settleRoundupBatch(
   // deviennent un impact concret pour le donateur.
   const userSnap = await db.collection('users').doc(metadata.userId!).get();
   const email = userSnap.data()?.email;
-  if (email) {
+  if (email && !alreadySettled) {
     await sendMonthlyRecapEmail(email, {
       amount: donationData.amount as number,
       associationName: metadata.associationName || 'votre association',
       period,
       roundupCount: roundupIds.length,
     });
+    await batchRef.set(
+      { recapEmailSentAt: admin.firestore.FieldValue.serverTimestamp() },
+      { merge: true }
+    );
   }
 }
 
@@ -385,7 +424,10 @@ async function handlePaymentFailed(paymentIntent: Stripe.PaymentIntent) {
     .set(failureData);
 
   if (metadata.type === 'roundup_batch' && metadata.batchId) {
-    await db.collection('monthly_batches').doc(metadata.batchId).set(
+    const batchRef = db.collection('monthly_batches').doc(metadata.batchId);
+    const batchSnap = await batchRef.get();
+
+    await batchRef.set(
       {
         status: 'failed',
         failureReason: failureData.failureReason,
@@ -393,6 +435,21 @@ async function handlePaymentFailed(paymentIntent: Stripe.PaymentIntent) {
       },
       { merge: true }
     );
+
+    // Le règlement mensuel sort les arrondis du vivier `pending` dès qu'il
+    // les engage dans un paiement. Le paiement ayant échoué, il faut les y
+    // remettre, sans quoi ils ne seraient plus jamais prélevés.
+    const failedRoundups: string[] = batchSnap.data()?.roundupIds ?? [];
+    if (failedRoundups.length > 0) {
+      const donationsRef = db.collection('users').doc(metadata.userId).collection('donations');
+      for (let i = 0; i < failedRoundups.length; i += 400) {
+        const writer = db.batch();
+        for (const id of failedRoundups.slice(i, i + 400)) {
+          writer.set(donationsRef.doc(id), { status: 'pending', batchId: null }, { merge: true });
+        }
+        await writer.commit();
+      }
+    }
 
     // La carte demande une ré-authentification : le mandat doit être resigné.
     const needsReauth = paymentIntent.last_payment_error?.code === 'authentication_required';

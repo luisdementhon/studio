@@ -156,11 +156,36 @@ export default function AssociationDashboardPage() {
     let totalFunds = 0;
     const donorIds = new Set<string>();
     
+    // Le graphe suit le sélecteur de période. Il était figé sur 7 jours :
+    // cliquer « 30j », « 1an » ou « Tout » changeait la pastille active sans
+    // rien changer à la courbe.
+    const monthly = activePeriod === '1an' || activePeriod === 'Tout';
+    const bucketKey = (d: Date) => format(d, monthly ? 'yyyy-MM' : 'yyyy-MM-dd');
+
     const donationsByDay: {[key: string]: number} = {};
     const today = new Date();
-    for (let i = 0; i < 7; i++) {
-        const day = subDays(today, i);
-        donationsByDay[format(day, 'yyyy-MM-dd')] = 0;
+
+    if (monthly) {
+        // « Tout » n'a pas de borne fixe : on part du don le plus ancien.
+        let oldest = today;
+        donations.forEach(d => {
+            const date = toDate((d as any).transactionDate);
+            if (date < oldest) oldest = date;
+        });
+        const monthsBack = activePeriod === '1an'
+            ? 12
+            : Math.min(
+                120,
+                Math.max(1, (today.getFullYear() - oldest.getFullYear()) * 12 + today.getMonth() - oldest.getMonth() + 1)
+              );
+        for (let i = 0; i < monthsBack; i++) {
+            donationsByDay[format(new Date(today.getFullYear(), today.getMonth() - i, 1), 'yyyy-MM')] = 0;
+        }
+    } else {
+        const days = activePeriod === '30j' ? 30 : 7;
+        for (let i = 0; i < days; i++) {
+            donationsByDay[format(subDays(today, i), 'yyyy-MM-dd')] = 0;
+        }
     }
 
     donations.forEach(donation => {
@@ -181,7 +206,7 @@ export default function AssociationDashboardPage() {
         lastMonthFunds += amount;
       }
 
-      const dayKey = safeFormat(donationDate, 'yyyy-MM-dd');
+      const dayKey = isValid(donationDate) ? bucketKey(donationDate) : "—";
       if (dayKey !== "—" && dayKey in donationsByDay) {
           donationsByDay[dayKey] += amount;
       }
@@ -192,9 +217,11 @@ export default function AssociationDashboardPage() {
     const averageDonation = countedDonations > 0 ? totalFunds / countedDonations : 0;
 
     const chartData = Object.keys(donationsByDay).map(dateKey => {
-        const dateObj = new Date(dateKey);
+        // Une clé mensuelle 'yyyy-MM' doit être complétée, sinon `new Date`
+        // l'interprète en UTC et le mois peut basculer d'un cran.
+        const dateObj = new Date(monthly ? `${dateKey}-01` : dateKey);
         return {
-            date: safeFormat(dateObj, 'dd/MM', { locale: fr }),
+            date: safeFormat(dateObj, monthly ? 'MMM yy' : 'dd/MM', { locale: fr }),
             total: donationsByDay[dateKey],
         };
     }).reverse();
@@ -211,7 +238,22 @@ export default function AssociationDashboardPage() {
     });
 
     return { monthlyFunds, monthlyFundsGrowth, uniqueDonors: donorIds.size, averageDonation, totalFunds, chartData, recentDonors };
-  }, [donations]);
+  }, [donations, activePeriod]);
+
+  // Le titre du graphe doit suivre la période, sinon « Évolution hebdomadaire /
+  // 7 derniers jours » restait affiché au-dessus d'une courbe annuelle.
+  const { chartTitle, chartSubtitle } = useMemo(() => {
+    switch (activePeriod) {
+      case '30j':
+        return { chartTitle: 'Évolution mensuelle', chartSubtitle: 'Dons collectés par jour sur les 30 derniers jours' };
+      case '1an':
+        return { chartTitle: 'Évolution annuelle', chartSubtitle: 'Dons collectés par mois sur les 12 derniers mois' };
+      case 'Tout':
+        return { chartTitle: 'Évolution complète', chartSubtitle: 'Dons collectés par mois depuis votre inscription' };
+      default:
+        return { chartTitle: 'Évolution hebdomadaire', chartSubtitle: 'Dons collectés par jour sur les 7 derniers jours' };
+    }
+  }, [activePeriod]);
 
   useEffect(() => {
     // setDate(1) AVANT setMonth : sinon le 31 janvier + 1 mois donne un
@@ -378,8 +420,8 @@ export default function AssociationDashboardPage() {
         <div className="lg:col-span-8 bg-foreground text-white rounded-[3rem] p-10 shadow-xl overflow-hidden relative min-h-[440px]">
           <div className="flex justify-between items-start mb-10">
             <div>
-              <h3 className="text-2xl font-headline font-extrabold tracking-tight">Évolution hebdomadaire</h3>
-              <p className="text-white/40 text-sm font-headline font-light mt-1">Dons collectés par jour sur les 7 derniers jours</p>
+              <h3 className="text-2xl font-headline font-extrabold tracking-tight">{chartTitle}</h3>
+              <p className="text-white/40 text-sm font-headline font-light mt-1">{chartSubtitle}</p>
             </div>
             <div className="h-10 w-10 rounded-full bg-white/10 flex items-center justify-center">
               <ArrowRight className="w-4 h-4" />

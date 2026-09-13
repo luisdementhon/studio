@@ -5,12 +5,12 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import type { z } from "zod";
 import { useTransition, useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { doc, getDoc, collection, getDocs, query, limit } from "firebase/firestore";
+import { doc, getDoc, setDoc, collection, getDocs, query, limit } from "firebase/firestore";
 import Link from "next/link";
 
 import { useToast } from "@/hooks/use-toast";
 import { UserOnboardingSchema } from "@/lib/schemas";
-import { useFirestore, useUser, setDocumentNonBlocking } from "@/firebase";
+import { useFirestore, useUser } from "@/firebase";
 import { authedFetch } from "@/lib/api-client";
 
 import { Button } from "@/components/ui/button";
@@ -104,6 +104,30 @@ export default function UserOnboardingPage() {
     },
   });
 
+  // Réhydratation du formulaire depuis le profil existant.
+  //
+  // On revient sur cette page par le lien « ?step= », ou simplement parce que
+  // le parcours n'a pas été terminé. Le formulaire repartait alors de ses
+  // valeurs par défaut : re-valider l'étape 1 effaçait les causes, les
+  // associations et le plafond déjà choisis, sans que rien ne l'indique.
+  const [formHydrated, setFormHydrated] = useState(false);
+
+  useEffect(() => {
+    if (!dbUser || formHydrated) return;
+
+    const fullName = [dbUser.firstName, dbUser.lastName].filter(Boolean).join(' ');
+
+    form.reset({
+      fullName: fullName || '',
+      causes: dbUser.causes ?? [],
+      associations: dbUser.associations ?? [],
+      donationCeiling: dbUser.donationCeiling ?? 50,
+      donationMultiplier: dbUser.donationMultiplier ?? 1,
+      otherCause: dbUser.otherCause ?? '',
+    });
+    setFormHydrated(true);
+  }, [dbUser, form, formHydrated]);
+
   const watchedCauses = form.watch("causes", []) ?? [];
   const watchedAssociations = form.watch("associations", []) ?? [];
 
@@ -124,9 +148,13 @@ export default function UserOnboardingPage() {
       return;
     }
 
-    startTransition(() => {
+    startTransition(async () => {
       const { fullName, ...preferences } = values;
-      const [firstName, ...lastNameParts] = (fullName || '').split(' ');
+      // `trim()` avant le découpage : un nom saisi avec une espace initiale
+      // passe la validation Zod mais donnerait un `firstName` vide — or c'est
+      // ce champ qui atteste que l'onboarding a été fait. L'utilisateur serait
+      // renvoyé ici indéfiniment.
+      const [firstName, ...lastNameParts] = (fullName || '').trim().split(/\s+/);
       const lastName = lastNameParts.join(' ');
 
       const userProfile = {
@@ -136,11 +164,21 @@ export default function UserOnboardingPage() {
         lastName,
         ...preferences,
       };
-      
-      const userDocRef = doc(firestore, "users", user.uid);
-      setDocumentNonBlocking(userDocRef, userProfile, { merge: true });
 
-      setStep(2);
+      // Écriture ATTENDUE, et non « non bloquante » : c'est elle qui pose
+      // `firstName`, sur lequel /auth/loading et /dashboard s'appuient pour
+      // décider que l'onboarding est terminé. Un échec silencieux enfermait
+      // l'utilisateur dans une boucle de retour sur cette page, sans message.
+      try {
+        await setDoc(doc(firestore, "users", user.uid), userProfile, { merge: true });
+        setStep(2);
+      } catch (error) {
+        toast({
+          title: "Enregistrement impossible",
+          description: "Vos informations n'ont pas pu être sauvegardées. Vérifiez votre connexion et réessayez.",
+          variant: "destructive",
+        });
+      }
     });
   }
 

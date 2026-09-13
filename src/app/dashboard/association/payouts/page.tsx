@@ -32,6 +32,9 @@ const safeFormat = (date: any, formatStr: string, options?: any) => {
   }
 };
 
+/** Nombre de versements chargés : borne la requête ET le total affiché. */
+const PAYOUTS_SHOWN = 50;
+
 export default function AssociationPayoutsPage() {
   const { user } = useUser();
   const firestore = useFirestore();
@@ -42,7 +45,7 @@ export default function AssociationPayoutsPage() {
     return query(
       collection(firestore, 'associations', user.uid, 'payouts'),
       orderBy('date', 'desc'),
-      limit(50)
+      limit(PAYOUTS_SHOWN)
     );
   }, [firestore, user]);
 
@@ -90,7 +93,13 @@ export default function AssociationPayoutsPage() {
               <div className="text-4xl font-headline font-extrabold text-brand-mint">
                   {(payoutsList.reduce((acc, p) => acc + Number(p.amount || 0), 0)).toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' })}
               </div>
-              <p className="text-xs text-muted-foreground mt-2 font-medium">Depuis votre inscription</p>
+              {/* La requête est bornée à 50 versements : annoncer « depuis votre
+                  inscription » sur un total tronqué serait faux. */}
+              <p className="text-xs text-muted-foreground mt-2 font-medium">
+                {payoutsList.length >= PAYOUTS_SHOWN
+                  ? `Sur les ${PAYOUTS_SHOWN} derniers versements`
+                  : 'Depuis votre inscription'}
+              </p>
           </Card>
           <Card className="rounded-[2.5rem] border-none bg-brand-coral/5 border-2 border-brand-coral/10 p-8">
               <div className="flex items-center gap-2 mb-4">

@@ -44,9 +44,12 @@ export function PaymentMethodSection() {
     }
   }, [user, firestore]);
 
-  const handleSubmit = async (event: React.FormEvent) => {
-    event.preventDefault();
-
+  // Pas un `onSubmit` de formulaire : ce composant est inséré au milieu du
+  // formulaire de préférences de la page Profil. Un <form> imbriqué dans un
+  // <form> est interdit en HTML — le navigateur supprimait le formulaire
+  // intérieur au parsing, et « Enregistrer ma carte » soumettait les
+  // préférences au lieu d'enregistrer la carte.
+  const handleSubmit = async () => {
     if (!stripe || !elements || !user) return;
 
     setIsProcessing(true);
@@ -106,7 +109,13 @@ export function PaymentMethodSection() {
         <div>
           <h3 className="text-xl font-bold text-foreground">Moyen de paiement actif</h3>
           <p className="text-muted-foreground font-medium mt-1">
-            {cardInfo?.brand} se terminant par •••• {cardInfo?.last4 || "****"}
+            {/* Les détails de carte arrivent par le webhook Stripe, quelques
+                secondes après la signature. En attendant, dire que le mandat
+                est actif plutôt qu'afficher « •••• **** », qui donnait
+                l'impression d'un enregistrement raté. */}
+            {cardInfo?.last4
+              ? `${cardInfo.brand ? cardInfo.brand.charAt(0).toUpperCase() + cardInfo.brand.slice(1) : 'Carte'} se terminant par •••• ${cardInfo.last4}`
+              : 'Votre mandat est enregistré. Les détails de la carte apparaîtront dans quelques instants.'}
           </p>
         </div>
       </div>
@@ -116,7 +125,7 @@ export function PaymentMethodSection() {
   return (
     <div className="space-y-8">
       <div className="bg-muted/20 rounded-[2rem] p-8 border-2 border-dashed border-muted/50">
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <div className="space-y-6">
           <div className="flex items-center gap-4 mb-2">
             <div className="h-12 w-12 rounded-xl bg-white flex items-center justify-center shadow-md">
               <CreditCard className="h-6 w-6 text-brand-coral" />
@@ -153,7 +162,8 @@ export function PaymentMethodSection() {
           </div>
 
           <Button
-            type="submit"
+            type="button"
+            onClick={handleSubmit}
             disabled={!stripe || isProcessing}
             className="w-full h-14 rounded-xl text-base font-bold shadow-lg shadow-brand-coral/10"
             variant="vibrant"
@@ -167,7 +177,7 @@ export function PaymentMethodSection() {
               "Enregistrer ma carte"
             )}
           </Button>
-        </form>
+        </div>
       </div>
     </div>
   );

@@ -36,7 +36,7 @@ export async function POST(request: Request) {
   }
 
   const url = new URL(request.url);
-  const { period, start, end } = resolvePeriod(url.searchParams.get('period'));
+  const { period, end } = resolvePeriod(url.searchParams.get('period'));
 
   // Verrou de période : un second appel sur le même mois ne re-prélève pas.
   const runRef = db.collection('settlement_runs').doc(period);
@@ -158,9 +158,22 @@ export async function POST(request: Request) {
         const amountInCents = Math.round(chargeable * 100);
         const batchId = `${userId}_${associationId}_${period}`;
         const batchRef = db.collection('monthly_batches').doc(batchId);
+        const donationsRef = db.collection('users').doc(userId).collection('donations');
+
+        // Un batch déjà engagé ne se rejoue pas. La clé d'idempotence Stripe
+        // ne protégeait que 24 h (c'est sa durée de rétention) : au-delà, une
+        // relance de la même période aurait recréé un paiement et écrasé un
+        // batch `succeeded` en `processing`.
+        const existingBatch = await batchRef.get();
+        if (existingBatch.exists && existingBatch.data()?.status !== 'failed') {
+          report.skipped++;
+          continue;
+        }
 
         // Le batch est écrit AVANT le paiement : le webhook doit pouvoir
         // retrouver la liste des arrondis à solder.
+        const roundupIds = affordable.map((item) => item.id);
+
         await batchRef.set({
           batchId,
           userId,
@@ -168,10 +181,23 @@ export async function POST(request: Request) {
           period,
           amount: chargeable,
           // Uniquement les arrondis réellement couverts par ce paiement.
-          roundupIds: affordable.map((item) => item.id),
+          roundupIds,
           status: 'processing',
           createdAt: admin.firestore.FieldValue.serverTimestamp(),
         });
+
+        // Les arrondis sortent du vivier `pending` dès qu'ils sont engagés
+        // dans un paiement, et non à la réception du webhook. Si ce webhook se
+        // perd définitivement alors que le donateur a bien été débité, les
+        // laisser `pending` les ferait resélectionner le mois suivant sous un
+        // nouvel identifiant de batch — donc une nouvelle clé d'idempotence,
+        // donc un SECOND débit pour les mêmes arrondis. Ils sont remis en
+        // `pending` par le webhook en cas d'échec avéré du paiement.
+        const claim = db.batch();
+        for (const id of roundupIds) {
+          claim.set(donationsRef.doc(id), { status: 'processing', batchId }, { merge: true });
+        }
+        await claim.commit();
 
         try {
           await stripe.paymentIntents.create(
@@ -213,6 +239,14 @@ export async function POST(request: Request) {
             },
             { merge: true }
           );
+
+          // Le paiement n'a pas eu lieu : les arrondis redeviennent
+          // prélevables, sinon ils resteraient bloqués en `processing`.
+          const release = db.batch();
+          for (const id of roundupIds) {
+            release.set(donationsRef.doc(id), { status: 'pending', batchId: null }, { merge: true });
+          }
+          await release.commit();
 
           // La carte exige une authentification forte : le mandat doit être
           // resigné par le donateur, les arrondis restent en attente.

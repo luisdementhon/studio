@@ -4,6 +4,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import type { z } from "zod";
 import { useEffect, useTransition, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
 import { UserOnboardingSchema } from "@/lib/schemas";
 import { Button } from "@/components/ui/button";
@@ -45,7 +46,18 @@ const causes = [
   { id: 'social', label: 'Inclusion sociale' },
 ];
 
+const PROFILE_TABS = ['preferences', 'connexions', 'infos'] as const;
+
 export default function UserProfilePage() {
+  // « Connecter ma banque », depuis l'historique, pointe sur ?tab=connexions.
+  // Sans cette lecture le lien retombait sur l'onglet Préférences et la page
+  // semblait ignorer le clic.
+  const searchParams = useSearchParams();
+  const requestedTab = searchParams.get('tab');
+  const initialTab = PROFILE_TABS.includes(requestedTab as (typeof PROFILE_TABS)[number])
+    ? (requestedTab as string)
+    : 'preferences';
+
   const [isPending, startTransition] = useTransition();
   const [photoURL, setPhotoURL] = useState<string | null>(null);
   const { toast } = useToast();
@@ -234,7 +246,7 @@ export default function UserProfilePage() {
 
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)}>
-          <Tabs defaultValue="preferences" className="w-full space-y-12">
+          <Tabs defaultValue={initialTab} className="w-full space-y-12">
             <TabsList className="bg-muted/20 p-2 rounded-[2rem] h-auto flex flex-wrap md:flex-nowrap gap-2 w-fit">
               <TabsTrigger value="preferences" className="rounded-[1.5rem] px-8 py-4 data-[state=active]:bg-white data-[state=active]:shadow-xl data-[state=active]:shadow-black/[0.03] text-base font-bold transition-all">Préférences</TabsTrigger>
               <TabsTrigger value="connexions" className="rounded-[1.5rem] px-8 py-4 data-[state=active]:bg-white data-[state=active]:shadow-xl data-[state=active]:shadow-black/[0.03] text-base font-bold transition-all">Comptes</TabsTrigger>

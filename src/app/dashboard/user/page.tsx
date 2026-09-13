@@ -4,7 +4,7 @@
 export const dynamic = 'force-dynamic';
 
 import Link from 'next/link';
-import { HandHeart, PiggyBank, Coins, ShieldCheck, Landmark, Calendar, Heart, Receipt } from 'lucide-react';
+import { HandHeart, PiggyBank, Coins, ShieldCheck, Landmark, Calendar, Heart, Receipt, AlertCircle } from 'lucide-react';
 import {
   Card,
   CardContent,
@@ -29,7 +29,6 @@ import {
 } from '@/components/ui/chart';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Tooltip } from 'recharts';
 import { useDoc, useFirestore, useUser, useCollection } from '@/firebase';
-import { authedFetch } from '@/lib/api-client';
 import { doc, collection, getDocs, query, limit, orderBy } from 'firebase/firestore';
 import { Skeleton } from '@/components/ui/skeleton';
 import { DonationForm } from '@/components/donation-form';
@@ -62,13 +61,22 @@ const causesLabels: { [key: string]: string } = {
 
 type Period = '7j' | '30j' | '1an';
 
+/** Une tuile de KPI. `isCount` distingue un compteur d'un montant en euros. */
+type Kpi = {
+  title: string;
+  value: number;
+  icon: typeof PiggyBank;
+  color: string;
+  sub: string;
+  isCount?: boolean;
+};
+
 export default function UserDashboardPage() {
   const { user, isUserLoading } = useUser();
   const firestore = useFirestore();
   const [associations, setAssociations] = useState<Association[]>([]);
   const [associationsLoading, setAssociationsLoading] = useState(true);
   const [period, setPeriod] = useState<Period>('30j');
-  const [weeklyRoundups, setWeeklyRoundups] = useState(0);
 
 
   // 1. Fetch user profile
@@ -111,34 +119,6 @@ export default function UserDashboardPage() {
     fetchAssociations();
   }, [firestore]);
 
-  const [bridgeData, setBridgeData] = useState<{ totalDonations: number, transactions: any[] } | null>(null);
-  const [bridgeLoading, setBridgeLoading] = useState(false);
-
-  // 4. Fetch real bridge transactions for roundups
-  useEffect(() => {
-    if (user?.email && userData?.bankConnected) {
-      async function fetchBridgeTransactions() {
-        setBridgeLoading(true);
-        try {
-          const response = await authedFetch("/api/bridge/transactions", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({}),
-          });
-          if (response.ok) {
-            const data = await response.json();
-            setBridgeData(data);
-          }
-        } catch (error) {
-          console.error("Failed to fetch bridge transactions:", error);
-        } finally {
-          setBridgeLoading(false);
-        }
-      }
-      fetchBridgeTransactions();
-    }
-  }, [user, userData]);
-
   // 5. Calculate KPIs and Chart Data based on period
   const {
     totalDonations,
@@ -148,8 +128,6 @@ export default function UserDashboardPage() {
     recentDonations,
     userCauses
   } = useMemo(() => {
-
-    const bridgeTotal = bridgeData?.totalDonations || 0;
 
     if (!donations) {
         return { totalDonations: 0, pendingRoundups: 0, taxDeductibleAmount: 0, chartData: [], recentDonations: [], userCauses: null };
@@ -226,11 +204,45 @@ export default function UserDashboardPage() {
 
   }, [donations, associations, userData, period]);
 
-  useEffect(() => {
-    setWeeklyRoundups((totalDonations / 4) * 0.8);
-  }, [totalDonations]);
-
   const isLoading = isUserLoading || isProfileLoading || isDonationsLoading;
+
+  // Les trois conditions sans lesquelles la chaîne de l'arrondi ne démarre
+  // pas. L'ordre est celui du parcours : banque, puis mandat, puis
+  // bénéficiaire.
+  const setupSteps = useMemo(() => {
+    if (!userData) return [];
+    const steps: { label: string; href: string; cta: string }[] = [];
+
+    if (!(userData as any).bankConnected) {
+      steps.push({
+        label: 'Connecter votre compte bancaire, pour détecter vos paiements',
+        href: '/dashboard/user/profile?tab=connexions',
+        cta: 'Connecter ma banque',
+      });
+    }
+    if (!(userData as any).paymentMethodLinked) {
+      steps.push({
+        label: 'Enregistrer une carte et signer votre mandat de prélèvement',
+        href: '/dashboard/user/profile?tab=connexions',
+        cta: 'Enregistrer ma carte',
+      });
+    }
+    if (!((userData as any).associations?.length)) {
+      steps.push({
+        label: 'Choisir au moins une association bénéficiaire',
+        href: '/dashboard/user/associations',
+        cta: 'Choisir une association',
+      });
+    }
+    if ((userData as any).mandateNeedsReauth) {
+      steps.push({
+        label: 'Confirmer à nouveau votre carte : votre banque a demandé une authentification',
+        href: '/dashboard/user/profile?tab=connexions',
+        cta: 'Reconfirmer ma carte',
+      });
+    }
+    return steps;
+  }, [userData]);
 
   return (
     <div className="flex flex-col gap-10 pb-16">
@@ -271,14 +283,49 @@ export default function UserDashboardPage() {
         </div>
       </div>
 
+      {/* Compte incomplet : sans banque, sans mandat ou sans association, pas
+          un seul arrondi ne sera jamais collecté. Le tableau de bord affichait
+          des zéros sans jamais dire pourquoi. */}
+      {!isLoading && setupSteps.length > 0 && (
+        <div className="rounded-[2rem] border-2 border-brand-coral/20 bg-brand-coral/5 p-8 animate-cascade" style={{ animationDelay: '150ms' }}>
+          <div className="flex flex-col md:flex-row md:items-center gap-6 justify-between">
+            <div className="flex gap-5">
+              <div className="h-12 w-12 shrink-0 rounded-2xl bg-brand-coral flex items-center justify-center shadow-lg shadow-brand-coral/20">
+                <AlertCircle className="h-6 w-6 text-white" />
+              </div>
+              <div className="space-y-2">
+                <h3 className="text-xl font-bold text-foreground">
+                  Votre compte n'est pas encore actif
+                </h3>
+                <p className="text-muted-foreground font-medium">
+                  Tant que ces étapes ne sont pas terminées, aucun arrondi n'est collecté :
+                </p>
+                <ul className="space-y-1 text-sm font-medium text-foreground/80">
+                  {setupSteps.map((step) => (
+                    <li key={step.label} className="flex items-center gap-2">
+                      <span className="h-1.5 w-1.5 rounded-full bg-brand-coral" />
+                      {step.label}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+            <Button asChild className="rounded-2xl h-12 px-8 font-bold shrink-0 bg-brand-coral hover:bg-brand-coral/90 text-white">
+              <Link href={setupSteps[0].href}>{setupSteps[0].cta}</Link>
+            </Button>
+          </div>
+        </div>
+      )}
+
       {/* KPI Cards */}
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-        {[
+        {([
           { title: 'Dons Versés', value: totalDonations, icon: PiggyBank, color: 'mint', sub: 'Total déjà reversé' },
-          { title: 'Arrondis en cours', value: pendingRoundups, icon: Coins, color: 'coral', sub: 'Calculé en temps réel', isLoading: bridgeLoading },
-          { title: 'Associations', value: userCauses?.associations?.length || 0, icon: Heart, color: 'teal', sub: 'Soutenues activement' },
+          { title: 'Arrondis en cours', value: pendingRoundups, icon: Coins, color: 'coral', sub: 'Seront prélevés en fin de mois' },
+          // `isCount` : sans lui, 1 association s'affichait « 1,00 € ».
+          { title: 'Associations', value: userCauses?.associations?.length || 0, icon: Heart, color: 'teal', sub: 'Soutenues activement', isCount: true },
           { title: 'Réduction Fiscale', value: taxDeductibleAmount, icon: ShieldCheck, color: 'lavender', sub: 'Potentiel déductible (66%)' },
-        ].map((kpi, i) => (
+        ] satisfies Kpi[]).map((kpi, i) => (
           i === 1 ? (
             <Link key={i} href="/dashboard/user/history" className="block transition-transform hover:scale-[1.02] active:scale-[0.98] animate-cascade" style={{ animationDelay: `${200 + i * 100}ms` }}>
               <Card className="group rounded-[2.5rem] border-none shadow-xl shadow-black/[0.02] bg-white transition-all hover:shadow-2xl h-full">
@@ -291,11 +338,13 @@ export default function UserDashboardPage() {
                   </div>
                 </CardHeader>
                 <CardContent className="pt-4">
-                  {isLoading || kpi.isLoading ? (
+                  {isLoading ? (
                     <Skeleton className="h-10 w-2/3" />
                   ) : (
                     <div className="text-4xl font-headline font-extrabold text-foreground tabular-nums">
-                      {kpi.value?.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' }) || "0,00 €"}
+                      {kpi.isCount
+                        ? kpi.value
+                        : kpi.value?.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' }) || "0,00 €"}
                     </div>
                   )}
                   <p className="text-xs text-muted-foreground/60 font-medium mt-3 flex items-center gap-1">
@@ -315,11 +364,13 @@ export default function UserDashboardPage() {
               </div>
             </CardHeader>
             <CardContent className="pt-4">
-              {isLoading || kpi.isLoading ? (
+              {isLoading ? (
                 <Skeleton className="h-10 w-2/3" />
               ) : (
                 <div className="text-4xl font-headline font-extrabold text-foreground tabular-nums">
-                  {(kpi.value || 0).toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' })}
+                  {kpi.isCount
+                    ? kpi.value || 0
+                    : (kpi.value || 0).toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' })}
                 </div>
               )}
               <p className="text-xs text-muted-foreground/60 font-medium mt-3 flex items-center gap-1">

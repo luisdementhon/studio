@@ -184,9 +184,11 @@ export async function POST(request: Request) {
           continue;
         }
 
-        // Plafond mensuel : c'est la borne du mandat signé. On somme ce qui
-        // est déjà en attente ce mois-ci avant d'accepter un arrondi de plus.
-        const ceiling = Number(userData.donationCeiling ?? 0);
+        // Plafond mensuel : c'est la borne du mandat signé qui fait foi, et
+        // non `donationCeiling`, que le donateur peut modifier dans son profil
+        // après signature. Repli sur le champ de formulaire tant qu'aucun
+        // mandat n'a été signé — aucun prélèvement n'est possible d'ici là.
+        const ceiling = Number(userData.mandateCeiling ?? userData.donationCeiling ?? 0);
         const pendingTotal = await sumPendingThisMonth(userId);
         const exceedsCeiling = ceiling > 0 && pendingTotal + finalDonation > ceiling;
 

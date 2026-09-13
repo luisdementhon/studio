@@ -49,7 +49,7 @@ export default function AssociationOnboardingPage() {
     },
   });
 
-  const [rnaStatus, setRnaStatus] = useState<'idle' | 'checking' | 'valid' | 'invalid'>('idle');
+  const [rnaStatus, setRnaStatus] = useState<'idle' | 'checking' | 'valid' | 'invalid' | 'unavailable'>('idle');
   const [rnaAssociationName, setRnaAssociationName] = useState<string>('');
   const [rnaError, setRnaError] = useState<string>('');
 
@@ -69,6 +69,16 @@ export default function AssociationOnboardingPage() {
       const response = await authedFetch(`/api/rna/verify?rna=${encodeURIComponent(rnaNumber)}`);
       const data = await response.json();
 
+      // Une panne de l'annuaire de l'État (503) n'est pas un RNA invalide.
+      // Le serveur le signale par `retryable`, mais sans ce test le message
+      // atterrissait dans la branche « invalide » et l'inscription restait
+      // bloquée pendant tout l'incident.
+      if (!response.ok && data.retryable) {
+        setRnaStatus('unavailable');
+        setRnaError(data.error || 'Vérification momentanément indisponible. Réessayez dans quelques minutes.');
+        return;
+      }
+
       if (data.valid) {
         setRnaStatus('valid');
         setRnaAssociationName(data.association.titre);
@@ -81,13 +91,21 @@ export default function AssociationOnboardingPage() {
         setRnaError(data.error || 'Numéro RNA non reconnu.');
       }
     } catch (error) {
-      setRnaStatus('invalid');
-      setRnaError('Impossible de vérifier le RNA. Réessayez.');
+      setRnaStatus('unavailable');
+      setRnaError('Impossible de joindre le service de vérification. Réessayez dans quelques minutes.');
     }
   }, [form]);
   function onSubmit(values: z.infer<typeof AssociationOnboardingSchema>) {
     if (!user) {
       toast({ title: "Erreur", description: "Vous devez être connecté pour créer une association.", variant: "destructive" });
+      return;
+    }
+    if (rnaStatus === 'unavailable') {
+      toast({
+        title: "Vérification indisponible",
+        description: "L'annuaire national des associations ne répond pas. Réessayez dans quelques minutes.",
+        variant: "destructive",
+      });
       return;
     }
     if (rnaStatus !== 'valid') {
@@ -192,7 +210,8 @@ export default function AssociationOnboardingPage() {
                             }}
                             className={`pr-10 ${
                               rnaStatus === 'valid' ? 'border-green-500 focus-visible:ring-green-500' :
-                              rnaStatus === 'invalid' ? 'border-red-500 focus-visible:ring-red-500' : ''
+                              rnaStatus === 'invalid' ? 'border-red-500 focus-visible:ring-red-500' :
+                              rnaStatus === 'unavailable' ? 'border-amber-500 focus-visible:ring-amber-500' : ''
                             }`}
                           />
                         </FormControl>
@@ -200,6 +219,7 @@ export default function AssociationOnboardingPage() {
                           {rnaStatus === 'checking' && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
                           {rnaStatus === 'valid' && <CheckCircle2 className="h-4 w-4 text-green-500" />}
                           {rnaStatus === 'invalid' && <AlertCircle className="h-4 w-4 text-red-500" />}
+                          {rnaStatus === 'unavailable' && <AlertCircle className="h-4 w-4 text-amber-500" />}
                         </div>
                       </div>
                       {rnaStatus === 'valid' && rnaAssociationName && (
@@ -210,6 +230,15 @@ export default function AssociationOnboardingPage() {
                       {rnaStatus === 'invalid' && rnaError && (
                         <p className="text-sm text-red-500 font-medium flex items-center gap-1 mt-1">
                           <AlertCircle className="h-3 w-3" /> {rnaError}
+                        </p>
+                      )}
+                      {rnaStatus === 'unavailable' && rnaError && (
+                        <p className="text-sm text-amber-600 font-medium flex items-start gap-1 mt-1">
+                          <AlertCircle className="h-3 w-3 mt-0.5 shrink-0" />
+                          <span>
+                            {rnaError} Votre numéro n'est pas en cause : l'annuaire national des
+                            associations ne répond pas.
+                          </span>
                         </p>
                       )}
                       <FormMessage />
@@ -262,8 +291,12 @@ export default function AssociationOnboardingPage() {
               <Button type="submit" disabled={isPending || !user} className="w-full" variant="vibrant" size="lg">
                 {isPending ? "Vérification..." : "Finaliser l'inscription →"}
               </Button>
+              {/* Pas de « passer cette étape » : sans ce formulaire aucun
+                  document association n'est créé, et le compte repartait à
+                  l'écran de choix de rôle à chaque connexion, sans jamais
+                  pouvoir être vérifié. Le seul retour possible est en arrière. */}
               <Button asChild variant="ghost" className="w-full text-muted-foreground">
-                <Link href="/dashboard/association">Passer cette étape</Link>
+                <Link href="/onboarding">Revenir au choix du profil</Link>
               </Button>
             </CardFooter>
           </form>
