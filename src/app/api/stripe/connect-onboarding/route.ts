@@ -18,7 +18,23 @@ export async function POST(request: Request) {
     const associationId = decoded.uid;
 
     const associationRef = db.collection('associations').doc(associationId);
-    const existingAccountId = (await associationRef.get()).data()?.stripeAccountId;
+    const associationSnap = await associationRef.get();
+
+    // Sans profil enregistré, le `set(..., { merge: true })` plus bas CRÉAIT
+    // la fiche : une association réduite à ses seuls champs Stripe, sans nom.
+    // Elle remontait ensuite dans la liste des bénéficiaires côté donateur, où
+    // son nom manquant faisait planter tout le tableau de bord.
+    //
+    // Refuser ici est aussi la règle métier : un compte qui encaisse des dons
+    // doit d'abord avoir passé la vérification RNA de /api/association/register.
+    if (!associationSnap.exists) {
+      return NextResponse.json(
+        { error: "Enregistrez d'abord le profil de votre association." },
+        { status: 409 }
+      );
+    }
+
+    const existingAccountId = associationSnap.data()?.stripeAccountId;
 
     // 1. Création du compte Stripe Connect Express — ou réutilisation, si
     // l'association avait abandonné l'onboarding en cours de route.

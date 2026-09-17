@@ -59,7 +59,11 @@ export default function AssociationsPage() {
       // Fetch all associations from collection
       const assocRef = collection(firestore, "associations");
       const unsubAssoc = onSnapshot(assocRef, (snap) => {
-        const assocs = snap.docs.map(d => ({ id: d.id, ...d.data() } as Association));
+        // Même règle que sur le tableau de bord : un profil sans nom n'est
+        // pas encore une association présentable à un donateur.
+        const assocs = snap.docs
+          .map(d => ({ id: d.id, ...d.data() } as Association))
+          .filter(a => Boolean(a.associationName));
         setAllAssociations(assocs);
         setLoading(false);
       });

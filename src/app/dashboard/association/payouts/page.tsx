@@ -16,21 +16,11 @@ import {
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { CreditCard, ArrowDownRight, CheckCircle2, Clock, Info } from "lucide-react";
-import { format, subDays, startOfDay, isAfter, isValid } from "date-fns";
+import { subDays, startOfDay, isAfter } from "date-fns";
 import { fr } from "date-fns/locale";
 import { Badge } from "@/components/ui/badge";
-import { toDate } from "@/lib/utils";
+import { toDate, safeFormat } from "@/lib/utils";
 
-// Safe date formatting helper
-const safeFormat = (date: any, formatStr: string, options?: any) => {
-  try {
-    const d = date instanceof Date ? date : new Date(date);
-    if (!isValid(d)) return "—";
-    return format(d, formatStr, options);
-  } catch (e) {
-    return "—";
-  }
-};
 
 /** Nombre de versements chargés : borne la requête ET le total affiché. */
 const PAYOUTS_SHOWN = 50;

@@ -34,19 +34,10 @@ import { subDays, format, isValid } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { Skeleton } from '@/components/ui/skeleton';
 import Link from 'next/link';
-import { toDate } from '@/lib/utils';
+import { toDate, safeFormat, initial, safeText, formatEuros } from '@/lib/utils';
+import { SafeSection } from '@/components/error-boundary';
 import { PLATFORM_FEE_PERCENT } from '@/lib/fees';
 
-// Safe date formatting helper
-const safeFormat = (date: any, formatStr: string, options?: any) => {
-  try {
-    const d = date instanceof Date ? date : new Date(date);
-    if (!isValid(d)) return "—";
-    return format(d, formatStr, options);
-  } catch (e) {
-    return "—";
-  }
-};
 import { useToast } from '@/hooks/use-toast';
 
 const chartConfig = {
@@ -356,6 +347,7 @@ export default function AssociationDashboardPage() {
         </div>
       )}
 
+      <SafeSection label="kpis-association">
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <div className="bg-brand-coral text-white rounded-[2.5rem] p-8 flex flex-col justify-between min-h-[220px]">
           <span className="text-[10px] font-extrabold uppercase tracking-[0.2em] opacity-60">FONDS RÉCOLTÉS CE MOIS-CI</span>
@@ -392,12 +384,14 @@ export default function AssociationDashboardPage() {
           </div>
         </div>
       </div>
+      </SafeSection>
 
+      <SafeSection label="objectif-et-graphe">
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         <div className="lg:col-span-4 space-y-6">
           <div className="bg-white border border-black/[0.05] rounded-[2.5rem] p-10 flex flex-col justify-between min-h-[200px] shadow-sm">
             <span className="text-[10px] font-extrabold uppercase tracking-[0.2em] opacity-40">TOTAL DEPUIS LE DÉBUT</span>
-            <div className="text-4xl md:text-5xl font-extrabold truncate">{lifetimeTotal.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 })}</div>
+            <div className="text-4xl md:text-5xl font-extrabold truncate">{formatEuros(lifetimeTotal, { maximumFractionDigits: 0 })}</div>
           </div>
           
           <div className="bg-white border border-black/[0.05] rounded-[2.5rem] p-10 space-y-8 shadow-sm">
@@ -454,7 +448,9 @@ export default function AssociationDashboardPage() {
           </div>
         </div>
       </div>
+      </SafeSection>
 
+      <SafeSection label="donateurs-recents">
       <div className="bg-white border border-black/[0.05] rounded-[3rem] overflow-hidden shadow-sm">
         <div className="p-10 flex justify-between items-center border-b border-black/[0.05]">
           <div>
@@ -480,12 +476,12 @@ export default function AssociationDashboardPage() {
                   <td className="px-10 py-6">
                     <div className="flex items-center gap-4">
                       <div className="w-10 h-10 rounded-full bg-brand-yellow flex items-center justify-center font-extrabold text-xs">
-                        {donor.name.split(' ').map(n => n[0]).join('')}
+                        {initial(donor.name, 'D')}
                       </div>
-                      <span className="font-bold">{donor.name}</span>
+                      <span className="font-bold">{safeText(donor.name, 'Donateur anonyme')}</span>
                     </div>
                   </td>
-                  <td className="px-10 py-6 font-extrabold">{donor.amount?.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' }) || "0,00 €"}</td>
+                  <td className="px-10 py-6 font-extrabold">{formatEuros(donor.amount)}</td>
                   <td className="px-10 py-6 text-foreground/40 font-bold">{donor.date}</td>
                   <td className="px-10 py-6 text-right">
                     <span className="px-4 py-1.5 rounded-full bg-brand-mint/20 text-brand-mint text-[10px] font-extrabold uppercase tracking-widest">
@@ -498,6 +494,7 @@ export default function AssociationDashboardPage() {
           </table>
         </div>
       </div>
+      </SafeSection>
     </div>
   );
 }

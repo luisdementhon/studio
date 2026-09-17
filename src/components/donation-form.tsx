@@ -33,6 +33,7 @@ import { useUser } from '@/firebase';
 import { authedFetch } from '@/lib/api-client';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 import { Heart } from 'lucide-react';
+import { initial, safeText } from '@/lib/utils';
 
 const stripePromise = loadStripe(STRIPE_PUBLISHABLE_KEY);
 
@@ -227,10 +228,10 @@ export function DonationForm({ associations, isLoading }: { associations: Associ
                       <SelectItem key={asso.id} value={asso.id} className="rounded-xl h-14 cursor-pointer focus:bg-brand-coral/5 focus:text-brand-coral transition-colors">
                         <div className="flex items-center gap-4">
                           <Avatar className="h-10 w-10 rounded-xl border border-black/5">
-                            <AvatarImage src={asso.logoUrl || `https://picsum.photos/seed/${asso.id}/64/64`} alt={asso.associationName} />
-                            <AvatarFallback className="bg-brand-coral/5 text-brand-coral font-extrabold">{asso.associationName.charAt(0)}</AvatarFallback>
+                            <AvatarImage src={asso.logoUrl || `https://picsum.photos/seed/${asso.id}/64/64`} alt={safeText(asso.associationName, 'Association')} />
+                            <AvatarFallback className="bg-brand-coral/5 text-brand-coral font-extrabold">{initial(asso.associationName, 'A')}</AvatarFallback>
                           </Avatar>
-                          <span className="font-headline font-extrabold text-lg tracking-tight">{asso.associationName}</span>
+                          <span className="font-headline font-extrabold text-lg tracking-tight">{safeText(asso.associationName, 'Association sans nom')}</span>
                         </div>
                       </SelectItem>
                     ))

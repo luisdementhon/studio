@@ -38,7 +38,8 @@ import { format, subDays, startOfDay, isAfter } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { Button } from '@/components/ui/button';
 import { DotlyBrand } from '@/components/ui/dotly-brand';
-import { toDate } from '@/lib/utils';
+import { toDate, initial, safeText, formatEuros, safeFormat } from '@/lib/utils';
+import { SafeSection } from '@/components/error-boundary';
 
 const chartConfig = {
   dons: {
@@ -107,7 +108,12 @@ export default function UserDashboardPage() {
             const querySnapshot = await getDocs(q);
             const assos: Association[] = [];
             querySnapshot.forEach((doc) => {
-                assos.push({ id: doc.id, ...doc.data() } as Association);
+                const data = doc.data() as any;
+                // Une fiche sans nom est un profil incomplet, pas une
+                // association : rien à proposer au donateur, et un `.charAt(0)`
+                // sur un nom absent suffisait à vider tout le tableau de bord.
+                if (!data.associationName) return;
+                assos.push({ id: doc.id, ...data } as Association);
             });
             setAssociations(assos);
         } catch (error) {
@@ -318,6 +324,7 @@ export default function UserDashboardPage() {
       )}
 
       {/* KPI Cards */}
+      <SafeSection label="kpis">
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
         {([
           { title: 'Dons Versés', value: totalDonations, icon: PiggyBank, color: 'mint', sub: 'Total déjà reversé' },
@@ -381,7 +388,9 @@ export default function UserDashboardPage() {
           )
         ))}
       </div>
+      </SafeSection>
 
+      <SafeSection label="causes">
       <div className="grid gap-6 md:grid-cols-2 animate-cascade" style={{ animationDelay: '600ms' }}>
         <Card className="rounded-[2.5rem] border-none shadow-xl shadow-black/[0.02] bg-white">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
@@ -411,9 +420,11 @@ export default function UserDashboardPage() {
           </CardContent>
         </Card>
       </div>
+      </SafeSection>
 
       {/* Chart and Form Section */}
       <div className="grid gap-10 lg:grid-cols-12">
+        <SafeSection label="graphe-dons">
         <Card className="lg:col-span-8 rounded-[3.5rem] border-none shadow-2xl shadow-black/[0.02] bg-white p-8">
           <CardHeader className="px-2 pb-10">
             <div className="flex items-center justify-between">
@@ -480,13 +491,17 @@ export default function UserDashboardPage() {
             )}
           </CardContent>
         </Card>
-        
+        </SafeSection>
+
         <div className="lg:col-span-4">
-          <DonationForm associations={associations} isLoading={associationsLoading} />
+          <SafeSection label="formulaire-don">
+            <DonationForm associations={associations} isLoading={associationsLoading} />
+          </SafeSection>
         </div>
       </div>
       
       {/* Recent Donations Table */}
+      <SafeSection label="historique-recent">
       <Card className="rounded-[3.5rem] border-none shadow-2xl shadow-black/[0.02] bg-white overflow-hidden">
         <CardHeader className="p-12 pb-8">
           <div className="flex items-center justify-between">
@@ -537,18 +552,18 @@ export default function UserDashboardPage() {
                       <TableCell className="px-12 py-8">
                         <div className="flex items-center gap-4">
                           <div className="h-12 w-12 rounded-2xl bg-muted/30 flex items-center justify-center font-headline font-extrabold text-brand-coral group-hover:scale-110 transition-transform">
-                            {tx.associationName.charAt(0)}
+                            {initial(tx.associationName, 'A')}
                           </div>
-                          <span className="font-headline font-extrabold text-2xl tracking-tight">{tx.associationName}</span>
+                          <span className="font-headline font-extrabold text-2xl tracking-tight">{safeText(tx.associationName, 'Association inconnue')}</span>
                         </div>
                       </TableCell>
                       <TableCell className="text-right px-12 py-8">
                           <span className="inline-flex px-6 py-2.5 rounded-full bg-brand-coral/10 text-brand-coral font-extrabold text-xl tabular-nums">
-                              {tx.amount?.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' }) || "0,00 €"}
+                              {formatEuros(tx.amount)}
                           </span>
                       </TableCell>
                       <TableCell className="text-right px-12 py-8 text-muted-foreground font-bold text-base">
-                          {format(new Date(tx.transactionDate), 'd MMM yyyy', { locale: fr })}
+                          {safeFormat(tx.transactionDate, 'd MMM yyyy', { locale: fr })}
                       </TableCell>
                     </TableRow>
                 ))
@@ -564,6 +579,7 @@ export default function UserDashboardPage() {
           )}
         </CardContent>
       </Card>
+      </SafeSection>
     </div>
   );
 }
